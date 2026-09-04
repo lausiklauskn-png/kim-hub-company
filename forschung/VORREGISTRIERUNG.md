@@ -7,10 +7,33 @@ den Daten **nicht mehr geaendert**. Eine Vorhersage, die erst hinterher
 formuliert wird, passt immer; vorher aufgeschrieben kann sie schiefgehen — das
 ist der ganze Unterschied zwischen einer Aufzeichnung und einer Untersuchung.
 
-Es gibt kein Register, das den Zeitpunkt beglaubigt. **Die Git-Historie tut es:**
-der Commit, der dieses Blatt anlegt, traegt ein Datum, und die Ergebnisse
-danach tragen ihres. Wer pruefen will, ob die Vorhersage aelter ist als die
-Daten, kann es nachrechnen.
+> ## ⚠ KORREKTUR AM 2026-09-04, NACH DEM LAUF — DIE BEGLAUBIGUNG FEHLT
+>
+> **Hier stand:** *„Es gibt kein Register, das den Zeitpunkt beglaubigt. Die
+> Git-Historie tut es: der Commit, der dieses Blatt anlegt, traegt ein Datum, und
+> die Ergebnisse danach tragen ihres. Wer pruefen will, ob die Vorhersage aelter
+> ist als die Daten, kann es nachrechnen.“*
+>
+> **Das ist falsch, und zwar nachpruefbar falsch.** Dieses Blatt und
+> `LAUF-01.md` liegen im **selben Commit** (`4515798`). Wer nachrechnet, findet
+> keine zwei Datumsangaben, sondern eine. Die Historie beglaubigt **nichts**.
+>
+> **Was stimmt:** die Vorhersagen wurden geschrieben, bevor der erste Agent lief.
+> **Was fehlt:** ein Beleg dafuer im Depot. Ausserhalb des Sitzungsverlaufs gibt
+> es keinen, und der ist keine Beglaubigung — er liegt bei dem, der auch die
+> Auswertung geschrieben hat.
+>
+> **Nicht geheilt, sondern benannt.** Einen frueheren Commit nachtraeglich zu
+> erzeugen waere genau die Faelschung, gegen die eine Vorregistrierung gebaut
+> ist. Der Zeitstempel, den man sich selbst ausstellt, ist keiner.
+>
+> **Die Regel fuer den naechsten Lauf, damit es einmal genuegt:** die
+> Vorregistrierung bekommt einen **eigenen Commit und einen eigenen Push**,
+> bevor ein einziger Agent startet. Erst danach wird gearbeitet.
+>
+> **Die Vorhersagen unten sind unveraendert.** Korrigiert ist nur die Aussage
+> darueber, was sie beglaubigt — eine falsche Zusicherung stehen zu lassen,
+> waere schlimmer als die fehlende.
 
 ---
 

@@ -5,8 +5,15 @@ vollständige Vier-Datei-PWA — ein Werkzeug, das ein anderes Bündel daraufhin
 ansieht, ob es als installierbare App taugt.
 
 Die Vorhersagen standen **vor** dem ersten Agenten in
-[`VORREGISTRIERUNG.md`](VORREGISTRIERUNG.md). Die Git-Historie beglaubigt den
-Zeitpunkt.
+[`VORREGISTRIERUNG.md`](VORREGISTRIERUNG.md).
+
+⚠ **BELEGT IST DAS NICHT.** Hier stand *„Die Git-Historie beglaubigt den
+Zeitpunkt."* — sie tut es nicht: dieses Blatt und die Vorregistrierung liegen im
+**selben Commit** (`4515798`). Es gibt im Depot keinen Beleg dafuer, dass die
+Vorhersagen aelter sind als die Daten. Benannt statt geheilt; die Begruendung und
+die Regel fuer den naechsten Lauf stehen im Korrektur-Kasten der
+Vorregistrierung. **Wer diesen Lauf bewertet, behandelt V-E1 bis V-E3 als
+unbeglaubigt.**
 
 ---
 
