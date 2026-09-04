@@ -1,0 +1,56 @@
+# ══ DIESES DEPOT IST OEFFENTLICH ═══════════════════════════════════════════
+#
+# Diese Datei steht VOR der ersten Datei, die etwas tragen koennte. Nicht
+# danach. Der Grund ist gemessen und nicht theoretisch: Kimhub trug die
+# Buchhaltung im Depot, und GitHub Pages lieferte sie oeffentlich aus, obwohl
+# das Depot privat stand. Klaus hat sie selbst unter der oeffentlichen Adresse
+# geholt und hergezeigt.
+#
+# "Privat" ist eine Einstellung, die ein Klick umdreht, und die Historie behaelt
+# alles, was je darin lag — auch nach dem Loeschen. `git rm` nimmt eine Datei
+# aus dem Arbeitsstand, nicht aus der Vergangenheit.
+#
+# Wer hier eine Datei anlegt, die Zahlen, Schluessel oder fremde Auftraege
+# traegt, traegt sie ZUERST hier ein.
+
+# ── Was ein Lauf auf DIESER Maschine erzeugt ───────────────────────────────
+# Laufzeit-Stand, nicht Depot-Inhalt. Eingecheckt kollidiert jeder `git pull`
+# mit den echten Laeufen des Nutzers — genau der Bruch, an dem Kimhub bis zum
+# 2026-08-20 litt.
+werkstatt/lauf.json
+werkstatt/konferenz.json
+werkstatt/gegenpruefung.json
+werkstatt/entwurf/
+werkstatt/plan-offen.md
+/version.json
+
+# ── Geld und Zugang ────────────────────────────────────────────────────────
+# Das Tageskontingent ist der Stand einer Maschine. Die Gaesteliste traegt
+# Zugangswoerter — ein Zugangswort im Depot waere ein Schluessel im Depot.
+schicht/kontingent.json
+schicht/gaeste.json
+
+# ── Die Buchhaltung, offen ─────────────────────────────────────────────────
+# Was ins Depot darf, ist das verschluesselte PAKET daneben (*.enc.json,
+# AES-256-GCM ueber PBKDF2-SHA256/600000). Die OFFENEN Fassungen reisen nie mit.
+# Ein Tresor, neben dem der Klartext liegt, ist eine Anzeige, kein Schutz —
+# genau so lag er in Kimhub da, als Pages ihn auslieferte.
+werkstatt/buchhaltung/anthropic-belege.json
+werkstatt/buchhaltung/zeiten.json
+werkstatt/buchhaltung/fahrtenbuch.json
+werkstatt/buchhaltung/fahrtenbuch-kaputt-*.json
+
+# ── Der Schluessel des Nutzers ─────────────────────────────────────────────
+# Er lebt im Arbeitsspeicher des Browsers und hat auf einer Platte nichts zu
+# suchen. Diese Zeilen sind ein Netz unter dem Netz, falls doch einmal jemand
+# eine Datei anlegt.
+*.key
+*schluessel*.json
+.env
+.env.*
+
+# ── Werkzeug ───────────────────────────────────────────────────────────────
+node_modules/
+package-lock.json
+__pycache__/
+*.pyc
