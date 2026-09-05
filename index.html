@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kim Hub Company — eine Schicht im Browser</title>
+<meta name="description" content="Fünf Rollen bauen an einem Auftrag: vorschlagen, bauen, prüfen, angreifen, aufschreiben. Läuft im Browser, auf deinem eigenen KI-Zugang.">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0c0f12">
+<link rel="manifest" href="company.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/kimhub-192.png?v=1">
+<link rel="apple-touch-icon" href="icons/kimhub-192.png?v=1">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<!-- Thema VOR dem ersten Anstrich. Sonst blitzt bei jedem Aufruf kurz das
+     Standard-Thema auf — genau der Sprung, den wir sonst überall vermeiden. -->
+<script>try{var t=localStorage.getItem("kimhub_company_thema");if(t)document.documentElement.setAttribute("data-thema",t);}catch(e){}</script>
+<style>
+/* Farben aus `index.html` dieses Depots — dieselbe Familie, damit man die
+   Herkunft sieht. Wer eine ändert, rechnet den Kontrast für BEIDE Themen nach:
+   eine Palette, die nur in einem lesbar ist, ist keine. */
+:root{
+  --grund:#0c0f12; --grund2:#12171c; --karte:#161c22; --karte2:#1b232b;
+  --kante:#283139; --schrift:#d7dee5; --leise:#8a97a3;
+  --akzent:#36d6c3; --akzent-dunkel:#1f7a72; --akzent-schrift:#06201d;
+  --warn:#e0a93a; --rot:#d65a5a; --gut:#3fd06b;
+  --r-ingenieur:#7c9cff; --r-bauer:#36d6c3; --r-arzt:#a78bfa;
+  --r-negativbauer:#e0a93a; --r-beobachter:#3fd06b;
+  --schatten:0 12px 34px rgba(0,0,0,.42), 0 4px 10px rgba(0,0,0,.26);
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+:root[data-thema="tag"]{
+  --grund:#f2f5f6; --grund2:#e8edef; --karte:#ffffff; --karte2:#f6f9fa;
+  --kante:#ccd6da; --schrift:#12191e; --leise:#4d5c66;
+  --akzent:#0d6b60; --akzent-dunkel:#0a4f47; --akzent-schrift:#ffffff;
+  --warn:#8a5a12; --rot:#9c2b2b; --gut:#166534;
+  --r-ingenieur:#2f4fa8; --r-bauer:#0d6b60; --r-arzt:#5b3fa8;
+  --r-negativbauer:#8a5a12; --r-beobachter:#166534;
+  --schatten:0 8px 22px rgba(20,40,50,.10), 0 2px 6px rgba(20,40,50,.08);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--grund);color:var(--schrift);
+  font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  -webkit-text-size-adjust:100%}
+/* `hidden` ist nur eine UA-Regel und verliert gegen jede Klasse mit `display`.
+   In Kimhub hat genau das den Chef-Code ausgehebelt — der Stundensatz stand
+   sichtbar da, während das Attribut gesetzt war. */
+[hidden]{display:none !important}
+.wrap{max-width:860px;margin:0 auto;padding:18px 16px 80px}
+h1{font-size:1.45rem;margin:.2em 0 .1em;letter-spacing:.2px}
+h2{font-size:1.05rem;margin:0 0 .5em;letter-spacing:.3px}
+p{margin:.55em 0}
+a{color:var(--akzent)}
+code,.mono{font-family:var(--mono);font-size:.92em}
+
+header{display:flex;align-items:center;gap:12px;padding:6px 0 14px;flex-wrap:wrap}
+.marke{width:36px;height:36px;flex:0 0 36px;border-radius:10px;
+  background:linear-gradient(135deg,var(--akzent),var(--akzent-dunkel));
+  color:var(--akzent-schrift);display:grid;place-items:center;
+  font-weight:800;font-size:.95rem;letter-spacing:-.5px}
+header .titel{flex:1 1 200px;min-width:0}
+header .titel small{display:block;color:var(--leise);font-size:.82rem;line-height:1.35}
+
+button{font:inherit;cursor:pointer;color:var(--schrift);
+  background:linear-gradient(180deg,var(--karte2),var(--karte));
+  border:1px solid var(--kante);border-radius:11px;padding:9px 14px;
+  min-height:44px;transition:border-color .15s,box-shadow .15s,transform .06s}
+button:hover:not(:disabled){border-color:var(--akzent)}
+button:active:not(:disabled){transform:translateY(1px)}
+button:focus-visible{outline:2px solid var(--akzent);outline-offset:2px}
+button.haupt{background:linear-gradient(135deg,var(--akzent),var(--akzent-dunkel));
+  color:var(--akzent-schrift);border-color:var(--akzent);font-weight:650}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.klein{min-height:36px;padding:6px 11px;font-size:.88rem}
+
+.karte{background:var(--karte);border:1px solid var(--kante);border-radius:14px;
+  padding:16px 16px 15px;margin:14px 0;box-shadow:var(--schatten)}
+.karte > h2{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+.nr{font-family:var(--mono);font-size:.78rem;color:var(--akzent);
+  border:1px solid var(--kante);border-radius:6px;padding:1px 6px}
+
+label{display:block;font-size:.86rem;color:var(--leise);margin:.75em 0 .25em}
+input,textarea,select{width:100%;font:inherit;color:var(--schrift);
+  background:var(--grund2);border:1px solid var(--kante);border-radius:10px;
+  padding:10px 12px;min-height:44px}
+textarea{min-height:80px;resize:vertical;line-height:1.5}
+input:focus-visible,textarea:focus-visible,select:focus-visible{
+  outline:2px solid var(--akzent);outline-offset:1px}
+.reihe{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.reihe > *{flex:0 0 auto}
+
+.hinweis{font-size:.86rem;color:var(--leise);margin:.5em 0 0}
+.merk{border-left:3px solid var(--kante);padding:.1em 0 .1em .8em;margin:.8em 0;
+  font-size:.88rem;color:var(--leise)}
+.merk.warn{border-left-color:var(--warn)}
+.merk.rot{border-left-color:var(--rot);color:var(--schrift)}
+
+.lage{display:inline-flex;align-items:center;gap:7px;font-size:.84rem;
+  border:1px solid var(--kante);border-radius:999px;padding:3px 11px;
+  background:var(--grund2)}
+.punkt{width:8px;height:8px;border-radius:50%;background:var(--leise);flex:0 0 8px}
+.lage[data-stand="offen"] .punkt{background:var(--gut)}
+.lage[data-stand="zu"] .punkt{background:var(--warn)}
+.lage[data-stand="leer"] .punkt{background:var(--leise)}
+.lage[data-stand="fehler"] .punkt{background:var(--rot)}
+
+details.erklaer{margin:.7em 0}
+details.erklaer > summary{cursor:pointer;list-style:none;color:var(--leise);
+  font-size:.86rem;border:1px dashed var(--kante);border-radius:9px;
+  padding:9px 12px;min-height:40px;display:flex;align-items:center}
+details.erklaer > summary::-webkit-details-marker{display:none}
+details.erklaer > summary:hover{border-color:var(--akzent);color:var(--schrift)}
+details.erklaer > summary::before{content:"▸ ";margin-right:.4em}
+details.erklaer[open] > summary::before{content:"▾ "}
+details.erklaer .inhalt{padding:.4em .2em .2em;font-size:.9rem;color:var(--leise)}
+
+.rede{display:flex;gap:10px;margin:9px 0;align-items:flex-start}
+.wer{flex:0 0 78px;font-size:.78rem;font-weight:650;padding-top:9px;
+  text-align:right;color:var(--leise)}
+.rede[data-rolle="ingenieur"] .wer{color:var(--r-ingenieur)}
+.rede[data-rolle="bauer"] .wer{color:var(--r-bauer)}
+.rede[data-rolle="arzt"] .wer{color:var(--r-arzt)}
+.rede[data-rolle="negativbauer"] .wer{color:var(--r-negativbauer)}
+.rede[data-rolle="beobachter"] .wer{color:var(--r-beobachter)}
+.blase{flex:1 1 auto;min-width:0;background:var(--karte2);
+  border:1px solid var(--kante);border-radius:12px;padding:9px 12px;font-size:.9rem}
+.blase .zeit{float:right;color:var(--leise);font-size:.76rem;
+  font-family:var(--mono);margin-left:10px}
+
+.kacheln{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  gap:10px;margin-top:12px}
+.kachel{background:var(--karte2);border:1px solid var(--kante);border-radius:12px;
+  padding:11px 12px}
+.kachel b{display:block;font-size:1.15rem;font-weight:700;line-height:1.25}
+.kachel span{font-size:.78rem;color:var(--leise)}
+
+pre{white-space:pre-wrap;word-break:break-word;background:var(--grund2);
+  border:1px solid var(--kante);border-radius:10px;padding:12px;
+  font-size:.85rem;max-height:460px;overflow:auto;margin:.7em 0}
+/* Breites darf IN SICH rollen, der Rumpf nie waagerecht. */
+.roller{overflow-x:auto}
+
+footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--kante);
+  color:var(--leise);font-size:.82rem}
+footer .reihe{margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="marke">KHC</div>
+  <div class="titel">
+    <h1>Kim Hub Company</h1>
+    <small>Fünf Rollen, ein Auftrag: vorschlagen · bauen · prüfen · angreifen · aufschreiben.
+      Läuft in deinem Browser, auf deinem eigenen KI-Zugang.</small>
+  </div>
+  <button class="klein" id="thema" type="button" title="Hell oder dunkel">◐</button>
+  <button class="klein" id="frisch" type="button" title="Vorrat wegwerfen und neu laden">⟳</button>
+</header>
+
+<!-- ══ 1 · WAS DAS HIER IST ═══════════════════════════════════════════════
+     Kurz und offen. Die lange Fassung steht im Aufklapper — der Beipackzettel
+     wird einmal gelesen, danach steht er nur im Weg. -->
+<section class="karte">
+  <h2><span class="nr">1</span> Was hier passiert</h2>
+  <p>Du gibst einen Auftrag ein. Fünf Rollen arbeiten ihn nacheinander ab:
+    <b>Nora</b> schlägt vor, was gebaut wird, <b>Emil</b> baut es, <b>Vera</b>
+    prüft gegen ein vorher genanntes Merkmal, <b>Sten</b> sucht, was daran
+    kaputtgeht, <b>Jonas</b> schreibt auf, wo es steht.</p>
+  <p><b>Zwei Wege, und der erste kostet nichts.</b> Der <i>Trockenlauf</i>
+    spielt eine hinterlegte Schicht ab — du siehst den ganzen Ablauf, ohne
+    einen Cent auszugeben und ohne Schlüssel. Der <i>echte Lauf</i> ruft
+    wirklich Modelle auf und kostet Geld: deins.</p>
+
+  <details class="erklaer">
+    <summary>Warum ein Trockenlauf keine Vorführung mit erfundenen Zahlen ist</summary>
+    <div class="inhalt">
+      <p>Er fährt <b>dieselbe Mechanik</b> wie ein echter Lauf: dieselbe
+        Reihenfolge, dieselbe Kostenbremse, dasselbe Gedächtnis, dasselbe
+        Ergebnis-Format. Nur die Antworten kommen aus einer hinterlegten Datei
+        statt von einem Modell.</p>
+      <p><b>Seine Euro-Beträge sind gerechnet, nicht bezahlt.</b> Das steht
+        auch am Ergebnis dran — eine gerechnete Zahl klingt genau wie eine
+        gemessene, und deshalb muss der Unterschied dastehen und nicht
+        gewusst werden.</p>
+    </div>
+  </details>
+</section>
+
+<!-- ══ 2 · DER SCHLÜSSEL ══════════════════════════════════════════════════
+     Die drei Pflicht-Sätze aus `docs/BYOK_BEDINGUNGEN.md` § 3 stehen hier
+     OFFEN, nicht im Aufklapper: „Wer einen bezahlten Zugang eintippt, hat ein
+     Recht darauf zu erfahren, wo er landet, wie lange er bleibt und wie man
+     ihn wieder loswird. Ein Feld ohne diesen Satz wäre ein toter Knopf mit
+     Beschriftung — die schlimmere Sorte." -->
+<section class="karte">
+  <h2><span class="nr">2</span> Dein KI-Zugang
+    <span class="lage" id="schluessel-lage" data-stand="leer">
+      <span class="punkt"></span><span id="schluessel-lage-text">wird nachgesehen …</span>
+    </span>
+  </h2>
+
+  <p class="merk" data-pflichtsatz="wohin"><b>Wo er landet:</b> in diesem
+    Browser, auf diesem Gerät — <b>verschlüsselt</b> (AES-256-GCM, Schlüssel
+    aus deinem Passwort über PBKDF2-SHA256 mit 600 000 Runden). Er wird an
+    genau eine Stelle geschickt: an die KI-Adresse, die unten steht.
+    <b>Nicht ins Depot, nicht zu uns, in kein Protokoll.</b></p>
+  <p class="merk" data-pflichtsatz="wielange"><b>Wie lange er bleibt:</b> bis
+    du ihn wegwirfst. Das <b>Passwort</b> dagegen bleibt nur im Arbeitsspeicher
+    — einmal je Besuch eintippen. Das ist der Preis dafür, dass es nirgends
+    liegt, wo es jemand lesen könnte.</p>
+  <p class="merk" data-pflichtsatz="weg"><b>Wie du ihn loswirst:</b> der Knopf
+    <b>„Schlüssel wegwerfen"</b> unten. Danach ist er fort — es gibt kein
+    Zurücksetzen des Passworts, das ist der Preis echter Verschlüsselung.</p>
+
+  <div id="schluessel-eingabe">
+    <label for="pw">Passwort für den Tresor <span id="pw-zweck"></span></label>
+    <input id="pw" type="password" autocomplete="current-password" placeholder="dein Tresor-Passwort">
+
+    <div id="neu-block">
+      <label for="key">Anthropic-Schlüssel (beginnt mit <code>sk-ant-</code>)</label>
+      <input id="key" type="password" autocomplete="off" spellcheck="false"
+             placeholder="sk-ant-…">
+      <label for="basis">Eigene KI-Adresse <span class="hinweis">— optional</span></label>
+      <input id="basis" type="text" autocomplete="off" spellcheck="false"
+             placeholder="https://api.anthropic.com">
+      <p class="hinweis" data-was-geht>⚠ Eine eigene Adresse muss das
+        <b>Anthropic-Messages-Protokoll</b> sprechen. Das tun Anthropic-
+        Weiterleitungen und manche Gateways. <b>Es geht nicht</b> für Adressen,
+        die das OpenAI-Protokoll sprechen — also die meisten lokalen Modelle
+        (Ollama, LM Studio) und die meisten kostenlosen Anbieter. Ein
+        Übersetzer zwischen beiden ist nicht gebaut.</p>
+    </div>
+
+    <div class="reihe">
+      <button id="einlegen" type="button" class="haupt">Schlüssel einlegen</button>
+      <button id="aufschliessen" type="button" hidden>Tresor aufschliessen</button>
+      <button id="werfen" type="button" hidden>Schlüssel wegwerfen</button>
+    </div>
+    <p class="hinweis" id="schluessel-sagt" data-sagt="" role="status" aria-live="polite"></p>
+  </div>
+
+  <details class="erklaer">
+    <summary>Was wir über die Bedingungen wissen — und was nicht</summary>
+    <div class="inhalt" data-flanke>
+      <p>Das offizielle SDK sperrt den Browser, bis man es ausdrücklich
+        freigibt. Die Warnung dazu handelt durchgehend von <i>deinen</i>
+        Zugangsdaten als Betreiber — von einem Schlüssel, der im
+        ausgelieferten Code steckt und den jeder Besucher herausziehen kann.
+        <b>Dieser Fall liegt hier nicht vor:</b> im Code steht kein Schlüssel,
+        im Depot auch keiner, und abgerechnet wird auf deinem Konto.</p>
+      <p><b>Daraus folgt nicht, dass es erlaubt ist.</b> Die Doku zählt zwei
+        Fälle auf, in denen es unbedenklich sei — interne Werkzeuge und
+        Entwicklung. Eine öffentlich verteilte Seite steht nicht darin; die
+        Frage wird dort gar nicht gestellt. Aus „der genannte Schaden trifft
+        uns nicht" folgt keine Erlaubnis. <b>Das ist eine offene Flanke, und
+        sie steht hier, statt weggelächelt zu werden.</b></p>
+    </div>
+  </details>
+</section>
+
+<!-- ══ 3 · DER AUFTRAG ════════════════════════════════════════════════════ -->
+<section class="karte">
+  <h2><span class="nr">3</span> Der Auftrag</h2>
+  <label for="ziel">Was soll gebaut werden?</label>
+  <textarea id="ziel" placeholder="Ein kleines Werkzeug, das …"></textarea>
+  <label for="merkmal">Woran sieht man am Ende, dass es erfüllt ist?
+    <span class="hinweis">— optional; ohne das nennt Nora selbst eines</span></label>
+  <input id="merkmal" type="text" placeholder="z. B.: eine Datei, unter 20 KB, läuft ohne Bauschritt">
+
+  <label for="dateien">Womit dürfen die Rollen arbeiten?
+    <span class="hinweis">— optional</span></label>
+  <input id="dateien" type="file" multiple>
+  <p class="hinweis" data-werkzeug-grund>Ohne Dateien laufen die Rollen
+    <b>ohne Werkzeuge</b> — und das ist Absicht: drei Werkzeuge, die „geht
+    nicht" antworten, kosten in einem echten Lauf eine <b>bezahlte</b> Runde.
+    Was du hier übergibst, dürfen sie <b>lesen</b>; schreiben kann keines von
+    ihnen, es gibt kein schreibendes Werkzeug.</p>
+
+  <label for="deckel">Deckel — so viel darf die Schicht höchstens ausgeben</label>
+  <div class="reihe">
+    <input id="deckel" type="number" min="0.20" max="20" step="0.10" value="1.00"
+           style="width:110px;flex:0 0 110px"> <span class="hinweis">€</span>
+    <span class="hinweis" id="deckel-sagt"></span>
+  </div>
+
+  <div class="reihe">
+    <button id="trocken" type="button">▷ Trockenlauf — kostet nichts</button>
+    <button id="echt" type="button" class="haupt" disabled>● Echter Lauf — kostet dein Geld</button>
+    <button id="abbruch" type="button" hidden>■ Abbrechen</button>
+  </div>
+  <p class="hinweis" id="start-sagt" data-start="" role="status" aria-live="polite"></p>
+</section>
+
+<!-- ══ 4 · DER LAUF ═══════════════════════════════════════════════════════ -->
+<section class="karte" id="lauf-karte" hidden>
+  <h2><span class="nr">4</span> Die Schicht
+    <span class="lage" id="lauf-lage" data-stand="leer">
+      <span class="punkt"></span><span id="lauf-lage-text">läuft</span>
+    </span>
+  </h2>
+  <p class="hinweis" id="lauf-art" data-art="" data-herkunft=""></p>
+  <div id="reden"></div>
+  <div class="kacheln" id="zahlen"></div>
+</section>
+
+<!-- ══ 5 · DAS ERGEBNIS ═══════════════════════════════════════════════════ -->
+<section class="karte" id="ergebnis-karte" hidden>
+  <h2><span class="nr">5</span> Das Werkstück</h2>
+  <p class="hinweis" id="ergebnis-kopf"></p>
+  <div class="roller"><pre id="werkstueck"></pre></div>
+  <div class="reihe">
+    <button id="herunterladen" type="button" class="klein">⭳ Werkstück speichern</button>
+    <button id="protokoll" type="button" class="klein">⭳ Lauf-Protokoll (JSON)</button>
+  </div>
+  <p class="hinweis" data-bom>Textdateien bekommen ein Byte-Order-Mark
+    mitgegeben — ohne das rät Androids Betrachter Latin-1, und aus jedem Umlaut
+    werden zwei Zeichen. Das JSON bekommt <b>keines</b>: dort bricht jeder
+    Parser daran ab.</p>
+</section>
+
+<footer>
+  <p><b>Kim Hub Company</b> — gebaut in Heimarbeit, kein grosses Unternehmen
+    dahinter. Der Quelltext ist offen; Web-Code ist ohnehin immer lesbar.</p>
+  <p data-was-nicht>Was diese Seite <b>nicht</b> tut: nichts geht von allein
+    hinaus, es gibt keinen Zähler beim Laden und keine Meldung über deine
+    Nutzung. Sie läuft vollständig, auch wenn du nie einen Knopf drückst,
+    der etwas verschickt.</p>
+  <p class="hinweis" id="speicher-lage" data-wo=""></p>
+</footer>
+
+</div>
+<script type="module" src="company.js"></script>
+</body>
+</html>

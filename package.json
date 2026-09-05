@@ -1,0 +1,12 @@
+{
+  "name": "kim-hub-company",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Fünf Rollen bauen an einem Auftrag — im Browser, auf dem eigenen KI-Zugang.",
+  "scripts": {
+    "test": "node tests/alle.mjs",
+    "drift": "node tools/drift-guard.mjs",
+    "serve": "python3 -m http.server 8000"
+  }
+}
