@@ -28,8 +28,16 @@ export async function lauf(ok) {
    * Startseite, und der ist hier `index.html` statt `start.html`. Genau
    * deshalb müssen sie gegeneinander stimmen — eine Abweichung, die niemand
    * prüft, ist eine Abweichung, die auseinanderläuft. */
-  const sw = lies("company-sw.js");
+  /* ⚠ DER WORKER HEISST HIER `sw.js`, NICHT `company-sw.js` — `ansicht.js`
+     registriert genau diesen Namen, und damit braucht Company dafür keine
+     eigene Zeile. Hier stand der alte Name, und die Datei lag vom vorigen
+     Stand noch daneben: die Probe las also einen Vorrat, den niemand mehr
+     ausliefert, und meldete drei Dateien als fehlend, die längst drinstanden.
+     Eine Probe, die die falsche Datei liest, misst zuverlässig das Falsche. */
+  const sw = lies("sw.js");
   ok("der Worker kennt die Startseite dieses Depots", sw.includes('"./index.html"'));
+  ok("und er heisst `sw.js` — den Namen registriert `ansicht.js` von selbst",
+    existsSync(join(WURZEL, "sw.js")) && !existsSync(join(WURZEL, "company-sw.js")));
   ok("und NICHT mehr die aus Kimhub", !sw.includes('"./start.html"'));
   const manifest = JSON.parse(lies("company.webmanifest"));
   ok("das Manifest startet in der Wurzel", manifest.start_url === "./");
@@ -43,7 +51,7 @@ export async function lauf(ok) {
    * keine. */
   const seite = lies("index.html");
   const glue = lies("company.js");
-  const skripte = [...seite.matchAll(/<script\s+(?:type="module"\s+)?src="([^"/:]+\.js)"/g)]
+  const skripte = [...seite.matchAll(/<script\s+(?:type="module"\s+)?src="([^"/:]+\.js)(?:\?[^"]*)?"/g)]
     .map((m) => m[1]);
   ok(`die Seite lädt ihren Klebstoff (${skripte.join(", ")})`, skripte.length >= 1);
   const importe = [...glue.matchAll(/^import\s+(?:[^'"]*?from\s+)?["']\.\/([^"']+)["']/gm)]

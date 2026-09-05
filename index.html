@@ -4,21 +4,44 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kim Hub Company</title>
-<meta name="description" content="Fünf Rollen bauen an einem Auftrag: vorschlagen, bauen, prüfen, angreifen, aufschreiben. Läuft im Browser, auf deinem eigenen KI-Zugang.">
+<meta name="description" content="Fünf Rollen bauen an einem Auftrag — im Browser, auf deinem eigenen KI-Zugang. Konferenz, Übergabe, Ergebnis, Fahrtenbuch.">
 <meta name="color-scheme" content="dark light">
-<meta name="theme-color" content="#0c0f12">
+<meta name="theme-color" content="#0d1417">
 <link rel="manifest" href="company.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/kimhub-192.png?v=1">
 <link rel="apple-touch-icon" href="icons/kimhub-192.png?v=1">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <!-- Thema VOR dem ersten Anstrich. Sonst blitzt bei jedem Aufruf kurz das
      Standard-Thema auf — genau der Sprung, den wir sonst überall vermeiden. -->
 <script>try{var t=localStorage.getItem("kimhub_company_thema");if(t)document.documentElement.setAttribute("data-thema",t);}catch(e){}</script>
+<!-- Die Grenze zur Schwester-App auf derselben Adresse. Ohne diese Zeile
+     schriebe Company in die Buchhaltung der Werkstatt. -->
+<script>window.__WERKSTATT_DB = "KimHubCompany1";
+window.__WERKSTATT_QUELLE = {
+  konferenz: null,   /* die Konferenz ist Kimhubs Werkzeug, nicht Companys */
+  lauf: null,        /* entsteht LIVE im Browser — `speise` reicht ihn herein */
+  gegen: null,
+  belege: null,      /* Klaus’ Rechnungen. In Company zahlt jeder selbst */
+  zeiten: null,
+  fahrten: null,     /* das eigene Fahrtenbuch dieses Browsers */
+  zapf: null,        /* keine Zapfsäule: es gibt kein Tageskontingent von Klaus */
+  blatt: null,
+  /* `version` steht NICHT hier: Company liefert eine echte `version.json`
+     mit, geschrieben beim Kopieren. Ein hier erfundenes Datum wäre der
+     Zeitpunkt des Seitenaufrufs und hätte mit dem Stand nichts zu tun. */
+};</script>
 <style>
-/* Farben aus `index.html` dieses Depots — dieselbe Familie, damit man die
-   Herkunft sieht. Wer eine ändert, rechnet den Kontrast für BEIDE Themen nach:
-   eine Palette, die nur in einem lesbar ist, ist keine. */
+/* ── Farben: von SB·KIMTool·Point (Klaus 2026-08-20) ────────────────────────
+ * Die Palette ist 1:1 aus `SB-KIMTool-Point/assets/style.css` übernommen —
+ * dieselbe Familie, dieselbe Grundstimmung. Die BEWEGUNG kommt aus
+ * family-project: Glas-Knöpfe mit maus-folgendem Schimmer, ruhiger Schein im
+ * Hintergrund, weiche Karten.
+ *
+ * Wer eine Farbe ändert, rechnet den Kontrast für BEIDE Themen nach. Eine
+ * Palette, die nur in einem lesbar ist, ist keine.
+ */
 :root{
   --grund:#0c0f12; --grund2:#12171c; --karte:#161c22; --karte2:#1b232b;
   --kante:#283139; --schrift:#d7dee5; --leise:#8a97a3;
@@ -26,311 +49,1378 @@
   --warn:#e0a93a; --rot:#d65a5a; --gut:#3fd06b;
   --r-ingenieur:#7c9cff; --r-bauer:#36d6c3; --r-arzt:#a78bfa;
   --r-negativbauer:#e0a93a; --r-beobachter:#3fd06b;
+  --schein:0 0 26px rgba(54,214,195,.22), 0 0 60px rgba(124,156,255,.10);
   --schatten:0 12px 34px rgba(0,0,0,.42), 0 4px 10px rgba(0,0,0,.26);
   --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
 }
 :root[data-thema="tag"]{
   --grund:#f2f5f6; --grund2:#e8edef; --karte:#ffffff; --karte2:#f6f9fa;
-  --kante:#ccd6da; --schrift:#12191e; --leise:#4d5c66;
+  --kante:#ccd7db; --schrift:#101a1e; --leise:#4a5a61;
   --akzent:#0d6b60; --akzent-dunkel:#0a4f47; --akzent-schrift:#ffffff;
-  --warn:#8a5a12; --rot:#9c2b2b; --gut:#166534;
-  --r-ingenieur:#2f4fa8; --r-bauer:#0d6b60; --r-arzt:#5b3fa8;
-  --r-negativbauer:#8a5a12; --r-beobachter:#166534;
-  --schatten:0 8px 22px rgba(20,40,50,.10), 0 2px 6px rgba(20,40,50,.08);
+  --warn:#8a5a12; --rot:#a8331f; --gut:#1f6b39;
+  --r-ingenieur:#264f9e; --r-bauer:#0d6b60; --r-arzt:#5b3a8a;
+  --r-negativbauer:#8a5a12; --r-beobachter:#1f6b39;
+  --schein:0 0 20px rgba(13,107,96,.16);
+  --schatten:0 8px 22px rgba(20,40,45,.14), 0 2px 6px rgba(20,40,45,.10);
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--grund);color:var(--schrift);
   font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  -webkit-text-size-adjust:100%}
-/* `hidden` ist nur eine UA-Regel und verliert gegen jede Klasse mit `display`.
-   In Kimhub hat genau das den Chef-Code ausgehebelt — der Stundensatz stand
-   sichtbar da, während das Attribut gesetzt war. */
-[hidden]{display:none !important}
-.wrap{max-width:860px;margin:0 auto;padding:18px 16px 80px}
-h1{font-size:1.45rem;margin:.2em 0 .1em;letter-spacing:.2px}
-h2{font-size:1.05rem;margin:0 0 .5em;letter-spacing:.3px}
-p{margin:.55em 0}
+  min-height:100vh}
+/* Ruhiger Schein im Hintergrund — fest, nicht bewegt: eine Seite, die dauernd
+   animiert, kostet Rechenzeit und lenkt vom Inhalt ab (family-project-Muster,
+   hier bewusst reduziert). */
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(60vw 40vh at 12% -5%, rgba(54,214,195,.10), transparent 60%),
+    radial-gradient(50vw 40vh at 95% 8%, rgba(124,156,255,.09), transparent 62%)}
+:root[data-thema="tag"] body::before{opacity:.5}
+main,header,footer{max-width:1100px;margin:0 auto;padding:0 16px}
+h1{font-size:1.5rem;margin:0}
+h2{font-size:1.2rem;margin:0 0 4px}
+h3{font-size:1rem;margin:0 0 4px}
+p{margin:0 0 10px}
 a{color:var(--akzent)}
-code,.mono{font-family:var(--mono);font-size:.92em}
+small,.leise{color:var(--leise);font-size:.87rem}
+.kopf{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding-top:18px;padding-bottom:10px}
+.marke{width:34px;height:34px;flex:0 0 34px;color:var(--akzent)}
+.kopf .weg{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
 
-header{display:flex;align-items:center;gap:12px;padding:6px 0 14px;flex-wrap:wrap}
-.marke{width:36px;height:36px;flex:0 0 36px;border-radius:10px;
-  background:linear-gradient(135deg,var(--akzent),var(--akzent-dunkel));
-  color:var(--akzent-schrift);display:grid;place-items:center;
-  font-weight:800;font-size:.95rem;letter-spacing:-.5px}
-header .titel{flex:1 1 200px;min-width:0}
-header .titel small{display:block;color:var(--leise);font-size:.82rem;line-height:1.35}
-
-button{font:inherit;cursor:pointer;color:var(--schrift);
-  background:linear-gradient(180deg,var(--karte2),var(--karte));
-  border:1px solid var(--kante);border-radius:11px;padding:9px 14px;
-  min-height:44px;transition:border-color .15s,box-shadow .15s,transform .06s}
-button:hover:not(:disabled){border-color:var(--akzent)}
-button:active:not(:disabled){transform:translateY(1px)}
+/* ── Glas-Knöpfe (family-project) ─────────────────────────────────────────
+ * Geschliffene Kante über inset-Schatten, dazu ein Schimmer, der der Maus
+ * folgt (--mx/--my setzt ansicht.js). Ohne Zeiger — Tablet, Tastatur — bleibt
+ * er in der Mitte stehen und der Knopf sieht trotzdem richtig aus.
+ */
+button{position:relative;overflow:hidden;font:inherit;cursor:pointer;
+  color:var(--schrift);background:linear-gradient(180deg,rgba(140,150,170,.14),rgba(18,23,33,.22));
+  border:1px solid var(--kante);border-radius:12px;padding:9px 15px;font-weight:600;
+  transition:border-color .18s ease, box-shadow .2s ease, transform .12s ease;
+  box-shadow:inset 0 1.5px .5px rgba(255,255,255,.30),
+             inset 0 -3px 7px rgba(0,0,0,.34),
+             inset 0 0 0 1px rgba(255,255,255,.06),
+             0 6px 16px rgba(0,0,0,.30)}
+:root[data-thema="tag"] button{background:linear-gradient(180deg,#fff,#eef3f4);
+  box-shadow:inset 0 1.5px .5px rgba(255,255,255,.9),inset 0 -3px 7px rgba(20,40,45,.10),
+             inset 0 0 0 1px rgba(20,40,45,.05),0 4px 12px rgba(20,40,45,.10)}
+button::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:
+    radial-gradient(90px 64px at var(--mx,50%) var(--my,26%),rgba(255,255,255,.55),transparent 58%),
+    linear-gradient(115deg,transparent 28%,
+      color-mix(in srgb,var(--akzent) 55%,transparent) 48%,transparent 72%);
+  background-size:auto,240% 100%;
+  background-position:0 0,var(--mx,50%) 0;
+  mix-blend-mode:screen;opacity:0;transition:opacity .22s}
+button:hover::before,button:focus-visible::before{opacity:.9}
+button:hover{border-color:var(--akzent);box-shadow:inset 0 1.5px .5px rgba(255,255,255,.30),
+  inset 0 -3px 7px rgba(0,0,0,.34),0 8px 20px rgba(0,0,0,.34),var(--schein)}
+button:active{transform:translateY(1px)}
 button:focus-visible{outline:2px solid var(--akzent);outline-offset:2px}
-button.haupt{background:linear-gradient(135deg,var(--akzent),var(--akzent-dunkel));
-  color:var(--akzent-schrift);border-color:var(--akzent);font-weight:650}
-button:disabled{opacity:.45;cursor:not-allowed}
-button.klein{min-height:36px;padding:6px 11px;font-size:.88rem}
+button[aria-pressed="true"],button.an{
+  background:linear-gradient(135deg,var(--akzent),var(--akzent-dunkel));
+  color:var(--akzent-schrift);border-color:var(--akzent)}
 
 .karte{background:var(--karte);border:1px solid var(--kante);border-radius:14px;
-  padding:16px 16px 15px;margin:14px 0;box-shadow:var(--schatten)}
-.karte > h2{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
-.nr{font-family:var(--mono);font-size:.78rem;color:var(--akzent);
-  border:1px solid var(--kante);border-radius:6px;padding:1px 6px}
+  padding:14px 16px;margin:0 0 14px;box-shadow:var(--schatten)}
+.raum{scroll-margin-top:12px}
+.raum > h2{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.nr{display:inline-flex;align-items:center;justify-content:center;
+  width:26px;height:26px;flex:0 0 26px;border-radius:50%;
+  background:linear-gradient(135deg,var(--akzent),var(--akzent-dunkel));
+  color:var(--akzent-schrift);font-size:.85rem;font-weight:700}
+.reiter{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
+.reiter button{padding:9px 15px}
+.stand{margin:0 0 10px;padding:8px 13px;border-left:4px solid var(--kante);
+  background:var(--karte);border-radius:0 10px 10px 0;font-size:.85rem;
+  font-family:var(--mono);box-shadow:var(--schatten)}
+.stand.alt{border-left-color:var(--warn)}
+.pult{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+/* ⚠ `hidden` IST NUR EINE UA-REGEL UND VERLIERT GEGEN JEDE KLASSE MIT `display`.
+   Gefunden am 2026-08-23: der Stundensatz steckt in einem `.pult`, und
+   `display:flex` schlug das Attribut — der Chef-Code verbarg alles ausser
+   ausgerechnet der Zahl, um die es geht. Gefangen hat es die eigene Probe, weil
+   sie die HOEHE misst und nicht das Attribut. Eine Pruefung auf `n.hidden` waere
+   gruen geblieben. */
+[hidden]{display:none !important}
+.pult .zeit{font-variant-numeric:tabular-nums;min-width:8ch;font-family:var(--mono)}
+input[type=range]{flex:1 1 220px;accent-color:var(--akzent);min-width:160px}
+input[type=text],input[type=number]{font:inherit;color:var(--schrift);
+  background:var(--grund2);border:1px solid var(--kante);border-radius:10px;padding:8px 11px}
+input:focus-visible,textarea:focus-visible{outline:2px solid var(--akzent);outline-offset:1px}
 
-label{display:block;font-size:.86rem;color:var(--leise);margin:.75em 0 .25em}
-input,textarea,select{width:100%;font:inherit;color:var(--schrift);
-  background:var(--grund2);border:1px solid var(--kante);border-radius:10px;
-  padding:10px 12px;min-height:44px}
-textarea{min-height:80px;resize:vertical;line-height:1.5}
-input:focus-visible,textarea:focus-visible,select:focus-visible{
-  outline:2px solid var(--akzent);outline-offset:1px}
-.reihe{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
-.reihe > *{flex:0 0 auto}
-
-.hinweis{font-size:.86rem;color:var(--leise);margin:.5em 0 0}
-.merk{border-left:3px solid var(--kante);padding:.1em 0 .1em .8em;margin:.8em 0;
-  font-size:.88rem;color:var(--leise)}
-.merk.warn{border-left-color:var(--warn)}
-.merk.rot{border-left-color:var(--rot);color:var(--schrift)}
-
-.lage{display:inline-flex;align-items:center;gap:7px;font-size:.84rem;
-  border:1px solid var(--kante);border-radius:999px;padding:3px 11px;
-  background:var(--grund2)}
-.punkt{width:8px;height:8px;border-radius:50%;background:var(--leise);flex:0 0 8px}
-.lage[data-stand="offen"] .punkt{background:var(--gut)}
-.lage[data-stand="zu"] .punkt{background:var(--warn)}
-.lage[data-stand="leer"] .punkt{background:var(--leise)}
-.lage[data-stand="fehler"] .punkt{background:var(--rot)}
-
-details.erklaer{margin:.7em 0}
-details.erklaer > summary{cursor:pointer;list-style:none;color:var(--leise);
-  font-size:.86rem;border:1px dashed var(--kante);border-radius:9px;
-  padding:9px 12px;min-height:40px;display:flex;align-items:center}
+/* Sprechblasen */
+.rede{display:flex;gap:10px;margin:0 0 10px;opacity:.34;transition:opacity .18s}
+.rede.da{opacity:1}
+.rede.jetzt .blase{border-color:var(--akzent);box-shadow:var(--schein)}
+.wer{flex:0 0 92px;text-align:right;font-size:.85rem;line-height:1.35;padding-top:8px}
+.wer b{display:block;font-size:.95rem}
+.blase{flex:1 1 auto;background:var(--karte2);border:1px solid var(--kante);
+  border-left:4px solid var(--rolle,var(--kante));border-radius:12px;padding:10px 13px}
+.blase .kopfzeile{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;margin-bottom:2px}
+.marke-klein{font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--leise);font-family:var(--mono)}
+.beispiel-marke{font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--warn);border:1px solid var(--warn);border-radius:5px;padding:0 5px;
+  font-family:var(--mono)}
+/* Der lange Text hinter einem Knopf (Klaus 2026-08-20): „die MD-Gesprächstexte
+   sollen als Button zu öffnen sein". <details> statt eigener Klick-Logik — der
+   Browser bringt Tastatur, Vorlese-Ansage und Aufklappen ohne Skript mit. */
+details.mehr{margin-top:6px}
+/* ERKLÄRUNGEN falten, DATEN nicht. Klaus, 2026-08-22: „Ich werde die
+   überschüttet mit Text." Was er dabei sieht, ist nicht die Auskunft, sondern
+   der Beipackzettel: die Erklärung steht bei jedem Besuch neu da, obwohl man
+   sie einmal liest. Sie verschwindet nicht — sie geht zu.
+   `<details>` statt eigener Klick-Logik: Tastatur, Vorlese-Ansage und
+   Aufklappen bringt der Browser mit, und es geht ohne Skript. */
+details.erklaer{margin:0 0 12px}
+details.erklaer > summary{display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+  color:var(--leise);font:12px var(--mono);border:1px solid var(--kante);
+  border-radius:9px;padding:4px 10px;list-style:none}
 details.erklaer > summary::-webkit-details-marker{display:none}
+details.erklaer > summary::before{content:"?";font-weight:700;transition:transform .15s}
+details[open].erklaer > summary::before{content:"×"}
 details.erklaer > summary:hover{border-color:var(--akzent);color:var(--schrift)}
-details.erklaer > summary::before{content:"▸ ";margin-right:.4em}
-details.erklaer[open] > summary::before{content:"▾ "}
-details.erklaer .inhalt{padding:.4em .2em .2em;font-size:.9rem;color:var(--leise)}
+details.erklaer > *:not(summary){margin-top:8px}
+details.mehr > summary{display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+  list-style:none;font-size:.8rem;font-family:var(--mono);color:var(--leise);
+  border:1px solid var(--kante);border-radius:8px;padding:3px 9px}
+details.mehr > summary::-webkit-details-marker{display:none}
+details.mehr > summary:hover{border-color:var(--akzent);color:var(--schrift)}
+details.mehr > summary::before{content:"▸";transition:transform .15s}
+details[open].mehr > summary::before{transform:rotate(90deg)}
+details.mehr .inhalt{margin-top:8px;color:var(--leise);white-space:pre-wrap}
 
-.rede{display:flex;gap:10px;margin:9px 0;align-items:flex-start}
-.wer{flex:0 0 78px;font-size:.78rem;font-weight:650;padding-top:9px;
-  text-align:right;color:var(--leise)}
-.rede[data-rolle="ingenieur"] .wer{color:var(--r-ingenieur)}
-.rede[data-rolle="bauer"] .wer{color:var(--r-bauer)}
-.rede[data-rolle="arzt"] .wer{color:var(--r-arzt)}
-.rede[data-rolle="negativbauer"] .wer{color:var(--r-negativbauer)}
-.rede[data-rolle="beobachter"] .wer{color:var(--r-beobachter)}
-.blase{flex:1 1 auto;min-width:0;background:var(--karte2);
-  border:1px solid var(--kante);border-radius:12px;padding:9px 12px;font-size:.9rem}
-.blase .zeit{float:right;color:var(--leise);font-size:.76rem;
-  font-family:var(--mono);margin-left:10px}
-
-.kacheln{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
-  gap:10px;margin-top:12px}
-.kachel{background:var(--karte2);border:1px solid var(--kante);border-radius:12px;
-  padding:11px 12px}
-.kachel b{display:block;font-size:1.15rem;font-weight:700;line-height:1.25}
-.kachel span{font-size:.78rem;color:var(--leise)}
-
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--kante)}
+th{color:var(--leise);font-weight:600;font-family:var(--mono);font-size:.8rem;
+  letter-spacing:.04em;text-transform:uppercase}
+td.zahl,th.zahl{text-align:right;font-variant-numeric:tabular-nums}
+.rollt{overflow-x:auto}
+.kacheln{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.kachel{background:var(--karte2);border:1px solid var(--kante);border-radius:14px;
+  padding:13px 15px;box-shadow:var(--schatten)}
+.kachel .gross{font-size:1.55rem;font-weight:700;font-variant-numeric:tabular-nums;
+  line-height:1.2;font-family:var(--mono)}
+.balken{height:10px;border-radius:6px;background:var(--kante);overflow:hidden;margin-top:8px}
+.balken > span{display:block;height:100%;background:var(--akzent)}
+.hinweis{border-left:4px solid var(--warn);padding-left:12px}
+/* Ein Blatt VON DIESEM GERAET ist die gute Nachricht — sie darf auch so
+   aussehen. Klaus hat den Warnsatz IM mitgelieferten Blatt gelesen und meine
+   graue Zeile darueber nicht: der Satz in der Datei war lauter als der Satz
+   ueber der Datei. */
+.hinweis.gut{border-left-color:var(--gut)}
+.hinweis.warn{border-left-color:var(--rot);
+  background:color-mix(in srgb, var(--rot) 8%, transparent);
+  border-radius:0 8px 8px 0;padding:8px 12px}
+.fehlt{border-left:4px solid var(--rot);padding-left:12px}
 pre{white-space:pre-wrap;word-break:break-word;background:var(--grund2);
-  border:1px solid var(--kante);border-radius:10px;padding:12px;
-  font-size:.85rem;max-height:460px;overflow:auto;margin:.7em 0}
-/* Breites darf IN SICH rollen, der Rumpf nie waagerecht. */
-.roller{overflow-x:auto}
+  border:1px solid var(--kante);border-radius:12px;padding:11px 13px;
+  font-size:.85rem;margin:0;font-family:var(--mono)}
+textarea{width:100%;font:inherit;color:var(--schrift);background:var(--grund2);
+  border:1px solid var(--kante);border-radius:12px;padding:11px 13px;min-height:110px}
+ul{margin:0 0 10px;padding-left:20px}
+li{margin:0 0 4px}
+footer{padding:18px 16px 40px;color:var(--leise);font-size:.87rem}
+@media (max-width:560px){ .wer{flex-basis:64px} }
+@media (prefers-reduced-motion:reduce){
+  *{transition:none !important;animation:none !important}
+}
 
-footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--kante);
-  color:var(--leise);font-size:.82rem}
-footer .reihe{margin-top:10px}
+/* ── Die Bühne ────────────────────────────────────────────────────────────
+   Reines SVG, keine Fremdbibliothek, kein Bild aus dem Netz. Die Bewegung
+   entsteht aus zwei CSS-Übergängen an `transform` — mehr braucht es nicht,
+   um „zusammen" und „auseinander" zu zeigen. */
+.buehne { margin: 14px 0 6px; }
+/* Der Bild-Rahmen. Die Agenten liegen absolut IN ihm — läge die Sprechblase im
+   selben Bezugssystem, deckten sie einander zu. Genau das ist beim ersten Bau
+   passiert: Jonas verschwand hinter der Blase. */
+.b-bild { position: relative; }
+.buehne-svg {
+  /* Die Höhe folgt dem viewBox-Verhältnis. Mehr Rand als nötig ist keine Ruhe,
+     sondern verschenkter Platz — auf einem Tablet-Schirm zählt jede Zeile. */
+  width: 100%; height: auto; display: block;
+  background: var(--grund2); border: 1px solid var(--kante); border-radius: 14px;
+}
+.b-tisch { fill: var(--karte2); stroke: var(--kante); stroke-width: 1.5; }
+.b-bank  { fill: var(--karte2); stroke: var(--kante); stroke-width: 1.5; }
+.b-ortname {
+  fill: var(--leise); font: 12px var(--mono); text-anchor: middle;
+  letter-spacing: .04em;
+}
+
+/* ── Die Agenten ──────────────────────────────────────────────────────────
+   Die Form kommt aus `family-project/assets/style.css` — KOPIERT, nicht
+   nachgebaut. Sie besteht aus vier Teilen, und deshalb sind die Agenten HTML
+   und nicht SVG: `box-shadow`, `mix-blend-mode: screen` und `conic-gradient`
+   gibt es in SVG nicht.
+     1. Neigung zum Zeiger    transform: perspective(...) rotateX/rotateY
+     2. Scheinwerfer          ::after mit radial-gradient at var(--mx/--my)
+     3. Plastik               Lichtkante oben + Schatten unten (box-shadow inset)
+     4. Holo-Rand             conic-gradient, das sich dreht                    */
+
+.b-leute { position: absolute; inset: 0; pointer-events: none; }
+.b-agent {
+  position: absolute; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  pointer-events: auto;
+  transition: left .85s cubic-bezier(.4,0,.2,1), top .85s cubic-bezier(.4,0,.2,1),
+              opacity .4s;
+}
+
+/* Der runde Knopf selbst. `--rot` treibt den Holo-Rand, `--rx/--ry` die
+   Neigung, `--mx/--my` den Scheinwerfer — dieselben Namen wie in der Vorlage. */
+@property --rot { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+@keyframes b-holo-rot { to { --rot: 360deg; } }
+
+.b-scheibe {
+  position: relative; width: 58px; height: 58px; border-radius: 50%;
+  display: grid; place-items: center; isolation: isolate;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255,255,255,.22), transparent 58%),
+    linear-gradient(160deg, color-mix(in srgb, currentColor 55%, var(--karte2)),
+                            color-mix(in srgb, currentColor 18%, var(--karte)));
+  box-shadow:
+    inset 0 2px 2px rgba(255,255,255,.42),      /* Lichtkante oben  */
+    inset 0 -4px 7px rgba(0,0,0,.46),           /* Schatten unten   */
+    inset 0 0 0 1px color-mix(in srgb, currentColor 55%, transparent),
+    0 8px 18px rgba(0,0,0,.40);
+  transform: perspective(420px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));
+  transition: transform .14s ease, box-shadow .25s ease;
+}
+
+/* Der drehende Holo-Rand — als Ring, nicht als Fläche (Maske mit Loch). */
+.b-scheibe::before {
+  content: ""; position: absolute; inset: -2px; border-radius: 50%; padding: 2px;
+  background: conic-gradient(from var(--rot),
+    color-mix(in srgb, currentColor 92%, white), transparent 30%,
+    color-mix(in srgb, currentColor 70%, white) 55%, transparent 78%,
+    color-mix(in srgb, currentColor 92%, white));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: b-holo-rot 14s linear infinite;
+  opacity: .5; transition: opacity .3s; pointer-events: none;
+}
+
+/* Der Scheinwerfer folgt dem Zeiger. */
+.b-scheibe::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: radial-gradient(38px 30px at var(--mx,50%) var(--my,22%),
+              rgba(255,255,255,.55), transparent 62%);
+  mix-blend-mode: screen; opacity: .45; transition: opacity .25s;
+  pointer-events: none;
+}
+
+.b-name { color: var(--schrift); font: 700 13px var(--mono); position: relative; z-index: 1; }
+.b-tun  { color: var(--leise);  font: 11px var(--mono); white-space: nowrap; }
+
+/* Die Rollenfarben stehen GENAU EINMAL. Beim Holo-Umbau standen sie zwei Mal
+   untereinander — die zweite Regel setzte die erste zurück, und die Gegenprobe
+   konnte die Farben nicht mehr sabotieren: sie änderte die obere, die untere
+   stellte sie wieder her. Ein Anker, der zweimal in derselben Datei steht, wird
+   nur einmal getauscht. */
+.b-ingenieur    { color: var(--r-ingenieur); }
+.b-bauer        { color: var(--r-bauer); }
+.b-arzt         { color: var(--r-arzt); }
+.b-negativbauer { color: var(--r-negativbauer); }
+.b-beobachter   { color: var(--r-beobachter); }
+
+/* Wer nicht dran ist, ist nicht weg — nur ruhig. Ausblenden hieße behaupten,
+   er sei nicht mehr da. */
+/* .45 war zu dunkel: die ruhenden Knöpfe waren kaum mehr als Schatten, und
+   „ruhig" wurde zu „nicht da". */
+.b-agent.ruht { opacity: .68; }
+.b-agent.dran { opacity: 1; z-index: 2; }
+.b-agent.dran .b-scheibe {
+  box-shadow:
+    inset 0 2px 2px rgba(255,255,255,.5),
+    inset 0 -4px 7px rgba(0,0,0,.5),
+    inset 0 0 0 2px currentColor,
+    0 10px 24px rgba(0,0,0,.45),
+    0 0 22px color-mix(in srgb, currentColor 55%, transparent);
+}
+.b-agent.dran .b-scheibe::before { opacity: 1; }
+.b-agent.dran .b-scheibe::after  { opacity: .7; }
+
+/* Der Puls läuft nur, wenn jemand dran ist — als eigener Ring hinter dem
+   Knopf, damit er die Plastik nicht überstrahlt. */
+.b-agent.dran .b-scheibe { animation: none; }
+.b-agent.dran::before {
+  content: ""; position: absolute; top: 29px; left: 50%; width: 58px; height: 58px;
+  margin: -29px 0 0 -29px; border-radius: 50%;
+  border: 2px solid currentColor; pointer-events: none;
+  animation: b-puls 1.8s ease-out infinite;
+}
+@keyframes b-puls {
+  0%   { transform: scale(1);   opacity: .5; }
+  100% { transform: scale(1.85); opacity: 0; }
+}
+
+/* Das Werkstück. Es wandert mit, pulst beim Bauen und trägt seinen Stand als
+   WORT — nur Farbe wäre für Farbenblinde keine Auskunft. */
+.b-stueck { opacity: 0; transition: transform .85s cubic-bezier(.4,0,.2,1), opacity .3s; }
+.b-stueck.da { opacity: 1; }
+.b-stueck-k { fill: var(--karte); stroke: var(--leise); stroke-width: 2; }
+.b-stueck-t { fill: var(--schrift); font: 600 12px var(--mono); text-anchor: middle; }
+.b-stueck.baut .b-stueck-k { animation: b-arbeit 1s ease-in-out infinite; }
+@keyframes b-arbeit {
+  0%, 100% { stroke: var(--akzent); }
+  50%      { stroke: var(--warn); }
+}
+.b-stueck[data-stand="taugt"]       .b-stueck-k { stroke: var(--gut); }
+.b-stueck[data-stand="nachbessern"] .b-stueck-k { stroke: var(--warn); }
+.b-stueck[data-stand="verwerfen"]   .b-stueck-k { stroke: var(--rot); stroke-dasharray: 4 3; }
+
+/* Die Sprechblase liegt ÜBER dem Bild als normales HTML — SVG-Text bricht
+   nicht um, und ein Satz, der rechts hinausläuft, ist keine Auskunft. */
+/* Die Blase liegt UNTER dem Bild, nicht darauf. Zuerst lag sie als Overlay
+   unten im Rahmen — und verdeckte dort ausgerechnet Sten und Jonas. Ein Kasten,
+   der die Hälfte der Belegschaft zudeckt, ist keine Auskunft, sondern eine
+   zweite Verdeckung. */
+.b-blase {
+  margin-top: 8px;
+  background: var(--karte); border: 1px solid var(--kante); border-radius: 10px;
+  padding: 9px 12px; font-size: .92rem; color: var(--schrift);
+  box-shadow: var(--schatten);
+}
+/* Das Herkunfts-Band. Grün, wenn alles von dieser Maschine kommt; sonst sagt
+   es Teil für Teil, was echt ist und was aus dem hinterlegten Beispiel. */
+.herkunft {
+  margin: 10px 0 0; padding: 9px 13px; border-radius: 10px;
+  border: 1px solid var(--kante); background: var(--karte);
+  font: 13px/1.5 var(--mono); color: var(--leise);
+}
+.herkunft.echt   { border-color: var(--gut); color: var(--schrift); }
+.herkunft.gemischt { border-color: var(--warn); }
+.herkunft b { color: var(--schrift); }
+/* Der Knopf, der die eigenen Lauf-Dateien hereinholt — er steht dort, wo die
+   Frage entsteht („warum sehe ich nichts von mir?"), nicht im hintersten
+   Reiter. */
+.herkunft-laden { margin-top: 8px; font-size: .84rem; padding: 6px 12px; }
+
+.b-inhalt {
+  margin: 6px 0 0; color: var(--leise); font-size: .88rem; line-height: 1.5;
+}
+.b-lage { color: var(--leise); font: 12px var(--mono); margin: 8px 2px 0; }
+
+/* DER VOLLE TEXT DES LAUFENDEN SCHRITTS (Klaus 1.3, 2026-08-22).
+   Die Blase darüber kürzt bei 260 Zeichen — sie muss, sonst verdrängt sie die
+   Szene. Dieser Kasten trägt denselben Schritt UNGEKÜRZT, damit „anhalten und
+   lesen" wirklich geht. Er liegt UNTER der Blase und ÜBER der Akte: die
+   Reihenfolge ist Augenblick → Person → Lage. */
+.b-volltext {
+  margin-top: 10px; border: 1px solid var(--kante); border-left: 3px solid var(--akzent);
+  border-radius: 10px; background: var(--karte2); padding: 11px 13px;
+}
+.b-volltext-kopf { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 8px; }
+.b-volltext-kopf > b { font-size: .98rem }
+.b-volltext-nr { color: var(--leise); font: 12px var(--mono); margin-right: auto }
+/* `pre-wrap`, weil die Agenten in Absätzen schreiben — ohne das wird aus einem
+   gegliederten Befund eine Textwurst. Dieselbe Regel wie in der Akte. */
+.b-volltext-text { margin: 0; white-space: pre-wrap; line-height: 1.6; font-size: .94rem }
+.b-vorlesen, .b-volltext-akte { font-size: .82rem; padding: 5px 10px }
+.b-leise-klein { margin: 0 0 6px; color: var(--leise); font-size: .82rem }
+/* Der Beitrag, auf dem das Abspielen gerade steht — in der offenen Akte.
+   Ohne Hervorhebung wäre die mitlaufende Akte eine Liste, in der man den
+   Augenblick suchen müsste. */
+.b-akte-beitrag.jetzt { border-left: 3px solid var(--akzent); padding-left: 9px;
+  margin-left: -12px; background: color-mix(in srgb, var(--akzent) 8%, transparent); }
+
+/* Die AKTE — was EINE Person in diesem Lauf gesagt hat, vollständig.
+   Klick auf einen Namen öffnet sie, der zweite Klick schließt sie wieder.
+   Sie liegt UNTER der Bühne, nicht darüber: ein Überlagern verdeckte genau
+   die Szene, zu der man gerade den Text liest. */
+.b-akte { margin-top: 12px; border: 1px solid var(--kante); border-radius: 12px;
+  background: var(--karte2); padding: 12px 14px; }
+.b-akte-kopf { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--kante); padding-bottom: 9px; margin-bottom: 10px; }
+.b-akte-kopf > b { font-size: 1.02rem }
+.b-akte-zahl { color: var(--leise); font: 12px var(--mono); margin-right: auto }
+.b-akte-laden, .b-akte-zu { font-size: .82rem; padding: 5px 10px }
+.b-akte-beitrag { margin: 0 0 12px }
+.b-akte-beitrag > b { display: block; font: 12px var(--mono); color: var(--leise);
+  margin-bottom: 3px }
+/* `pre-wrap`, weil die Agenten in Absätzen schreiben. Ohne das wird aus einem
+   gegliederten Befund eine einzige Textwurst. */
+.b-akte-beitrag > p { margin: 0; white-space: pre-wrap; line-height: 1.55 }
+.b-akte-leer { margin: 0; color: var(--leise) }
+/* Ein anklickbarer Name muss auch danach aussehen — und die Tastatur muss
+   sehen, wo sie steht. */
+.b-agent { cursor: pointer }
+/* Ein Umschalter, dem man nicht ansieht, ob er an ist, ist kein Umschalter —
+   und genau dafür gibt es oben schon `button[aria-pressed="true"], button.an`
+   (Verlauf, Akzent-Rand, Akzent-SCHRIFT auf dunklem Grund).
+   Hier stand am 2026-08-22 eine zweite Regel, die ich für nötig hielt. Sie war
+   nicht nur überflüssig: gleiche Spezifität, aber später — sie überschrieb
+   `color` auf `var(--akzent)` und setzte damit türkise Schrift auf türkisen
+   Grund. Gefunden hat es die Gegenprobe: sie baute meine Regel aus, und der
+   Knopf sah TROTZDEM gedrückt aus. **Eine Regel, deren Fehlen nichts ändert,
+   ist eine Behauptung** — diese hier hat sogar geschadet. */
+.b-agent:focus-visible { outline: 2px solid var(--akzent); outline-offset: 4px;
+  border-radius: 12px }
+.b-agent[aria-expanded="true"] .b-scheibe { box-shadow: 0 0 0 2px var(--akzent) }
+
+/* Der Pfeil zur zweiten Station — er macht sichtbar, dass etwas WEGGEHT. */
+.b-pfeil {
+  stroke: var(--kante); stroke-width: 2; fill: none;
+  stroke-dasharray: 6 5; opacity: .7;
+}
+
+/* Das Bedienteil AN der Bühne. Klaus musste sonst den Reiter wechseln, um
+   abzuspielen — und verpasste dabei den Anfang. */
+.buehne-pult { margin-top: 10px; }
+.schritt-regler {
+  display: flex; align-items: center; gap: 8px;
+  color: var(--leise); font: 12px var(--mono);
+}
+.schritt-regler input[type=range] { width: 130px; }
+
+/* Der Ergebnis-Knopf. Er ist ein <a> und kein <button>: „ansehen" heißt einen
+   neuen Tab öffnen und „herunterladen" heißt speichern — beides kann ein Link
+   von sich aus, ohne eine Zeile Skript. */
+/* Die Mitnehm-Reihe: Kopieren zuerst, dann Download, dann Vorlesen, dann die
+   Rückmeldung. Die Reihenfolge ist Absicht — auf dem Tablet ist die
+   Zwischenablage der kürzeste Weg in einen Chat. */
+.mitnehmen { display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+  margin: 10px 0 12px; }
+.mitnehm-lage { font: 12px var(--mono); }
+/* Der Termux-Block. Er ist das Wichtigste auf dem Schirm, wenn er dasteht —
+   also sieht er auch so aus und ist mit einem Griff zu markieren. */
+#schicht-befehl { margin: 10px 0 0; border: 1px solid var(--akzent); border-radius: 12px;
+  background: var(--karte2); padding: 12px 14px; }
+#schicht-befehl h4 { margin: 0 0 6px; font-size: 1rem }
+#schicht-befehl ol { margin: 0 0 10px; padding-left: 20px }
+#schicht-befehl li { margin: 0 0 4px; line-height: 1.5 }
+#schicht-befehl pre { margin: 0 0 10px; padding: 11px 13px; border-radius: 9px;
+  background: var(--grund); border: 1px solid var(--kante);
+  font: 12.5px/1.6 var(--mono); white-space: pre-wrap; word-break: break-word;
+  user-select: all; cursor: pointer; }
+/* Die Abschnitte, aus denen der aktuelle Stoppuhr-Stand besteht. Ohne diese
+   Markierung sähe ⟲ aus, als hätte es etwas gelöscht — es setzt aber nur die
+   Marke, und keine Zeile geht verloren. */
+#uhr-liste tr.uhr-jetzt td:first-child { border-left: 3px solid var(--akzent); padding-left: 7px; }
+/* Ausgecheckt heisst: hier war Schluss, nicht nur Pause. Man muss es SEHEN —
+   eine Stechuhr, die beides gleich aufschreibt, beantwortet die Frage nicht,
+   fuer die es sie gibt. */
+#uhr-liste tr.uhr-schluss td { border-bottom: 2px solid var(--kante); }
+/* Das Blatt LESBAR — Klaus 2026-08-22: „nicht lesbar, weil sie noch als Code
+   zu sehen sind." Gerendert wird zum Lesen; die Datei zum Herunterladen bleibt
+   Zeichen fuer Zeichen die Datei. Eine Ansicht ist keine zweite Fassung. */
+.blatt-text { max-height: 60vh; overflow: auto;
+  background: var(--karte2); border: 1px solid var(--kante); border-radius: 10px;
+  padding: 12px 16px; margin: 0; }
+.blatt-text pre { white-space: pre-wrap; font: 13px/1.6 var(--mono); margin: 0 }
+.md .md-ueber { margin: 14px 0 6px; line-height: 1.3 }
+.md .md-ueber:first-child { margin-top: 0 }
+.md h4.md-ueber { font-size: 1.12rem; color: var(--schrift) }
+.md h5.md-ueber { font-size: 1rem; color: var(--akzent) }
+.md h6.md-ueber { font-size: .92rem; color: var(--leise);
+  text-transform: uppercase; letter-spacing: .05em }
+.md .md-absatz { margin: 0 0 10px; line-height: 1.62 }
+.md .md-liste { margin: 0 0 10px; padding-left: 22px }
+.md .md-liste li { margin: 0 0 5px; line-height: 1.55 }
+/* Ein Zitat ist im Blatt der Warnhinweis („Trockenlauf. Nicht bauen.") — er
+   soll auch aussehen wie einer. */
+.md .md-zitat { margin: 0 0 12px; padding: 8px 12px; border-left: 3px solid var(--warn);
+  background: color-mix(in srgb, var(--warn) 8%, transparent); border-radius: 0 8px 8px 0 }
+.md code { font: .9em var(--mono); background: var(--karte);
+  padding: 1px 5px; border-radius: 4px }
+.md hr { border: 0; border-top: 1px solid var(--kante); margin: 14px 0 }
+
+.ergebnis-knopf {
+  display: inline-block; text-decoration: none;
+  font: 600 .92rem var(--mono); color: var(--akzent-schrift);
+  background: var(--akzent); border-radius: 10px; padding: 9px 15px;
+  box-shadow: inset 0 1.5px 1px rgba(255,255,255,.4), inset 0 -2px 4px rgba(0,0,0,.3);
+}
+.ergebnis-knopf:hover { filter: brightness(1.08); }
+.ergebnis-knopf:focus-visible { outline: 2px solid var(--akzent); outline-offset: 3px; }
+
+/* Wer Bewegung abgestellt hat, bekommt trotzdem die volle Auskunft: die
+   Stellungen springen, statt zu gleiten. Es geht nichts verloren. */
+@media (prefers-reduced-motion: reduce) {
+  .b-agent, .b-stueck { transition: none; }
+  .b-agent.dran::before { animation: none; opacity: .5; }
+  .b-scheibe { transform: none; }
+  .b-scheibe::before { animation: none; }
+  .b-stueck.baut .b-stueck-k { animation: none; stroke: var(--akzent); }
+}
 </style>
 </head>
 <body>
-<div class="wrap">
 
-<header>
-  <div class="marke">KHC</div>
-  <div class="titel">
+<header class="kopf">
+  <svg class="marke" viewBox="0 0 32 32" aria-hidden="true">
+    <rect x="1" y="1" width="30" height="30" rx="8" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M9 22V10M9 16l7-6M9 16l7 6M20 10v12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </svg>
+  <div>
     <h1>Kim Hub Company</h1>
-    <small>Fünf Rollen, ein Auftrag: vorschlagen · bauen · prüfen · angreifen · aufschreiben.
-      Läuft in deinem Browser, auf deinem eigenen KI-Zugang.</small>
+    <small>Fünf Rollen, ein Auftrag — im Browser, auf deinem eigenen KI-Zugang.</small>
   </div>
-  <button class="klein" id="thema" type="button" title="Hell oder dunkel">◐</button>
-  <button class="klein" id="frisch" type="button" title="Vorrat wegwerfen und neu laden">⟳</button>
+  <div class="weg">
+    <button id="installieren" type="button" hidden>⬇ Installieren</button>
+    <button id="thema" type="button">Thema</button>
+    <button id="frisch" type="button" title="Vorrat wegwerfen und neu laden">⟳ Aktualisieren</button>
+  </div>
 </header>
 
-<!-- ══ 1 · WAS DAS HIER IST ═══════════════════════════════════════════════
-     Kurz und offen. Die lange Fassung steht im Aufklapper — der Beipackzettel
-     wird einmal gelesen, danach steht er nur im Weg. -->
-<section class="karte">
-  <h2><span class="nr">1</span> Was hier passiert</h2>
-  <p>Du gibst einen Auftrag ein. Fünf Rollen arbeiten ihn nacheinander ab:
-    <b>Nora</b> schlägt vor, was gebaut wird, <b>Emil</b> baut es, <b>Vera</b>
-    prüft gegen ein vorher genanntes Merkmal, <b>Sten</b> sucht, was daran
-    kaputtgeht, <b>Jonas</b> schreibt auf, wo es steht.</p>
-  <p><b>Zwei Wege, und der erste kostet nichts.</b> Der <i>Trockenlauf</i>
-    spielt eine hinterlegte Schicht ab — du siehst den ganzen Ablauf, ohne
-    einen Cent auszugeben und ohne Schlüssel. Der <i>echte Lauf</i> ruft
-    wirklich Modelle auf und kostet Geld: deins.</p>
+<main>
 
-  <details class="erklaer">
-    <summary>Warum ein Trockenlauf keine Vorführung mit erfundenen Zahlen ist</summary>
-    <div class="inhalt">
-      <p>Er fährt <b>dieselbe Mechanik</b> wie ein echter Lauf: dieselbe
-        Reihenfolge, dieselbe Kostenbremse, dasselbe Gedächtnis, dasselbe
-        Ergebnis-Format. Nur die Antworten kommen aus einer hinterlegten Datei
-        statt von einem Modell.</p>
-      <p><b>Seine Euro-Beträge sind gerechnet, nicht bezahlt.</b> Das steht
-        auch am Ergebnis dran — eine gerechnete Zahl klingt genau wie eine
-        gemessene, und deshalb muss der Unterschied dastehen und nicht
-        gewusst werden.</p>
+  <!-- Welcher Stand hier liegt. Klaus' Frage vom 2026-08-20: „ob's die
+       aktuelle Version ist, denn ich sehe zurzeit nicht viele Änderungen." -->
+  <p id="stand" class="stand leise">Stand wird gelesen …</p>
+
+  <!-- Was von DIESEM Stand echt ist, steht ÜBER den Reitern — nicht in einem
+       Raum, den man aufmachen muss. Klaus nach seinem ersten echten Lauf:
+       „Ich scrolle runter und sehe wieder nur Beispiel … ich frage mich, ob das
+       Ding hier wirklich live läuft." Die Auskunft gab es, sie stand nur im
+       Reiter „Abspielen" — also dort, wo er am seltensten hinsieht. -->
+  <p class="herkunft" id="herkunft"></p>
+
+  <nav class="reiter" aria-label="Räume">
+    <button type="button" class="an" data-raum="raum0">⚒ Werkstatt</button>
+    <button type="button" data-raum="raum1">1 · Konferenz</button>
+    <button type="button" data-raum="raum2">2 · Übergabe</button>
+    <button type="button" data-raum="raum3">3 · Ergebnis</button>
+    <button type="button" data-raum="raum4">4 · Buchhaltung</button>
+  </nav>
+
+  <!-- ─────────────────────────── Raum 1 ─────────────────────────── -->
+  <!-- Die Bühne. Sie zeichnet aus DENSELBEN events[] wie die Texträume darunter
+       — eine zweite, nachgebaute Liste liefe auseinander, und dann zeigte das
+       Bild etwas anderes als der Text. -->
+  <section class="raum an" id="raum0" aria-labelledby="t0">
+    <h2 id="t0">Die Werkstatt</h2>
+    <p class="leise">
+      Fünf Agenten, ein Konferenztisch, eine Werkbank. Sie treffen sich, gehen
+      zum Bauen auseinander und kommen zur Gegenprüfung wieder zusammen —
+      <b>ohne den, der gebaut hat</b>. Das Abspiel-Pult unten steuert auch dieses Bild.
+    </p>
+    <div id="buehne" class="buehne"></div>
+
+    <!-- Das Pult gehört AN die Bühne. Es lag im Reiter „Abspielen": wer drückte,
+         musste zur Werkstatt zurückwechseln — und verpasste dabei den Anfang.
+         Klaus: „Ich drücke auf Abspielen und muss wieder zurück zur Werkstatt,
+         und dann läuft das Ganze schon."
+         Es ist KEINE zweite Mechanik: die Knöpfe rufen dieselben Funktionen wie
+         das große Pult. Zwei Bedienteile, ein Ablauf. -->
+    <!-- EIN PULT, NICHT ZWEI (Klaus 2026-08-22): „Dieser Abspielen-Button …
+         ist in meinen Augen vollkommen sinnlos … zumal ich in der Werkstatt
+         einen Abspiel-Button hab. Macht ihn bitte weg."
+         Der Reiter „▶ Abspielen" brach auf schmalen Schirmen in die zweite
+         Zeile um und klebte dort unter „4 · Buchhaltung" — er sah aus wie ein
+         Knopf, der zur Buchhaltung gehört. Er ist weg, und was NUR in seinem
+         Raum stand, hängt jetzt hier: Schritt vor und zurück, die Zeitleiste,
+         das Mitverfolgen und das versteckte Feld, an dem „Lauf laden" hängt.
+         Nichts davon ist verloren gegangen. -->
+    <div class="pult buehne-pult">
+      <button id="ab-buehne" type="button">▶ Abspielen</button>
+      <button id="anfang-buehne" type="button" title="zurück auf Anfang">⏮</button>
+      <button id="zurueck" type="button" title="einen Schritt zurück">◀</button>
+      <button id="vor" type="button" title="einen Schritt vor">▶|</button>
+      <span class="zeit" id="uhr">0 / 0</span>
+      <label class="schritt-regler" for="schrittzeit-buehne">Schritt
+        <input id="schrittzeit-buehne" type="range" min="1000" max="6000" step="250" value="4800"
+               aria-label="Wie lange ein Schritt zu sehen ist">
+        <span class="zeit" id="schrittzeit-buehne-wert">4,8 s</span>
+      </label>
     </div>
-  </details>
-</section>
+    <div class="pult buehne-pult">
+      <input id="leiste" type="range" min="0" max="0" value="0" aria-label="Zeitleiste"
+             style="flex:1 1 220px">
+      <button id="live" type="button" aria-pressed="false" title="alle 2 s nachsehen, ob die Schicht weiter ist">● Schicht mitverfolgen</button>
+      <!-- Das versteckte Feld MUSS bleiben: der Knopf „⭱ Lauf laden" im
+           Herkunfts-Band oben ruft genau dieses Element. Ohne es wäre er tot. -->
+      <label class="leise" style="cursor:pointer">⭱ Lauf laden
+        <input id="datei" type="file" accept=".json" multiple style="display:none">
+      </label>
+    </div>
+    <p class="leise" id="pult-lage">Noch nichts geladen.</p>
+    <!-- EIGENE Zeile für das Mitverfolgen, nicht `#pult-lage`: die wird bei
+         jedem Neuzeichnen überschrieben, und ein Hinweis, der beim ersten
+         Nachsehen verschwindet, ist derselbe stille Fehlschlag noch einmal. -->
+    <p class="leise" id="live-lage" data-live="aus"></p>
+    <p class="leise" id="schicht-lage"></p>
+    <!-- DER BEFEHL ZUM EINFÜGEN (Klaus 2026-08-22): „mit Schichtbeginn hab ich
+         sofort eine Kopie vom Code, den ich in Termux eingeben kann … ein
+         Klick, ein Code, Copy, Paste rein. Und dann müsste die Schicht laufen,
+         ohne dass ich noch irgendwas anderes eingeben muss."
+         Ein Browser kann kein Programm auf dem Gerät starten — das ist die
+         Grenze, und sie fällt nicht weg. Was er KANN: den vollständigen Befehl
+         in die Zwischenablage legen und Termux nach vorn holen. -->
+    <!-- In der Werkstatt lag hier der Termux-Befehl. Company braucht ihn
+         nicht: „Schicht beginnen" startet sie im Browser. Das Feld bleibt
+         trotzdem stehen — `ansicht.js` verdrahtet es, und ein fehlendes
+         Element wäre ein Fehler in einer byte-1:1-Kopie. -->
+    <div id="schicht-befehl" hidden></div>
+  <!-- ══ WAS COMPANY HAT UND DIE WERKSTATT NICHT ═══════════════════════════
+       Der eigene KI-Zugang und der Auftrag. In der Werkstatt startet Klaus
+       eine Schicht in Termux; hier startet sie im Browser, auf dem Schlüssel
+       des Nutzers. Das ist der ganze Zusatz — alles darunter ist die Werkstatt. -->
+  <style>
+  /* Auf die Steuerung begrenzt. Die Werkstatt hat keine Formulare und deshalb
+     auch keine Regeln dafür — ohne diese sechs Zeilen laufen Beschriftung und
+     Feld auf EINER Zeile ineinander (am 2026-09-05 im Sichttest gesehen). */
+  #company-steuerung label{display:block;font-size:.86rem;color:var(--leise);margin:.75em 0 .25em}
+  #company-steuerung label.zeile{display:inline-flex;align-items:center;gap:8px;margin:0}
+  #company-steuerung input[type=password],#company-steuerung input[type=text]{
+    width:100%;font:inherit;color:var(--schrift);background:var(--grund2);
+    border:1px solid var(--kante);border-radius:10px;padding:10px 12px;min-height:44px}
+  #company-steuerung input[type=file]{color:var(--leise);font-size:.9rem}
+  #company-steuerung .merk{border-left:3px solid var(--kante);padding:.1em 0 .1em .8em;
+    margin:.7em 0;font-size:.9rem;color:var(--leise)}
+  #company-steuerung .lage{display:inline-flex;align-items:center;gap:7px;font-size:.8rem;
+    border:1px solid var(--kante);border-radius:999px;padding:2px 10px;background:var(--grund2)}
+  #company-steuerung .punkt{width:8px;height:8px;border-radius:50%;background:var(--leise)}
+  #company-steuerung .lage[data-stand="offen"] .punkt{background:var(--gut)}
+  #company-steuerung .lage[data-stand="zu"] .punkt{background:var(--warn)}
+  #company-steuerung .lage[data-stand="fehler"] .punkt{background:var(--rot)}
+  </style>
+  <section class="karte" id="company-steuerung">
+    <h2 style="display:flex;align-items:baseline;gap:9px;flex-wrap:wrap">
+      Dein KI-Zugang
+      <span class="lage" id="schluessel-lage" data-stand="leer">
+        <span class="punkt"></span><span id="schluessel-lage-text">wird nachgesehen …</span>
+      </span>
+    </h2>
 
-<!-- ══ 2 · DER SCHLÜSSEL ══════════════════════════════════════════════════
-     Die drei Pflicht-Sätze aus `docs/BYOK_BEDINGUNGEN.md` § 3 stehen hier
-     OFFEN, nicht im Aufklapper: „Wer einen bezahlten Zugang eintippt, hat ein
-     Recht darauf zu erfahren, wo er landet, wie lange er bleibt und wie man
-     ihn wieder loswird. Ein Feld ohne diesen Satz wäre ein toter Knopf mit
-     Beschriftung — die schlimmere Sorte." -->
-<section class="karte">
-  <h2><span class="nr">2</span> Dein KI-Zugang
-    <span class="lage" id="schluessel-lage" data-stand="leer">
-      <span class="punkt"></span><span id="schluessel-lage-text">wird nachgesehen …</span>
-    </span>
-  </h2>
+    <p class="merk" data-pflichtsatz="wohin"><b>Wo er landet:</b> in diesem
+      Browser, auf diesem Gerät — <b>verschlüsselt</b> (AES-256-GCM, Schlüssel
+      aus deinem Passwort über PBKDF2-SHA256 mit 600 000 Runden). Er wird an
+      genau eine Stelle geschickt: an die KI-Adresse, die unten steht.
+      <b>Nicht ins Depot, nicht zu uns, in kein Protokoll.</b></p>
+    <p class="merk" data-pflichtsatz="wielange"><b>Wie lange er bleibt:</b> bis
+      du ihn wegwirfst. Das <b>Passwort</b> dagegen bleibt nur im Arbeitsspeicher
+      — einmal je Besuch eintippen. Das ist der Preis dafür, dass es nirgends
+      liegt, wo es jemand lesen könnte.</p>
+    <p class="merk" data-pflichtsatz="weg"><b>Wie du ihn loswirst:</b> der Knopf
+      <b>„Schlüssel wegwerfen"</b>. Danach ist er fort — es gibt kein
+      Zurücksetzen des Passworts, das ist der Preis echter Verschlüsselung.</p>
 
-  <p class="merk" data-pflichtsatz="wohin"><b>Wo er landet:</b> in diesem
-    Browser, auf diesem Gerät — <b>verschlüsselt</b> (AES-256-GCM, Schlüssel
-    aus deinem Passwort über PBKDF2-SHA256 mit 600 000 Runden). Er wird an
-    genau eine Stelle geschickt: an die KI-Adresse, die unten steht.
-    <b>Nicht ins Depot, nicht zu uns, in kein Protokoll.</b></p>
-  <p class="merk" data-pflichtsatz="wielange"><b>Wie lange er bleibt:</b> bis
-    du ihn wegwirfst. Das <b>Passwort</b> dagegen bleibt nur im Arbeitsspeicher
-    — einmal je Besuch eintippen. Das ist der Preis dafür, dass es nirgends
-    liegt, wo es jemand lesen könnte.</p>
-  <p class="merk" data-pflichtsatz="weg"><b>Wie du ihn loswirst:</b> der Knopf
-    <b>„Schlüssel wegwerfen"</b> unten. Danach ist er fort — es gibt kein
-    Zurücksetzen des Passworts, das ist der Preis echter Verschlüsselung.</p>
-
-  <div id="schluessel-eingabe">
-    <label for="pw">Passwort für den Tresor <span id="pw-zweck"></span></label>
+    <label for="pw">Passwort für den Tresor <span id="pw-zweck" class="leise"></span></label>
     <input id="pw" type="password" autocomplete="current-password" placeholder="dein Tresor-Passwort">
 
     <div id="neu-block">
       <label for="key">Anthropic-Schlüssel (beginnt mit <code>sk-ant-</code>)</label>
-      <input id="key" type="password" autocomplete="off" spellcheck="false"
-             placeholder="sk-ant-…">
-      <label for="basis">Eigene KI-Adresse <span class="hinweis">— optional</span></label>
+      <input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-…">
+      <label for="basis">Eigene KI-Adresse <span class="leise">— optional</span></label>
       <input id="basis" type="text" autocomplete="off" spellcheck="false"
              placeholder="https://api.anthropic.com">
-      <p class="hinweis" data-was-geht>⚠ Eine eigene Adresse muss das
+      <p class="leise" data-was-geht>⚠ Eine eigene Adresse muss das
         <b>Anthropic-Messages-Protokoll</b> sprechen. Das tun Anthropic-
         Weiterleitungen und manche Gateways. <b>Es geht nicht</b> für Adressen,
         die das OpenAI-Protokoll sprechen — also die meisten lokalen Modelle
-        (Ollama, LM Studio) und die meisten kostenlosen Anbieter. Ein
-        Übersetzer zwischen beiden ist nicht gebaut.</p>
+        (Ollama, LM Studio) und die meisten kostenlosen Anbieter. Ein Übersetzer
+        zwischen beiden ist nicht gebaut.</p>
     </div>
 
-    <div class="reihe">
-      <button id="einlegen" type="button" class="haupt">Schlüssel einlegen</button>
+    <div class="pult">
+      <button id="einlegen" type="button">Schlüssel einlegen</button>
       <button id="aufschliessen" type="button" hidden>Tresor aufschliessen</button>
       <button id="werfen" type="button" hidden>Schlüssel wegwerfen</button>
     </div>
-    <p class="hinweis" id="schluessel-sagt" data-sagt="" role="status" aria-live="polite"></p>
-  </div>
+    <p class="leise" id="schluessel-sagt" data-sagt="" role="status" aria-live="polite"></p>
 
-  <details class="erklaer">
-    <summary>Was wir über die Bedingungen wissen — und was nicht</summary>
-    <div class="inhalt" data-flanke>
-      <p>Das offizielle SDK sperrt den Browser, bis man es ausdrücklich
-        freigibt. Die Warnung dazu handelt durchgehend von <i>deinen</i>
-        Zugangsdaten als Betreiber — von einem Schlüssel, der im
-        ausgelieferten Code steckt und den jeder Besucher herausziehen kann.
-        <b>Dieser Fall liegt hier nicht vor:</b> im Code steht kein Schlüssel,
-        im Depot auch keiner, und abgerechnet wird auf deinem Konto.</p>
-      <p><b>Daraus folgt nicht, dass es erlaubt ist.</b> Die Doku zählt zwei
-        Fälle auf, in denen es unbedenklich sei — interne Werkzeuge und
-        Entwicklung. Eine öffentlich verteilte Seite steht nicht darin; die
-        Frage wird dort gar nicht gestellt. Aus „der genannte Schaden trifft
-        uns nicht" folgt keine Erlaubnis. <b>Das ist eine offene Flanke, und
-        sie steht hier, statt weggelächelt zu werden.</b></p>
+    <details class="erklaer" data-erklaer="bedingungen">
+      <summary>Was wir über die Bedingungen wissen — und was nicht</summary>
+      <div class="leise" data-flanke>
+        <p>Das offizielle SDK sperrt den Browser, bis man es ausdrücklich
+          freigibt. Die Warnung dazu handelt durchgehend von <i>deinen</i>
+          Zugangsdaten als Betreiber — von einem Schlüssel, der im
+          ausgelieferten Code steckt und den jeder Besucher herausziehen kann.
+          <b>Dieser Fall liegt hier nicht vor:</b> im Code steht kein Schlüssel,
+          im Depot auch keiner, und abgerechnet wird auf deinem Konto.</p>
+        <p><b>Daraus folgt nicht, dass es erlaubt ist.</b> Die Doku zählt zwei
+          Fälle auf, in denen es unbedenklich sei — interne Werkzeuge und
+          Entwicklung. Eine öffentlich verteilte Seite steht nicht darin; die
+          Frage wird dort gar nicht gestellt. Aus „der genannte Schaden trifft
+          uns nicht" folgt keine Erlaubnis. <b>Das ist eine offene Flanke, und
+          sie steht hier, statt weggelächelt zu werden.</b></p>
+      </div>
+    </details>
+
+    <h2 style="margin-top:18px">Der Auftrag</h2>
+    <label for="ziel">Was soll gebaut werden?</label>
+    <textarea id="ziel" rows="3" placeholder="Ein kleines Werkzeug, das …"></textarea>
+    <label for="merkmal">Woran sieht man am Ende, dass es erfüllt ist?
+      <span class="leise">— optional; ohne das nennt Nora selbst eines</span></label>
+    <input id="merkmal" type="text" placeholder="z. B.: eine Datei, unter 20 KB, läuft ohne Bauschritt">
+
+    <label for="dateien">Womit dürfen die Rollen arbeiten? <span class="leise">— optional</span></label>
+    <input id="dateien" type="file" multiple>
+    <p class="leise" data-werkzeug-grund>Ohne Dateien laufen die Rollen
+      <b>ohne Werkzeuge</b> — und das ist Absicht: drei Werkzeuge, die „geht
+      nicht" antworten, kosten in einem echten Lauf eine <b>bezahlte</b> Runde.
+      Was du hier übergibst, dürfen sie <b>lesen</b>; schreiben kann keines von
+      ihnen, es gibt kein schreibendes Werkzeug.</p>
+
+    <label class="zeile" style="margin-top:12px">
+      <input type="checkbox" id="mit-konferenz" style="width:auto;min-height:0">
+      <span>Erst eine <b>Konferenz</b> führen — die fünf schlagen vor und stimmen ab,
+      aus dem Sieger wird der Auftrag. <b>Kostet extra:</b> der Deckel wird geteilt
+      (ein Drittel Konferenz, zwei Drittel Bauen), und beides muss hineinpassen.</span>
+    </label>
+
+    <div class="pult">
+      <label class="leise zeile" for="deckel">Deckel
+        <input id="deckel" type="number" min="0.20" max="20" step="0.10" value="1.00"
+               style="width:92px"> €</label>
+      <button id="trocken" type="button">▷ Trockenlauf — kostet nichts</button>
+      <button id="echt" type="button" disabled>● Echter Lauf — kostet dein Geld</button>
     </div>
-  </details>
-</section>
+    <p class="leise" id="start-sagt" data-start="" role="status" aria-live="polite"></p>
+  </section>
 
-<!-- ══ 3 · DER AUFTRAG ════════════════════════════════════════════════════ -->
-<section class="karte">
-  <h2><span class="nr">3</span> Der Auftrag</h2>
-  <label for="ziel">Was soll gebaut werden?</label>
-  <textarea id="ziel" placeholder="Ein kleines Werkzeug, das …"></textarea>
-  <label for="merkmal">Woran sieht man am Ende, dass es erfüllt ist?
-    <span class="hinweis">— optional; ohne das nennt Nora selbst eines</span></label>
-  <input id="merkmal" type="text" placeholder="z. B.: eine Datei, unter 20 KB, läuft ohne Bauschritt">
+    <details class="erklaer" data-erklaer="abspielen">
+      <summary>Warum das Abspielen langsamer läuft als die Messung</summary>
+      <p class="leise">
+        Die Zeitleiste zeigt die <b>echten</b> Abstände in Millisekunden —
+        gemessen, während die Aufrufe liefen. <b>Das Abspielen richtet sich
+        nicht danach.</b> Ein Trockenlauf ist in wenigen Millisekunden vorbei;
+        das kann kein Mensch ansehen. Jeder Schritt bekommt deshalb die Zeit,
+        die am Regler steht, und alle bekommen dieselbe — es ist eine
+        <b>nachgestellte Szene</b>, keine Messung im Zeitraffer.
+        <b>Die Anzeige ist gedehnt, die Zahlen sind es nicht:</b> die gemessene
+        Dauer steht bei jedem Schritt daneben und ändert sich nie.
+      </p>
+    </details>
+  </section>
 
-  <label for="dateien">Womit dürfen die Rollen arbeiten?
-    <span class="hinweis">— optional</span></label>
-  <input id="dateien" type="file" multiple>
-  <p class="hinweis" data-werkzeug-grund>Ohne Dateien laufen die Rollen
-    <b>ohne Werkzeuge</b> — und das ist Absicht: drei Werkzeuge, die „geht
-    nicht" antworten, kosten in einem echten Lauf eine <b>bezahlte</b> Runde.
-    Was du hier übergibst, dürfen sie <b>lesen</b>; schreiben kann keines von
-    ihnen, es gibt kein schreibendes Werkzeug.</p>
+  <section class="raum" id="raum1" aria-labelledby="t1">
+    <h2 id="t1"><span class="nr">1</span> Die Konferenz</h2>
+    <details class="erklaer" data-erklaer="raum1">
+      <summary>Wie die Konferenz läuft</summary>
+      <p class="leise">Fünf Rollen, drei Runden: jeder bringt <b>einen</b> Vorschlag ein, jeder
+      bewertet <b>alle</b> — die eigene Stimme zählt dabei nicht mit —, und aus dem Sieger
+      macht der Beobachter einen Auftrag mit Prüfmerkmal.</p>
+    </details>
 
-  <label for="deckel">Deckel — so viel darf die Schicht höchstens ausgeben</label>
-  <div class="reihe">
-    <input id="deckel" type="number" min="0.20" max="20" step="0.10" value="1.00"
-           style="width:110px;flex:0 0 110px"> <span class="hinweis">€</span>
-    <span class="hinweis" id="deckel-sagt"></span>
-  </div>
+    <div class="karte">
+      <h3>Wer spricht</h3>
+      <div id="besetzung" class="kacheln">
+        <p class="leise">Noch keine Konferenz geladen.</p>
+      </div>
+    </div>
 
-  <div class="reihe">
-    <button id="trocken" type="button">▷ Trockenlauf — kostet nichts</button>
-    <button id="echt" type="button" class="haupt" disabled>● Echter Lauf — kostet dein Geld</button>
-    <button id="abbruch" type="button" hidden>■ Abbrechen</button>
-  </div>
-  <p class="hinweis" id="start-sagt" data-start="" role="status" aria-live="polite"></p>
-</section>
+    <div class="karte">
+      <h3>Was gesagt wurde</h3>
+      <p class="leise" data-ohne-konferenz>Eine Konferenz läuft nur, wenn du sie
+        oben unter „Der Auftrag" ankreuzt — sie kostet einen Teil des Deckels.
+        Ohne sie geht der Auftrag direkt ans Bauen, und hier steht nichts.</p>
+      <div id="reden"><p class="leise">Noch nichts.</p></div>
+    </div>
 
-<!-- ══ 4 · DER LAUF ═══════════════════════════════════════════════════════ -->
-<section class="karte" id="lauf-karte" hidden>
-  <h2><span class="nr">4</span> Die Schicht
-    <span class="lage" id="lauf-lage" data-stand="leer">
-      <span class="punkt"></span><span id="lauf-lage-text">läuft</span>
-    </span>
-  </h2>
-  <p class="hinweis" id="lauf-art" data-art="" data-herkunft=""></p>
-  <div id="reden"></div>
-  <div class="kacheln" id="zahlen"></div>
-</section>
+    <div class="karte">
+      <h3>Die Punkte</h3>
+      <p class="leise">Die eigene Stimme zählt nicht. Gemessen wird sie trotzdem —
+        als <b>Selbstbevorzugung</b>: wie viel höher jemand sich selbst setzt als die
+        anderen. Hoch bei allen heißt, die Runde hat sich nicht auf die Sache eingelassen.</p>
+      <div class="rollt"><table id="tafel"><tbody><tr><td class="leise">Noch nichts.</td></tr></tbody></table></div>
+      <p id="eigenlob" class="leise"></p>
+    </div>
+  </section>
 
-<!-- ══ 5 · DAS ERGEBNIS ═══════════════════════════════════════════════════ -->
-<section class="karte" id="ergebnis-karte" hidden>
-  <h2><span class="nr">5</span> Das Werkstück</h2>
-  <p class="hinweis" id="ergebnis-kopf"></p>
-  <div class="roller"><pre id="werkstueck"></pre></div>
-  <div class="reihe">
-    <button id="herunterladen" type="button" class="klein">⭳ Werkstück speichern</button>
-    <button id="protokoll" type="button" class="klein">⭳ Lauf-Protokoll (JSON)</button>
-  </div>
-  <p class="hinweis" data-bom>Textdateien bekommen ein Byte-Order-Mark
-    mitgegeben — ohne das rät Androids Betrachter Latin-1, und aus jedem Umlaut
-    werden zwei Zeichen. Das JSON bekommt <b>keines</b>: dort bricht jeder
-    Parser daran ab.</p>
-</section>
+  <!-- ─────────────────────────── Raum 2 ─────────────────────────── -->
+  <section class="raum" id="raum2" aria-labelledby="t2">
+    <h2 id="t2"><span class="nr">2</span> Die Übergabe</h2>
+
+    <!-- DAS BLATT ZUERST, DIE ERKLÄRUNG DANACH (Klaus 1.6, 2026-08-22):
+         „Ich muss lesen, lesen, lesen und komme nicht zu dem Punkt, was hier
+         übergeben wird. Hier sind nur Texte, die veranschaulichen sollen, was
+         übergeben wurde."
+         Er hat recht — dieser Raum erklärte die Übergabe, statt sie zu zeigen.
+         Das Blatt gibt es wirklich (werkstatt/plan-offen.md); die Seite hat es
+         nur nie geladen. Es steht jetzt vor allem anderen. Dieselbe Regel wie
+         bei den Aufklappern: erst die Sache, dann der Beipackzettel. -->
+    <div class="karte">
+      <h3>Das Blatt, das übergeben wird</h3>
+      <div id="blatt"><p class="leise">Noch nicht geladen.</p></div>
+    </div>
+
+    <details class="erklaer" data-erklaer="raum2">
+      <summary>Warum die Agenten keine Werkzeuge haben</summary>
+      <p class="leise">Die Agenten haben <b>keine Werkzeuge</b>. Sie geben ein Blatt heraus —
+      Auftrag, Prüfmerkmal, Einwände, Verworfenes — und die Hand, die baut, ist eine
+      andere. Das ist keine Sparmaßnahme, sondern die Grenze: was schiefgeht,
+      bleibt Text in einem Repo.</p>
+    </details>
+
+    <div class="karte">
+      <h3>Der Auftrag</h3>
+      <div id="auftrag"><p class="leise">Noch keiner.</p></div>
+    </div>
+
+    <div class="karte">
+      <h3>Einwände, die mitgehen</h3>
+      <p class="leise">Sie sind <b>nicht erledigt</b>, nur benannt. Wer baut, nimmt sie mit
+        oder schreibt hin, warum nicht.</p>
+      <ul id="einwaende"><li class="leise">Noch keine.</li></ul>
+    </div>
+
+    <div class="karte">
+      <details class="erklaer" data-erklaer="regeln">
+      <summary><b>Die Regeln für die Hand, die baut</b></summary>
+      <ul>
+        <li><b>Ein Durchgang.</b> Bauen, dann zurück zum Gegenprüfen. Findet der
+          Negativbauer etwas Schweres, geht es an Klaus — nicht in Runde drei.</li>
+        <li><b>Der PR bleibt Entwurf.</b> Nur Klaus setzt ihn auf fertig.</li>
+        <li><b>Gemessen wird gegen das Prüfmerkmal</b>, nicht gegen den eigenen Eindruck.
+          Wer baut und danach berichtet, schreibt sein eigenes Zeugnis — deshalb die
+          Gegenprüfung.</li>
+      </ul>
+      </details>
+    </div>
+
+    <div class="karte">
+      <h3>Die Runden, wenn hier gebaut wurde</h3>
+      <div id="runden"><p class="leise">In dieser Betriebsart baut die Werkstatt nicht selbst.</p></div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── Raum 3 ─────────────────────────── -->
+  <section class="raum" id="raum3" aria-labelledby="t3">
+    <h2 id="t3"><span class="nr">3</span> Das Ergebnis</h2>
+
+    <div class="karte">
+      <h3>Was herauskam</h3>
+      <div id="ergebnis"><p class="leise">Noch nichts.</p></div>
+    </div>
+
+    <!-- ZUM MITNEHMEN (Klaus 1.7, 2026-08-22): „Nichts zum Kopieren, was ich
+         mir herunterkopieren kann, um es dir zu geben, damit du daraus etwas
+         bauen kannst."
+         Der Weg, den er beschreibt, ist der echte Arbeitsweg: heraus → in eine
+         Sitzung → daraus bauen → wieder hinein. Kopieren steht vor
+         Herunterladen: auf dem Tablet ist eine Datei drei Handgriffe von einem
+         Chat entfernt, die Zwischenablage ist null. -->
+    <div class="karte">
+      <h3>Zum Mitnehmen</h3>
+      <p class="leise">Drei verschiedene Dinge, jedes mit eigenem Namen: der
+        ganze Lauf als Text (für eine Sitzung), das Übergabe-Blatt (für die
+        bauende Hand) und das gebaute Stück selbst.</p>
+      <div id="mitnehmen"><p class="leise">Noch nichts geladen.</p></div>
+    </div>
+
+    <div class="karte">
+      <h3>Die Gegenprüfung</h3>
+      <p class="leise">Vera und Sten sehen sich an, was gebaut wurde — <b>gegen das
+        Prüfmerkmal</b>, nicht gegen den Eindruck. Der Bauer ist nicht dabei: wer
+        baut und danach berichtet, schreibt sein eigenes Zeugnis.</p>
+      <div id="gegen"><p class="leise">Noch keine gelaufen.</p></div>
+    </div>
+
+    <div class="karte">
+      <h3>Was offen blieb</h3>
+      <p class="leise">„✓ Ziel erreicht" ist ein <b>Form</b>-Urteil: es misst gegen das
+        Prüfmerkmal, nicht gegen die Wahrheit. Was hier steht, ist der Rest — und der
+        Rest ist die eigentliche Auskunft.</p>
+      <ul id="offen"><li class="leise">Noch nichts.</li></ul>
+    </div>
+
+    <div class="karte">
+      <h3>Was Klaus und ich dazu sagen</h3>
+      <p class="leise">Bleibt im Browser (nur dieses Gerät), geht nirgendwo hin.
+        Zum Weitergeben: kopieren.</p>
+      <textarea id="notiz" placeholder="Was ist gut? Was ist Murks? Was soll die nächste Schicht anders machen?"></textarea>
+      <div class="pult" style="margin-top:8px">
+        <button id="notiz-kopieren" type="button">Text kopieren</button>
+        <span class="leise" id="notiz-lage"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── Raum 4 ─────────────────────────── -->
+  <section class="raum" id="raum4" aria-labelledby="t4">
+    <h2 id="t4"><span class="nr">4</span> Die Buchhaltung</h2>
+    <details class="erklaer" data-erklaer="raum4">
+      <summary>Was hier zusammengerechnet wird</summary>
+      <p class="leise">Vier Zahlen, die oft in einen Topf geworfen werden und
+      verschiedene Dinge sind.</p>
+    </details>
+
+    <!-- ══ DER CHEF-CODE (Klaus 2026-08-23) ═══════════════════════════════
+         Sein Wunsch von Anfang an: „mit einem Passwort wie bei Workflow und
+         einem Passwort für den Mitarbeiter, also für Zeiterfassung und dann
+         Chef Passwort." Das ist die andere Hälfte — ein Schloss vor der
+         ANSICHT, nicht vor der Datei.
+
+         ⚠ ZWEI PASSWÖRTER, ZWEI AUFGABEN, UND SIE DÜRFEN SICH NIE ÄHNLICH
+         SEHEN. Das Tresor-Passwort gehört zur Sicherungsdatei und ist echte
+         Verschlüsselung. Der Chef-Code hier verbirgt die Anzeige. Genau diese
+         Verwechslung hat Klaus am 2026-08-22 beanstandet, und sie wäre mit
+         einem zweiten Passwort auf derselben Karte fast unvermeidlich —
+         deshalb steht überall dran, was welches tut.
+
+         ⚠ UND ER IST KEINE VERSCHLÜSSELUNG. Wer die Entwickler-Werkzeuge des
+         Browsers öffnet, liest die Zahlen trotzdem. Das steht auf der Seite,
+         nicht nur hier: ein Schloss, das mehr verspricht, als es hält, ist der
+         Fehler, gegen den die halbe Verfassung geschrieben ist. -->
+    <div class="karte" id="chef" data-chef-lage="" style="margin-top:14px">
+      <h3>🙈 Chef-Code</h3>
+
+      <div id="chef-aus" hidden>
+        <p style="margin:0 0 6px"><b>Kein Chef-Code gesetzt.</b> Alle Zahlen
+          stehen offen da.</p>
+        <p class="leise">Setz einen, wenn das Tablet auch von jemand anderem
+          benutzt wird. Die <b>Stechuhr bleibt dann frei</b> — nur die Geld-Zahlen
+          gehen zu.</p>
+        <div class="pult">
+          <input id="chef-neu" type="password" autocomplete="new-password"
+                 placeholder="neuer Chef-Code" style="flex:1 1 200px">
+          <input id="chef-neu2" type="password" autocomplete="new-password"
+                 placeholder="noch einmal" style="flex:1 1 200px">
+        </div>
+        <div class="pult">
+          <button id="chef-setzen" type="button">🙈 Zahlen verbergen</button>
+        </div>
+      </div>
+
+      <div id="chef-zu" hidden>
+        <p style="margin:0 0 6px">Die Geld-Zahlen sind verborgen. Die Stechuhr
+          darunter läuft weiter.</p>
+        <div class="pult">
+          <input id="chef-code" type="password" autocomplete="current-password"
+                 placeholder="Chef-Code" style="flex:1 1 220px">
+          <button id="chef-auf" type="button">Zahlen zeigen</button>
+        </div>
+      </div>
+
+      <div id="chef-offen" hidden>
+        <p style="margin:0 0 6px">✓ <b>Offen — nur in diesem Fenster.</b> Nach dem
+          Neuladen fragt die Seite wieder.</p>
+        <div class="pult">
+          <button id="chef-wieder-zu" type="button">🙈 Wieder verbergen</button>
+        </div>
+      </div>
+
+      <p class="leise" id="chef-lage" data-chef-sagt="" style="margin:6px 0 0"></p>
+
+      <!-- ⚠ DIESER ABSATZ IST DER WICHTIGSTE AUF DER KARTE. Ohne ihn verspricht
+           das Schloss etwas, das es nicht hält — und das ist genau der Fehler,
+           den Klaus an der Tresor-Beschriftung gefunden hat. -->
+      <p class="leise" data-chef-reichweite="" style="margin:8px 0 0">
+        <b>Was der Code kann und was nicht.</b> Er nimmt die Zahlen aus dem Blick.
+        Gegen jemanden, der das Tablet in die Hand nimmt, hilft das. Es ist
+        <b>keine Verschlüsselung</b>: wer die Entwickler-Werkzeuge des Browsers
+        öffnet, kommt an den Speicher heran und liest sie doch. Das Schloss, das
+        wirklich schützt, ist die verschlüsselte Sicherung im Tresor darunter.</p>
+      <p class="leise"><b>Es gibt kein Zurücksetzen.</b> Vergisst du den Code,
+        bleiben die Zahlen in diesem Browser verborgen. Der Weg zurück ist deine
+        Sicherung, eingelesen in einen frischen Browser — dort ist noch kein Code
+        gesetzt.</p>
+    </div>
+
+    <div class="kacheln" id="kacheln">
+      <div class="kachel" data-chef="geld">
+        <small>Diese Schicht — Agenten</small>
+        <div class="gross" id="k-schicht">–</div>
+        <small id="k-schicht-sub" class="leise">noch nichts geladen</small>
+      </div>
+      <!-- Die Kachel daneben war der eigentliche Befund: „Diese Schicht" zeigt
+           immer nur den ZULETZT geladenen Lauf. Lag keiner vor, sprang die Seite
+           aufs Beispiel — und eine Werkstatt, die gestern gearbeitet hat, sah
+           aus, als hätte sie nie etwas gekostet. Diese hier zählt alles, was
+           auf dieser Maschine wirklich gelaufen ist. -->
+      <div class="kachel" data-chef="geld">
+        <small>Alle Fahrten zusammen</small>
+        <div class="gross" id="k-alle">–</div>
+        <small id="k-alle-sub" class="leise">aus dem Fahrtenbuch</small>
+      </div>
+      <div class="kachel">
+        <small>Rechenzeit der Agenten</small>
+        <div class="gross" id="k-ms">–</div>
+        <small class="leise">gemessen je Aufruf</small>
+      </div>
+      <div class="kachel">
+        <small>Klaus' Zeit (Stechuhr) — alles</small>
+        <div class="gross" id="k-klaus">0:00</div>
+        <!-- Ohne Stundensatz steht hier, DASS keiner hinterlegt ist — nie
+             „0,00 €". Eine Null sähe aus wie gemessen. Genau wie BLP es tut. -->
+        <!-- Die Kachel bleibt: es ist Klaus' Zeit, und die Stechuhr ist frei.
+             Nur diese Zeile kann Geld tragen, sobald ein Stundensatz da ist. -->
+        <small class="leise" id="k-klaus-sub" data-chef="geld" data-satz="keiner">kein Stundensatz hinterlegt</small>
+      </div>
+      <div class="kachel">
+        <small>Bauzeit am Repo</small>
+        <div class="gross" id="k-bau">–</div>
+        <small class="leise">Untergrenze aus der Git-Historie</small>
+      </div>
+    </div>
+
+    <!-- DIE STOPPUHR (Klaus 1.9, 2026-08-22): „Meine Stechuhr muss
+         zusammengefügt werden … Nach jedem Aktualisieren startet es wieder bei
+         null." Und: „Den Wert der Uhr kann man übernehmen und die Uhr dort
+         anfangen lassen, wo sie aufgehört hat — oder neu anfangen."
+         Vorlage ist `ovClock` in Mein-WorkFloh/index.html: Start übernimmt den
+         vorhandenen Wert, und der Wert steht IM SPEICHER, nicht im
+         Arbeitsspeicher — deshalb überlebt er dort das Neuladen. -->
+    <div class="karte" style="margin-top:14px">
+      <h3>Stechuhr</h3>
+      <p class="leise">Für Klaus' eigene Zeit. Niemand außer ihm weiß, wann er
+        davorsitzt — deshalb ein Knopf und keine Schätzung. <b>▶ zählt weiter,
+        wo die Uhr stehen geblieben ist</b>; auf null setzt sie nur ⟲.</p>
+      <!-- EIN KNOPF FÜR START UND PAUSE (Klaus 2026-08-22): „Start und Pause
+           sollen in einem Button sein, Stopp in einem Dritten … also Start und
+           danach muss das Pausenzeichen kommen, in demselben Button und dann
+           Pause und wieder Start, also immer im Wechsel."
+           Dasselbe Muster wie #stechUhr in Mein-WorkFloh: ▶ schaltet
+           Einstempeln · Pause · Weiterarbeiten, ein zweiter Knopf macht
+           Feierabend. Klaus: „Stop bedeutet dann auschecken sozusagen aus der
+           Arbeit. Genau wie in dem WorkFloh." -->
+      <div class="pult">
+        <button id="uhr-start" type="button" aria-pressed="false"
+                data-uhr="bereit" title="Start — und beim zweiten Druck Pause">▶ Start</button>
+        <button id="uhr-neu" type="button" title="setzt NUR die Uhr auf null — der Verlauf bleibt">⟲ Neu</button>
+        <button id="uhr-stopp" type="button" title="Feierabend: die Arbeit ist zu Ende, nicht nur unterbrochen">■ Auschecken</button>
+        <span class="zeit" id="uhr-anzeige" data-laeuft="nein" data-sekunden="0"
+              style="font-size:1.3rem">0:00:00</span>
+        <input id="uhr-was" type="text" placeholder="woran? (z. B. Sichttest)" style="flex:1 1 200px">
+      </div>
+      <p class="leise" style="margin:6px 0 0"><b>Pause</b> unterbricht —
+        ▶ zählt danach weiter. <b>Auschecken</b> beendet die Arbeit; die Zeile
+        im Verlauf bekommt einen Schlussstrich. Beides verliert keine Zeit.</p>
+      <p class="leise" style="margin:6px 0 0">Die große Zahl ist der Stand
+        <b>seit dem letzten ⟲</b>. Die Kachel oben zählt <b>alles</b>, was je
+        gestempelt wurde — zwei Zahlen, zwei Fragen.</p>
+      <div class="rollt" style="margin-top:10px">
+        <table id="uhr-liste"><tbody><tr><td class="leise">Noch nichts gestempelt.</td></tr></tbody></table>
+      </div>
+      <!-- ⚠ DER STUNDENSATZ STEHT IN DER STECHUHR UND GEHOERT TROTZDEM ZU DEN
+           ZAHLEN. „Stechuhr für alle, Zahlen nur für mich" — Start, Pause und
+           die Liste bleiben offen, dieser Satz nicht. Wer ihn sehen darf, darf
+           auch ausrechnen, was eine Stunde kostet. -->
+      <div class="pult" data-chef="geld" style="margin-top:10px">
+        <label class="leise" style="flex:1 1 220px">Stundensatz (nur hier im Browser)
+          <input id="uhr-satz" type="text" inputmode="decimal" placeholder="z. B. 30,00"
+                 style="width:100%;margin-top:4px">
+        </label>
+        <button id="uhr-loeschen" type="button">Verlauf löschen</button>
+      </div>
+      <!-- DER INTERNE SATZ VERLÄSST DAS HAUS NICHT — per Whitelist, nicht per
+           Vorsicht. Das ist die PRIME DIRECTIVE aus
+           BookLedgerPro/src/domain/angebote.js, wörtlich übernommen: der
+           interne Stundenkostensatz ist Kalkulation, und Kalkulation bleibt
+           drinnen. Der Haken ist die ausdrückliche Ausnahme, und er ist AUS. -->
+      <label class="leise" data-chef="geld" style="display:block;margin-top:8px;cursor:pointer">
+        <input id="uhr-satz-mit" type="checkbox"> Stundensatz und Betrag in die
+        Übergabe unten mitgeben
+        <small class="leise" style="display:block;margin-left:22px">Vorgabe ist
+          <b>aus</b>. Ein interner Stundensatz ist eine Kalkulationszahl — sie
+          gehört nicht in ein Blatt, das weitergereicht wird.</small>
+      </label>
+
+      <!-- FÜR DAS PROTOKOLL. Eine Seite im Browser kann nicht in eine Datei im
+           Depot schreiben — das Fahrtenbuch legt schicht/lauf.mjs an, Node,
+           nicht die Seite. Die Uhr kann den Wert also nur herausgeben;
+           hineinlegen muss ihn jemand. -->
+      <h4 style="margin:16px 0 4px">Für das Protokoll</h4>
+      <p class="leise">Die Seite kann nicht selbst ins Depot schreiben — sie gibt
+        die Zeiten heraus, eine Sitzung trägt sie ein. Die Zeit der Agenten steht
+        im Fahrtenbuch darunter; das hier ist die von Klaus.</p>
+      <div id="uhr-protokoll"><p class="leise">Noch nichts zu übergeben.</p></div>
+    </div>
+
+    <div class="karte" data-chef="geld">
+      <h3>Fahrtenbuch — was die Werkstatt wirklich gearbeitet hat</h3>
+      <p class="leise">Jede Fahrt trägt sich beim Feierabend selbst ein: Tag,
+        Art, Besetzung, Dauer, Kosten. <b>Trockenläufe stehen mit drin</b> und
+        sind als solche gekennzeichnet — sie kosten nichts, aber sie sind Arbeit,
+        und ein Buch, das nur die teuren Tage kennt, beantwortet die Frage
+        „wurde hier gearbeitet?" falsch.</p>
+      <p class="leise"><b>Die gelaufene Zeit und die erlaubte Zeit sind zwei
+        Zahlen.</b> „höchstens 2 h" ist ein Deckel, keine Dauer — die Schicht
+        endet, sobald sie fertig ist. Hier steht, wie lange sie wirklich lief.</p>
+      <div class="rollt"><table id="fahrten"><tbody><tr><td class="leise">Noch nicht geladen.</td></tr></tbody></table></div>
+      <p id="fahrten-hinweis" class="leise" style="margin-top:10px"></p>
+    </div>
+
+    <div class="karte" data-chef="geld">
+      <h3>Tageskontingent — die Zapfsäule</h3>
+      <p class="leise">Was das Fahrtenbuch je Tag zusammenzählt, steht unabhängig
+        davon noch einmal in <code>schicht/kontingent.json</code>: dort bucht
+        jede echte Schicht ihren Verbrauch, damit der Tagesdeckel greift.
+        <b>Zwei Quellen für dieselbe Zahl</b> — weichen sie ab, steht es hier.</p>
+      <div class="rollt"><table id="zapf"><tbody><tr><td class="leise">Noch nicht geladen.</td></tr></tbody></table></div>
+      <p id="zapf-hinweis" class="leise" style="margin-top:10px"></p>
+    </div>
+
+    <!-- ══ DER TRESOR (Klaus 2026-08-22) ══════════════════════════════════
+         „Die Buchhaltung sollst Du verbergen, nicht rauslöschen. Wenn Du's
+         nicht mitm PIN machen willst, dann mit 'nem verschlüsselten Code …
+         wir haben doch in die Buchhaltungs App BLP auch Schlüssel erzeugt im
+         Repo, wo wir Dateien verstecken können."
+
+         ⚠ ER HAT RECHT GEHABT, UND ICH HATTE ES ZU ENG GESAGT. „Eine PIN
+         schützt nichts" gilt fürs Verstecken der ANZEIGE: wer die Adresse
+         kennt, holt die JSON und öffnet die Seite nie. Die DATEI zu
+         verschlüsseln ist etwas anderes — dann liegt im Depot ein Paket, das
+         ohne sein Passwort nutzlos ist, auch wenn Pages es ausliefert.
+         Genau das war am selben Tag passiert (NETZWEIT § 6c).
+
+         Passwort auf sein Wort: „passwort reicht, was ich von zeit zu zeit
+         ändern kann. 2. beides Verschlüsseln." -->
+    <div class="karte" id="tresor" data-tresor-zu="0" style="margin-top:14px" data-chef="geld">
+      <h3>🔒 Tresor</h3>
+      <!-- ⚠ ZWEI DINGE, ZWEI AUFGABEN (Klaus 2026-08-22, nach dem Blick in
+           sein Rezeptbuch). Sein Schaden war nicht „jemand sitzt an meinem
+           Tablet", sondern: die Datei lag im Depot und Pages hat sie
+           ausgeliefert. Dagegen hilft Verschlüsseln — aber es hilft besser,
+           sie gar nicht erst ins Depot zu legen.
+             Wohnort  = Browser-Speicher (IndexedDB + persist), wie im
+                        Rezeptbuch. Nichts im Depot, kein Passwort im Alltag.
+             Ausgang  = das verschlüsselte Paket. Sicherung, Umzug, Weitergabe.
+           Sein Tresor hat KEINE Verschlüsselung (nachgemessen: null Treffer
+           für crypto.subtle/AES-GCM/PBKDF2) — er schützt gegen Verlust, nicht
+           gegen Mitlesen. Deshalb beides. -->
+      <p class="leise">Die Zahlen unten sind Klaus' Sache und liegen
+        <b>nicht im Depot</b> — sie wohnen im Speicher dieses Browsers. Was
+        nicht im Depot liegt, kann auch keine Seite ausliefern.</p>
+      <p class="leise" id="tresor-wo" data-wo="" data-dauerhaft="">Wird geprüft …</p>
+      <p class="leise" id="tresor-sicherung" data-sicherung="">Wird geprüft …</p>
+
+      <!-- ══ DER RÜCKWEG (Klaus 2026-08-22, Befund A) ═══════════════════════
+           ZWEI BROWSER, EIN WOHNORT. DeX-Chrome und Tablet-Chrome sind
+           getrennte Instanzen mit getrenntem Speicher — das steht seit Monaten
+           in `Mein-WorkFloh/CLAUDE.md`, und der Umbau auf IndexedDB hat es
+           nicht bedacht. Im zweiten Browser stand „noch nichts geladen", und
+           danach kam nichts mehr. Ein Zustand, aus dem die Seite keinen Weg
+           zeigt, ist ein toter Knopf ohne Knopf.
+
+           Der Weg zurück ist 📥 Einlesen — er lag zwei Aufklapper tief. Dieser
+           Block holt ihn nach vorn, aber NUR wenn nichts geladen ist: sonst
+           stünde bei jedem Besuch eine Anleitung für einen Fall, der nicht
+           vorliegt.
+
+           EIN Weg, nicht zwei: der Knopf baut keinen zweiten Einlese-Pfad, er
+           klappt den vorhandenen auf und setzt den Finger hinein. Zwei
+           Fassungen desselben Werkzeugs wären eine Drift-Quelle mit Ansage. -->
+      <div id="tresor-rueckweg" data-rueckweg="" hidden
+           style="margin:10px 0 0;padding:10px;border:1px solid var(--rand);border-radius:8px">
+        <p style="margin:0 0 6px"><b>In diesem Browser liegen keine Zahlen.</b>
+          Das heißt nicht, dass sie weg sind.</p>
+        <p class="leise" data-rueckweg-grund="" style="margin:0 0 8px">Der Speicher gehört dem
+          einzelnen Browser. Wer die Zahlen im <b>DeX-Chrome</b> eingelesen hat,
+          findet sie im <b>Tablet-Chrome</b> nicht wieder, und umgekehrt. Nach
+          einem Gerätewechsel ist es dasselbe. Der Weg zurück ist deine
+          verschlüsselte Sicherung: die <code>.enc.json</code> aus dem
+          Download-Ordner einlesen, dann stehen sie auch hier.</p>
+        <button id="tresor-zum-einlesen" type="button">📥 Sicherung einlesen — Weg zeigen</button>
+        <p class="leise" id="tresor-rueckweg-lage" data-rueckweg-lage=""
+           style="margin:6px 0 0"></p>
+      </div>
+      <p class="leise"><b>Der Preis:</b> dieser Speicher hängt am Browser. Wer
+        die Browserdaten löscht oder das Gerät wechselt, hat die Zahlen
+        verloren — dann ist die verschlüsselte Sicherung der Rückweg, kein
+        Luxus. AES-256-GCM, Schlüssel aus dem Passwort über 600 000
+        PBKDF2-Runden, dasselbe Verfahren wie in BookLedgerPro und
+        Mein-Tresor.</p>
+
+      <div id="tresor-auf-block" hidden>
+        <div class="pult">
+          <input id="tresor-pass" type="password" autocomplete="current-password"
+                 placeholder="Passwort" style="flex:1 1 220px">
+          <button id="tresor-auf" type="button">Aufschließen</button>
+        </div>
+        <p class="leise" id="tresor-lage" data-tresor-lage="" style="margin:6px 0 0"></p>
+      </div>
+
+      <p class="leise" id="tresor-offen" hidden style="margin:6px 0 0">
+        ✓ Aufgeschlossen — nur in diesem Fenster. Das Passwort steht
+        <b>nirgends gespeichert</b>; nach dem Neuladen fragt die Seite wieder.</p>
+
+      <details class="erklaer" data-erklaer="tresor-werk">
+        <summary>Sicherung anlegen · Passwort der Sicherung ändern</summary>
+
+        <!-- ⚠ BEFUND B (Klaus 2026-08-22): DIE BESCHRIFTUNG LOG.
+             Hier stand „Verschließen · Passwort ändern". Klaus hat es gelesen,
+             wie es dasteht: „Da kann jeder x-beliebige ein neues Passwort
+             anlegen und kann in den Ordner rein." Das klingt nach Kontopasswort
+             und nach Tür, und es ist weder das eine noch das andere.
+
+             Was hier wirklich passiert: es entsteht eine SICHERUNGSDATEI, und
+             das Passwort gehört zu dieser Datei. Es verschließt die Seite
+             nicht. Wer am entsperrten Browser sitzt, sieht die Zahlen in der
+             Tabelle darüber, ganz ohne Passwort.
+
+             Der Fehler war meiner, nicht seiner. Und er wiegt jetzt schwerer:
+             der Chef-Code vor Raum 4 kommt, und das ist ein echtes Schloss vor
+             der Ansicht. Zwei Passwörter, die dasselbe zu sein scheinen, wären
+             die nächste Verwechslung. -->
+        <p data-passwort-rolle="datei" style="margin:0 0 6px"><b>Das ist kein Schloss vor dieser Seite.</b>
+          Hier entsteht eine <b>Sicherungsdatei</b>, und das Passwort gehört zu
+          dieser Datei.</p>
+        <p class="leise">Wer an diesem Browser sitzt, sieht die Zahlen in der
+          Tabelle darüber — dafür braucht es kein Passwort. Geschützt ist nur
+          die Datei, die das Gerät verlässt. Ein <b>neues</b> Passwort öffnet
+          also nichts, es legt eine <b>neue Sicherung</b> an; die alte bleibt
+          bei ihrem alten Passwort, bis du sie ersetzt.</p>
+        <p class="leise">Alles passiert <b>in diesem Browser</b>. Keine Datei
+          und kein Passwort gehen ins Netz, und keine Sitzung sieht sie. Ins
+          Depot kommt die <code>.enc.json</code>, die offene <b>nicht</b>.</p>
+
+        <!-- ⚠ DER WEG, DER AUF DEM TABLET WIRKLICH GEHT (2026-08-22).
+             Der Dateiwähler darunter nützt dort nichts: Chrome kommt an
+             Termux' Ordner nicht heran. Klaus müsste erst nach `Downloads`
+             kopieren, dort verschlüsseln und zurückkopieren — zwei Befehle
+             und eine OFFENE Kopie seiner Rechnungen, die liegen bleibt.
+             Überflüssig, denn die Seite HAT den Inhalt längst: sie lädt die
+             Dateien ja, um die Tabelle zu zeichnen. -->
+        <div class="pult">
+          <input id="tresor-neu" type="password" autocomplete="new-password"
+                 placeholder="neues Passwort" style="flex:1 1 200px">
+          <input id="tresor-neu2" type="password" autocomplete="new-password"
+                 placeholder="noch einmal" style="flex:1 1 200px">
+        </div>
+        <div class="pult">
+          <button id="tresor-geladen" type="button">🔒 Verschlüsselte Sicherung ablegen</button>
+          <!-- ⚠ KLAUS' BEFUND: „ich finde keine Möglichkeit, eine bestehende
+               Datei wieder zu entschlüsseln." Er hatte recht — der Tresor war
+               einseitig gebaut: hinein ja, heraus nur auf den Bildschirm. Ein
+               Tresor, aus dem man nichts herausholen kann, ist ein Briefkasten. -->
+          <button id="tresor-klartext" type="button">🔓 Offen herunterladen</button>
+        </div>
+        <p class="leise" style="margin:6px 0 0"><b>🔒</b> nimmt, was in den
+          Tabellen steht, und legt es <b>verschlossen</b> in deinen
+          Download-Ordner — das ist deine Sicherung. <b>🔓</b> legt dasselbe
+          <b>offen</b> ab, zum Ansehen oder für ein anderes Programm.</p>
+
+        <details class="erklaer" data-erklaer="tresor-datei">
+          <summary>Eine Sicherung einlesen · eine Datei von Hand verschließen</summary>
+
+          <!-- ⚠ BEFUND C (Klaus 2026-08-22): EIN TOTER KNOPF — ABER NUR EINER.
+               Hier stand „Stattdessen eine Datei von Hand wählen", und das war
+               gleich zweimal falsch.
+
+               Erstens ist 📥 Einlesen kein „stattdessen". Es ist der EINZIGE
+               Weg zurück, wenn der Browser-Speicher leer ist — genau Klaus'
+               Lage am 2026-08-22, seine Zahlen liegen als .enc.json im
+               Download-Ordner. Eine Rettungsleine als Nebenweg zu beschriften
+               ist der Grund, warum Befund A überhaupt eine Sackgasse war.
+
+               Zweitens galt „der Wähler nützt auf dem Tablet nichts" pauschal,
+               und das stimmt so nicht. Was Chrome auf Android nicht erreicht,
+               ist TERMUX' Ordner. Den Download-Ordner zeigt Androids
+               Dateiauswahl sehr wohl — und dort landet die Sicherung.
+
+               Also gehört genau EIN Knopf versteckt: 🔒 „Verschlüsselt
+               ablegen" nimmt eine Datei aus dem Ordner, und die läge auf dem
+               Tablet in Termux. 📥 Einlesen bleibt überall.
+               (Auf Klaus' Tablet ungeprüft — die Unterscheidung folgt aus
+               Androids Dateiauswahl, nicht aus einer Messung an seinem Gerät.) -->
+          <p class="leise"><b>📥 Einlesen</b> ist der Weg zurück: eine
+            gesicherte <code>.enc.json</code> aus dem Download-Ordner wieder in
+            diesen Browser holen. Das geht auf dem Tablet genauso wie am
+            Rechner.</p>
+          <div class="pult">
+            <input id="tresor-datei" type="file" accept=".json,application/json" style="flex:1 1 240px">
+          </div>
+          <!-- Erscheint erst, wenn die gewählte Datei schon ein Paket IST —
+               statt jeden zu fragen, der nur einmal verschließen will. -->
+          <div class="pult" id="tresor-alt-block" hidden>
+            <input id="tresor-alt" type="password" autocomplete="off"
+                   placeholder="altes Passwort" style="flex:1 1 200px">
+          </div>
+          <div class="pult">
+            <button id="tresor-einlesen" type="button">📥 In den Browser einlesen</button>
+          </div>
+          <p class="leise"><b>📥</b> ist der Rückweg nach einem Gerätewechsel und
+            der Weg vom einen Browser in den anderen: die gewählte Sicherung
+            zieht hier ein und ersetzt, was in diesem Browser steht.</p>
+
+          <!-- ⚠ Auf Android versteckt (Befund C). Dieser Knopf nimmt eine Datei
+               AUS DEM ORDNER — auf Klaus' Tablet läge sie in Termux, und dorthin
+               kommt Chrome nicht (NETZWEIT § 6b). Er müsste erst nach Downloads
+               kopieren, dort verschlüsseln, zurückkopieren: zwei Befehle und
+               eine offene Kopie seiner Rechnungen, die liegen bleibt.
+               Überflüssig, denn oben steht der Knopf, der genau das aus den
+               geladenen Zahlen macht. Versteckt, nicht entfernt — am Rechner
+               ist das der einzige Weg für eine Datei, die die Seite nicht lädt. -->
+          <div id="tresor-machen-block" data-machen="">
+            <div class="pult">
+              <button id="tresor-machen" type="button">🔒 Verschlüsselt ablegen</button>
+            </div>
+            <p class="leise"><b>🔒</b> schließt die gewählte Datei zu. Ist sie
+              schon ein Paket, wird das Passwort gewechselt. Das <b>neue</b>
+              Passwort nimmt dieser Weg aus den beiden Feldern oben.</p>
+          </div>
+          <p class="leise" id="tresor-machen-hinweis" hidden style="margin:6px 0 0">
+            „🔒 Verschlüsselt ablegen" ist hier ausgeblendet: es nimmt eine Datei
+            aus einem Ordner, und auf Android kommt Chrome an Termux' Ordner
+            nicht heran. Nimm dafür oben <b>🔒 Verschlüsselte Sicherung
+            ablegen</b> — der arbeitet mit den Zahlen, die diese Seite schon
+            geladen hat.</p>
+        </details>
+        <p class="leise" id="tresor-werk-lage" data-tresor-werk="" style="margin:6px 0 0"></p>
+        <!-- KEIN ZURÜCKSETZEN. Das ist kein Mangel, es ist der Preis: gäbe es
+             einen Weg an dem Passwort vorbei, gäbe es ihn auch für den, vor dem
+             die Datei geschützt sein soll. Deshalb steht es hier und deshalb
+             wird das neue Passwort zweimal verlangt. -->
+        <p class="leise" style="margin:6px 0 0"><b>Verlorenes Passwort heißt
+          verlorene Datei.</b> Es gibt kein Zurücksetzen — sonst gäbe es auch
+          für andere einen Weg vorbei. Bewahre es dort auf, wo dein
+          API-Schlüssel liegt.</p>
+      </details>
+    </div>
+
+    <div class="karte" data-chef="geld">
+      <h3>Was Anthropic wirklich berechnet hat</h3>
+      <p class="leise">Aus den Belegen im Postfach. <b>Drei verschiedene Dinge</b> —
+        und nur das dritte bezahlt die Agenten:</p>
+      <ul>
+        <li><b>Abo</b> (Max plan) — bezahlt Claude Code. <b>Nicht</b> die Agenten.</li>
+        <li><b>Mehrverbrauch</b> (auto recharge) — automatisch nachgeladen, <b>auf das Abo</b>.
+          Auch das sind nicht die Agenten.</li>
+        <li><b>API-Guthaben</b> — das bezahlt die Schichten. Getrennt aufzuladen.</li>
+      </ul>
+      <div class="rollt"><table id="belege"><tbody><tr><td class="leise">Noch nicht geladen.</td></tr></tbody></table></div>
+      <p id="belege-hinweis" class="hinweis leise" style="margin-top:10px"></p>
+    </div>
+
+    <div class="karte">
+      <h3>Bauzeit, Tag für Tag</h3>
+      <p class="leise">Spanne zwischen dem ersten und dem letzten Commit eines Tages.
+        Das ist eine <b>Untergrenze</b>, kein Aufwand: Lesen und Verwerfen vor dem
+        ersten Commit fehlen darin, Pausen dazwischen zählen voll mit.</p>
+      <div class="rollt"><table id="zeiten"><tbody><tr><td class="leise">Noch nicht geladen.</td></tr></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── Steuerpult ─────────────────────────── -->
+
+</main>
 
 <footer>
-  <p><b>Kim Hub Company</b> — gebaut in Heimarbeit, kein grosses Unternehmen
-    dahinter. Der Quelltext ist offen; Web-Code ist ohnehin immer lesbar.</p>
-  <p data-was-nicht>Was diese Seite <b>nicht</b> tut: nichts geht von allein
-    hinaus, es gibt keinen Zähler beim Laden und keine Meldung über deine
-    Nutzung. Sie läuft vollständig, auch wenn du nie einen Knopf drückst,
-    der etwas verschickt.</p>
-  <p class="hinweis" id="speicher-lage" data-wo=""></p>
+  <p><b>Woher die Zahlen kommen:</b> <code>werkstatt/konferenz.json</code> und
+  <code>werkstatt/lauf.json</code> schreibt der Schicht-Läufer;
+  <code>werkstatt/buchhaltung/anthropic-belege.json</code> ist aus den Belegen im
+  Postfach abgeschrieben; <code>werkstatt/buchhaltung/zeiten.json</code> kommt aus
+  <code>tools/zeiten-sammeln.mjs</code>;
+  <code>werkstatt/buchhaltung/fahrtenbuch.json</code> und
+  <code>schicht/kontingent.json</code> schreiben die Schichten selbst und liegen
+  nur auf dieser Maschine — sie sind nicht im Depot. Die Stechuhr-Zeiten liegen
+  nur in diesem Browser.</p>
+  <p>Diese Seite lädt <b>nichts von fremden Adressen</b> und funktioniert offline,
+  sobald die Dateien daneben liegen.</p>
+  <p><b>Jede Sitzung ist eine Messung:</b>
+  <a href="forschung/index.html" data-forschung>die Forschungsaufzeichnung</a>.
+  Woher jeder Befund kam, wie viele Wächter blind waren, und was die Zahlen
+  <i>nicht</i> sagen. Die Methode steht in <code>forschung/METHODE.md</code>.</p>
 </footer>
 
-</div>
+<script src="buehne.js?v=1"></script>
+<!-- Die Zeit-Rechnung liegt getrennt, damit sie auch OHNE Browser prüfbar ist —
+     die Gegenprobe fährt mit WERKSTATT_OHNE_BROWSER=1. Sie muss VOR ansicht.js
+     stehen; `defer` hält die Reihenfolge ein. -->
+<!-- Reihenfolge ist Pflicht: `ansicht.js` bricht ohne `idb.js` ab (Wohnort der
+     Zahlen), und `defer` haelt sie ein — die Dateien laufen in Dokument-Reihenfolge. -->
+<script src="idb.js" defer></script>
+<script src="schluesseltresor.js" defer></script>
+<script src="zeit.js" defer></script>
+<script src="ansicht.js" defer></script>
+<!-- Der app-eigene Klebstoff. Er kommt NACH `ansicht.js`, weil er dessen
+     Nähte benutzt (`__werkstatt.speise`) — und als Modul, weil er die
+     Schicht-Kette unter `schicht/` importiert. -->
 <script type="module" src="company.js"></script>
 </body>
 </html>

@@ -13,22 +13,24 @@
  * nach; fehlt eines offline, bricht der Start mit einem leeren Bildschirm ab.
  * Wer ein Modul dazunimmt, trägt es hier nach UND erhöht CACHE_VERSION.
  */
-var CACHE_VERSION = "kim-hub-company-v1";
-
-/* ⚠ ZWEI ZEILEN WEICHEN VON DER FASSUNG IN KIMHUB AB, UND ZWAR ABSICHTLICH.
- * Dort heisst die Startseite `start.html`, weil `index.html` schon die
- * Werkstatt ist; hier ist sie die App und heisst `index.html`. Datei-Namen
- * sind app-eigener Klebstoff — deshalb ist dieser Worker die einzige Datei
- * neben dem Manifest, die der Drift-Guard NICHT pinnt. Alles andere ist
- * byte-1:1, und wer daran etwas ändert, wird von ihm zu Recht gestellt. */
+/* ⚠ ZWEI ZEILEN WEICHEN VON KIMHUBS FASSUNG AB, UND ZWAR ABSICHTLICH: dort
+ * heisst die Startseite `start.html` (weil `index.html` die Werkstatt ist),
+ * hier ist sie die App und heisst `index.html`. Datei-Namen sind app-eigener
+ * Klebstoff — deshalb ist dieser Worker neben dem Manifest die einzige Datei,
+ * die der Drift-Guard NICHT pinnt. Und er heisst `sw.js`, weil `ansicht.js`
+ * genau diesen Namen registriert: eine Naht weniger.
+ */
+var CACHE_VERSION = "kim-hub-company-v4";
 var SCHALE = [
-  "./", "./index.html", "./company.js", "./company.webmanifest",
-  "./idb.js", "./schluesseltresor.js",
-  "./schicht/schicht.mjs", "./schicht/api.mjs", "./schicht/transport-netz.mjs",
+  "./", "./index.html", "./company.webmanifest", "./version.json",
+  "./idb.js", "./schluesseltresor.js", "./zeit.js", "./ansicht.js", "./company.js",
+  "./buehne.js",
+    "./schicht/schicht.mjs", "./schicht/api.mjs", "./schicht/transport-netz.mjs",
   "./schicht/kosten.mjs", "./schicht/beispiele.mjs", "./schicht/grundsaetze.mjs",
   "./schicht/ablage-idb.mjs", "./schicht/ablage-speicher.mjs",
   "./schicht/baum-speicher.mjs", "./schicht/werkzeuge.mjs",
   "./schicht/spind.mjs", "./schicht/ruf.mjs", "./schicht/rollen.mjs",
+  "./schicht/konferenz.mjs",
   "./schicht/grundsaetze.md", "./schicht/mitarbeiter.json",
   "./icons/kimhub-96.png", "./icons/kimhub-192.png", "./icons/kimhub-512.png",
 ];

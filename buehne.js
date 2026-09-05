@@ -1,0 +1,916 @@
+/*
+ * buehne.js — die Werkstatt als Ort, nicht als Textwand.
+ *
+ * WARUM ES DAS GIBT. Klaus am 2026-08-21, nachdem er die Seite selbst
+ * aufgemacht hat: „Nur Texte, Container, Knöpfe. Man sieht nicht, dass etwas
+ * passiert oder passiert ist … jeder könnte denken, das ist eine tote Seite,
+ * die irgendeine Geschichte erzählt."
+ *
+ * Er hat recht gehabt. Die Seite zeigte fertige Textblöcke und schaltete beim
+ * Abspielen zwei Klassen um — ein Feld leuchtete auf, mehr nicht. Was fehlte,
+ * war das Bild: die fünf treffen sich zur Konferenz, gehen auseinander,
+ * woanders wird gebaut, sie kommen zur Gegenprüfung wieder zusammen.
+ *
+ * ES WIRD NICHTS ERFUNDEN. Die Bühne zeichnet ausschließlich aus `events[]` —
+ * derselben Liste, aus der auch die Texträume kommen. Eine zweite, nachgebaute
+ * Liste wäre eine Drift-Quelle mit Ansage: sie liefe auseinander, und die Bühne
+ * zeigte irgendwann etwas anderes als der Text darunter.
+ *
+ * DIE ANZEIGE IST GEDEHNT, DIE ZAHLEN SIND ES NICHT. Klaus hat den Einwand
+ * selbst vorweggenommen: „Ihr rechnet in Millisekunden, das kann man nicht in
+ * derselben Zeit animieren." Stimmt — ein Trockenlauf ist in wenigen
+ * Millisekunden vorbei. Deshalb läuft die Darstellung in Lesegeschwindigkeit,
+ * und die gemessene Dauer steht als Zahl daneben. Dieselbe Ehrlichkeit, die im
+ * Abspiel-Pult schon steht.
+ *
+ * KEINE FREMDBIBLIOTHEK, KEIN BILD AUS DEM NETZ. Reines SVG und CSS.
+ */
+(function (welt) {
+  "use strict";
+
+  /* Wo wer steht. Drei Aufstellungen — mehr braucht es nicht, um „zusammen",
+     „auseinander" und „Gegenprüfung" zu zeigen. */
+  var TISCH = {
+    ingenieur:    { x: 300, y:  86 },
+    bauer:        { x: 408, y: 146 },
+    arzt:         { x: 372, y: 250 },
+    negativbauer: { x: 228, y: 250 },
+    beobachter:   { x: 192, y: 146 }
+  };
+  var WEG = {                          /* auseinander: gebaut wird woanders */
+    ingenieur:    { x: 118, y:  76 },
+    bauer:        { x: 606, y: 216 },  /* an der Werkbank, UNTER dem Werkstück */
+    arzt:         { x: 118, y: 178 },
+    negativbauer: { x: 118, y: 286 },
+    beobachter:   { x: 300, y: 296 }   /* schreibt mit, immer sichtbar */
+  };
+  var PRUEFUNG = {                     /* Gegenprüfung: OHNE den Bauer */
+    ingenieur:    { x: 118, y:  76 },
+    bauer:        { x: 250, y: 178 },  /* zurück am Tisch — er urteilt nicht mit */
+    arzt:         { x: 606, y: 110 },
+    negativbauer: { x: 606, y: 246 },
+    beobachter:   { x: 300, y: 296 }
+  };
+
+  var ROLLEN = ["ingenieur", "bauer", "arzt", "negativbauer", "beobachter"];
+
+  /* Wofür einer DA ist. Das steht unter seinem Knopf, solange nichts läuft. */
+  var KURZ = { ingenieur: "Idee", bauer: "baut", arzt: "prüft",
+               negativbauer: "sucht Fehler", beobachter: "schreibt auf" };
+
+  /* ⚠ IN DER KONFERENZ TUN ALLE DASSELBE — und das ist der Punkt, den Klaus
+     gefunden hat: „Im Normalfall bringen alle eine Idee ein am Konferenztisch
+     … dann entscheiden alle, welche Idee die beste ist."
+     Er hat recht, und die Daten sagen es auch: in `konferenz.json` trägt die
+     Phase `vorschlag` FÜNF Ereignisse, eines je Rolle, und `bewertung` ebenso.
+     Die feste Rollenbeschriftung ließ es aussehen, als sei nur Nora für Ideen
+     zuständig. Das war falsch.
+     Bei diesen Phasen bekommen deshalb ALLE dieselbe Tätigkeit angezeigt. */
+  var ALLE_TUN = {
+    vorschlag: "bringt eine Idee ein",
+    bewertung: "bewertet die Ideen"
+  };
+
+  /* ACHT Phasen, nicht fünf. Die drei Konferenz-Phasen (`vorschlag`,
+     `bewertung`, `schluss`) standen nur in `konferenz.json`; beim ersten Bau
+     hatte ich allein in `lauf.json` nachgesehen und sie übersehen. Das ist
+     dieselbe Falle wie überall: „nicht gefunden" ist erst dann eine Aussage,
+     wenn man überall hineingesehen hat.
+     `feierabend` bringt alle zurück an den Tisch — die Schicht endet, wie sie
+     begann. Das ist der sichtbare Schluss. */
+  function stellung(phase) {
+    if (phase === "build") return WEG;
+    if (phase === "urteil" || phase === "befund") return PRUEFUNG;
+    return TISCH;   /* idee · vorschlag · bewertung · schluss · feierabend */
+  }
+
+  /* Jede Phase MUSS hier stehen. Eine unbekannte fiele sonst still durch und
+     die Blase bliebe leer — der Zuschauer sähe eine Bewegung ohne Auskunft. */
+  var PHASEN = ["idee", "vorschlag", "bewertung", "schluss",
+                "build", "urteil", "befund", "feierabend"];
+
+  var STAND_WORT = {
+    entwurf: "Entwurf", build: "im Bau", nachbessern: "nachbessern",
+    taugt: "taugt", verwerfen: "verworfen", befund: "geprüft"
+  };
+
+  /*
+   * VORLESEN (1.4, Klaus 2026-08-22): „Als Text in dem Container steht da —
+   * ich möchte gern, dass es noch zum Vorlesen geht. Direkt vorlesen."
+   *
+   * Für Menschen, die schlecht sehen. `speechSynthesis` bringt der Browser
+   * mit: kein Fremd-Dienst, keine Adresse nach außen, kein Schlüssel — es
+   * passt zu „diese Seite lädt nichts von fremden Adressen".
+   *
+   * DREI DINGE, DIE MAN LEICHT FALSCH MACHT:
+   *
+   * 1. `lang` MUSS auf Deutsch stehen. Ohne das liest eine englische Stimme
+   *    deutschen Text, und das Ergebnis ist unverständlicher als gar nichts.
+   * 2. `getVoices()` ist beim ersten Aufruf oft LEER — die Liste kommt
+   *    nachträglich. Eine leere Liste heißt deshalb NICHT „keine Stimme da";
+   *    wer daraus einen Fehler macht, sperrt den Knopf auf einem Gerät, das
+   *    lesen könnte. Gemeldet wird nur der Fall „Liste da, aber keine
+   *    deutsche" — und auch dann wird gelesen, nur mit Warnung daneben.
+   * 3. Kein toter Knopf. Kann der Browser gar nicht vorlesen, steht das da
+   *    statt eines Knopfes, der nichts tut.
+   */
+  function stimmeLage() {
+    if (!welt.speechSynthesis || typeof welt.SpeechSynthesisUtterance !== "function")
+      return { geht: false, grund: "Dieser Browser kann nicht vorlesen." };
+    var liste = [];
+    try { liste = welt.speechSynthesis.getVoices() || []; } catch (e) { liste = []; }
+    var de = [];
+    for (var i = 0; i < liste.length; i++)
+      if (/^de/i.test(liste[i].lang || "")) de.push(liste[i]);
+    if (liste.length && !de.length)
+      return { geht: true, stimme: null,
+               warnung: "Keine deutsche Stimme auf diesem Gerät — es liest die Standardstimme." };
+    return { geht: true, stimme: de[0] || null };
+  }
+
+  function vorlesenAus() {
+    try { if (welt.speechSynthesis) welt.speechSynthesis.cancel(); } catch (e) {}
+  }
+
+  function vorlesen(text, fertig) {
+    var lage = stimmeLage();
+    if (!lage.geht) return false;
+    vorlesenAus();                     /* nie zwei Stimmen übereinander */
+    try {
+      var u = new welt.SpeechSynthesisUtterance(text);
+      u.lang = "de-DE";
+      if (lage.stimme) u.voice = lage.stimme;
+      u.rate = 1;
+      if (fertig) { u.onend = fertig; u.onerror = fertig; }
+      welt.speechSynthesis.speak(u);
+      return true;
+    } catch (e) { return false; }
+  }
+
+  /* Ein Vorlese-Knopf samt seinem Fail-soft — an EINER Stelle, weil ihn zwei
+     Kästen brauchen (der Volltext und die Akte). Zwei Fassungen liefen
+     auseinander, und dann läse der eine vor und der andere schwiege. */
+  function vorleseKnopf(text) {
+    var lage = stimmeLage();
+    if (!lage.geht) {
+      var hin = document.createElement("span");
+      hin.className = "b-leise-klein";
+      hin.setAttribute("data-vorlesen", "geht-nicht");
+      hin.textContent = lage.grund;
+      return hin;
+    }
+    var k = document.createElement("button");
+    k.type = "button";
+    k.className = "b-vorlesen";
+    k.setAttribute("data-vorlesen", "bereit");
+    k.setAttribute("aria-pressed", "false");
+    k.title = lage.warnung || "Den Text laut vorlesen";
+    k.textContent = "🔊 Vorlesen";
+    function aus() {
+      k.textContent = "🔊 Vorlesen";
+      k.setAttribute("aria-pressed", "false");
+      k.setAttribute("data-vorlesen", "bereit");
+    }
+    k.addEventListener("click", function () {
+      if (k.getAttribute("aria-pressed") === "true") { vorlesenAus(); aus(); return; }
+      var t = typeof text === "function" ? text() : text;
+      if (!t) return;
+      if (vorlesen(t, aus)) {
+        k.textContent = "⏹ Still";
+        k.setAttribute("aria-pressed", "true");
+        k.setAttribute("data-vorlesen", "liest");
+      } else {
+        /* Auch das ist eine Auskunft: der Knopf war da, das Lesen ging nicht. */
+        k.setAttribute("data-vorlesen", "geht-nicht");
+        k.textContent = "Vorlesen ging nicht";
+        k.disabled = true;
+      }
+    });
+    return k;
+  }
+
+  function svgEl(tag, attrs) {
+    var e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (var k in attrs) if (Object.prototype.hasOwnProperty.call(attrs, k)) {
+      e.setAttribute(k, String(attrs[k]));
+    }
+    return e;
+  }
+
+  function Buehne(wurzel) {
+    this.wurzel = wurzel;
+    this.knoten = {};
+    this.events = [];
+    this.besetzung = [];
+    this.letzterIdx = -1;
+    this.bauen();
+  }
+
+  Buehne.prototype.bauen = function () {
+    var svg = svgEl("svg", {
+      viewBox: "0 0 720 356", class: "buehne-svg", role: "img",
+      "aria-label": "Die Werkstatt: fünf Agenten, ein Konferenztisch, eine Werkbank"
+    });
+
+    svg.appendChild(svgEl("ellipse", { cx: 300, cy: 178, rx: 118, ry: 78, class: "b-tisch" }));
+    svg.appendChild(svgEl("rect", { x: 528, y: 104, width: 156, height: 150, rx: 12, class: "b-bank" }));
+
+    /* NUR NOCH EINE BESCHRIFTUNG. Hier stand links „Konferenztisch" — Klaus am
+       2026-08-22: „Das Wort Konferenztisch … brauchen wir nicht. Ist immer im
+       Weg." Er hat recht, und der Unterschied zur zweiten Station ist der
+       Grund: die zweite trägt eine AUSSAGE (gebaut oder an Claude gegeben),
+       die erste trug einen Namen für das Offensichtliche — fünf Leute sitzen
+       sichtbar um einen Tisch. Eine Beschriftung, die nichts sagt, was das
+       Bild nicht schon zeigt, kostet nur Platz. */
+    var t2 = svgEl("text", { x: 606, y:  74, class: "b-ortname" });
+    svg.appendChild(t2);
+    this.bankName = t2;
+
+    /* Der Pfeil zur zweiten Station — er macht sichtbar, dass etwas WEGGEHT. */
+    svg.appendChild(svgEl("path", { d: "M 428 178 L 508 178", class: "b-pfeil" }));
+
+    /* Das Werkstück wandert, pulst beim Bauen und trägt seinen Stand — in Farbe
+       UND Wort. Nur Farbe wäre für Farbenblinde keine Auskunft. */
+    var stueck = svgEl("g", { class: "b-stueck", transform: "translate(604,200)" });
+    stueck.appendChild(svgEl("rect", { x: -26, y: -18, width: 52, height: 36, rx: 5, class: "b-stueck-k" }));
+    var sl = svgEl("text", { x: 0, y: 36, class: "b-stueck-t" });
+    stueck.appendChild(sl);
+    svg.appendChild(stueck);
+    this.stueck = stueck; this.stueckText = sl;
+
+    var bild = document.createElement("div");
+    bild.className = "b-bild";
+    bild.appendChild(svg);
+    this.wurzel.appendChild(bild);
+
+    /* DIE AGENTEN SIND HTML, NICHT SVG — und das ist eine bewusste Entscheidung.
+       Klaus wollte die 3D-Holo-Form von family-projekt.de auf runde Knöpfe
+       übertragen. SVG kennt weder `box-shadow` noch `mix-blend-mode: screen`
+       noch `conic-gradient` — die Form ließe sich dort nur NACHBAUEN, und ein
+       Nachbau läuft von der Vorlage weg. Als HTML werden die Regeln aus
+       `family-project/assets/style.css` KOPIERT. Tisch, Werkbank, Pfeil und
+       Werkstück bleiben SVG; sie brauchen nichts davon. */
+    var buehne = document.createElement("div");
+    buehne.className = "b-leute";
+    for (var i = 0; i < ROLLEN.length; i++) {
+      var r = ROLLEN[i];
+      var g = document.createElement("div");
+      g.className = "b-agent b-" + r;
+      g.setAttribute("data-rolle", r);
+      /* ANKLICKBAR. Klaus: „Wenn ich auf einen Namen klicke, dann sollte das
+         laufende Textfeld aufgehen von dem, was gerade geschrieben wird. Beim
+         2. Klick wieder zugehen … anschließend den Text zum Lesen/Download
+         bereitstellen."
+         `role`+`tabindex`+`aria-expanded` statt eines <button>: der Knopf trägt
+         die Holo-Konstruktion aus family-project, und die hängt an dieser
+         Element-Schachtelung. Wer die Rolle setzt, muss auch die Tastatur
+         bedienen — sonst ist es ein Knopf, den nur die Maus findet. */
+      g.setAttribute("role", "button");
+      g.setAttribute("tabindex", "0");
+      g.setAttribute("aria-expanded", "false");
+      var scheibe = document.createElement("span");
+      scheibe.className = "b-scheibe";
+      var name = document.createElement("b");
+      name.className = "b-name";
+      scheibe.appendChild(name);
+      var tun = document.createElement("span");
+      tun.className = "b-tun";
+      tun.textContent = KURZ[r];
+      g.appendChild(scheibe); g.appendChild(tun);
+      buehne.appendChild(g);
+      this.knoten[r] = { g: g, name: name, tun: tun };
+    }
+    bild.appendChild(buehne);          /* IN den Bild-Rahmen, nicht daneben */
+    this.setzeOrt(TISCH);
+    this.verfolgeZeiger(buehne);
+
+    /* Die Sprechblase liegt ÜBER dem SVG als gewöhnliches HTML — Text in SVG
+       bricht nicht um, und ein Satz, der rechts aus dem Bild läuft, ist keine
+       Auskunft. */
+    this.blase = document.createElement("div");
+    this.blase.className = "b-blase";
+    this.blase.hidden = true;
+    this.wurzel.appendChild(this.blase);
+
+    /*
+     * DER VOLLE TEXT DES LAUFENDEN SCHRITTS (1.3, Klaus 2026-08-22).
+     *
+     * „Dann wird oben die Demo abgespielt … und unten seh ich nicht den Text,
+     * der generiert wurde. Dann hätte ich kurz auf Anhalten machen können und
+     * sehen: was hat er jetzt in diesem Augenblick gesagt."
+     *
+     * Die Blase über der Bühne kürzt bei 260 Zeichen — sie muss, sonst
+     * verdrängt sie die Szene. Der volle Text stand nur in der Akte, und die
+     * steht still: sie zeigt einen Menschen, nicht einen Augenblick. Zwischen
+     * beidem klaffte genau die Lücke, die Klaus beschreibt.
+     *
+     * Dieser Kasten schließt sie. Er zeigt IMMER den vollen Text des Schritts,
+     * auf dem das Abspielen gerade steht — ungekürzt, mit dem Namen darüber,
+     * dem er gehört. Anhalten heißt damit: stehen bleiben und lesen.
+     *
+     * ⚠ Er trägt den Text NICHT selbst zusammen: `textVon` ist die eine
+     * Stelle, aus der Blase, Akte und dieser Kasten lesen. Drei Fassungen
+     * desselben Satzes wären drei Stände, und man glaubte dem falschen.
+     */
+    this.volltext = document.createElement("div");
+    this.volltext.className = "b-volltext";
+    this.volltext.setAttribute("data-volltext", "");
+    this.volltext.hidden = true;
+    this.wurzel.appendChild(this.volltext);
+
+    this.lage = document.createElement("p");
+    this.lage.className = "b-lage";
+    this.wurzel.appendChild(this.lage);
+
+    /* Die AKTE: alles, was EINE Person in diesem Lauf gesagt hat — vollständig,
+       nicht gekürzt. Sie steht unter der Bühne und ist leer, bis jemand einen
+       Namen anklickt. */
+    this.akte = document.createElement("div");
+    this.akte.className = "b-akte";
+    this.akte.hidden = true;
+    this.akte.setAttribute("data-akte", "");
+    this.wurzel.appendChild(this.akte);
+    this.offeneAkte = "";
+    this.horcheAufNamen();
+  };
+
+  /* EIN Zuhörer an der Wurzel statt fünf an den Knöpfen — und er überlebt ein
+     Neuzeichnen der Agenten, falls das je dazukommt. */
+  Buehne.prototype.horcheAufNamen = function () {
+    var self = this;
+    function treffer(ev) {
+      var g = ev.target && ev.target.closest && ev.target.closest(".b-agent");
+      return g && self.wurzel.contains(g) ? g.getAttribute("data-rolle") : null;
+    }
+    this.wurzel.addEventListener("click", function (ev) {
+      var r = treffer(ev);
+      if (r) self.zeigeAkte(r);
+    });
+    this.wurzel.addEventListener("keydown", function (ev) {
+      if (ev.key !== "Enter" && ev.key !== " " && ev.key !== "Spacebar") return;
+      var r = treffer(ev);
+      if (!r) return;
+      ev.preventDefault();          /* sonst scrollt die Leertaste die Seite */
+      self.zeigeAkte(r);
+    });
+  };
+
+  /* Alles, was diese Rolle gesagt hat — als Text, EINMAL erzeugt: die Anzeige
+     und der Download lesen dieselben Zeilen. Zwei Fassungen liefen auseinander,
+     und dann lädt jemand etwas anderes herunter, als er gelesen hat. */
+  Buehne.prototype.akteZeilen = function (rolle) {
+    var zeilen = [];
+    for (var i = 0; i < this.events.length; i++) {
+      var e = this.events[i];
+      if (!e || e.rolle !== rolle) continue;
+      var t = textVon(e);
+      if (!t.kopf) continue;
+      zeilen.push({ schritt: i + 1, kopf: t.kopf, inhalt: t.inhalt, ms: e.ms || 0 });
+    }
+    return zeilen;
+  };
+
+  /**
+   * Klick auf einen Namen: Akte auf. Zweiter Klick auf denselben: zu.
+   * Klick auf einen anderen: umschalten, nicht stapeln.
+   */
+  Buehne.prototype.zeigeAkte = function (rolle) {
+    var zu = (this.offeneAkte === rolle);
+    for (var k in this.knoten)
+      this.knoten[k].g.setAttribute("aria-expanded", String(!zu && k === rolle));
+    if (zu) {
+      this.offeneAkte = "";
+      this.akte.hidden = true;
+      this.akte.setAttribute("data-akte", "");
+      this.akte.removeAttribute("data-jetzt");
+      while (this.akte.firstChild) this.akte.removeChild(this.akte.firstChild);
+      /* Der Volltext-Kasten kommt zurück, und zwar auf DEM Schritt, auf dem
+         die Bühne steht — nicht auf dem, der beim Öffnen galt. Ohne diese
+         Zeile stünde nach dem Schließen ein alter Stand neben einer neuen
+         Szene, und man glaubte dem falschen. */
+      this.zeigeVolltext(this.aktuellesEreignis(), this.letzterIdx, false);
+      return;
+    }
+    this.offeneAkte = rolle;
+    this.akte.hidden = false;
+    this.akte.setAttribute("data-akte", rolle);
+    while (this.akte.firstChild) this.akte.removeChild(this.akte.firstChild);
+
+    var name = (this.knoten[rolle] && this.knoten[rolle].name.textContent) || rolle;
+    var zeilen = this.akteZeilen(rolle);
+
+    var kopf = document.createElement("div");
+    kopf.className = "b-akte-kopf";
+    var h = document.createElement("b");
+    h.textContent = name + " · " + rolle;
+    kopf.appendChild(h);
+    var n = document.createElement("span");
+    n.className = "b-akte-zahl";
+    n.textContent = zeilen.length === 1 ? "1 Beitrag" : zeilen.length + " Beiträge";
+    kopf.appendChild(n);
+
+    /* Der Download entsteht erst auf Klick — ein Blob je Akte beim Zeichnen
+       wäre Müll, den niemand abholt. */
+    var lad = document.createElement("button");
+    lad.type = "button";
+    lad.className = "b-akte-laden";
+    lad.textContent = "⭳ Als Text";
+    lad.disabled = !zeilen.length;
+    var self = this;
+    lad.addEventListener("click", function () { self.ladeAkte(rolle, name, zeilen); });
+    kopf.appendChild(lad);
+
+    /* Vorlesen auch hier (1.4) — sonst wäre ausgerechnet der längste Text der
+       Seite der einzige, den man sich nicht vorlesen lassen kann. */
+    kopf.appendChild(vorleseKnopf(function () {
+      if (!zeilen.length) return name + " hat in diesem Lauf nichts beigetragen.";
+      var t = name + ". ";
+      for (var q = 0; q < zeilen.length; q++)
+        t += zeilen[q].kopf + ". " + (zeilen[q].inhalt || "") + " ";
+      return t;
+    }));
+
+    var zu2 = document.createElement("button");
+    zu2.type = "button";
+    zu2.className = "b-akte-zu";
+    zu2.textContent = "✕";
+    zu2.title = "Akte schließen";
+    zu2.addEventListener("click", function () { self.zeigeAkte(rolle); });
+    kopf.appendChild(zu2);
+    this.akte.appendChild(kopf);
+
+    if (!zeilen.length) {
+      /* NICHT stumm leer. „Nichts gesagt" ist eine Auskunft, ein leerer Kasten
+         sieht aus wie kaputt — und im Planmodus hat der Bauer wirklich nichts
+         gesagt, weil gar nicht gebaut wurde. */
+      var leer = document.createElement("p");
+      leer.className = "b-akte-leer";
+      leer.textContent = name + " hat in diesem Lauf nichts beigetragen.";
+      this.akte.appendChild(leer);
+      return;
+    }
+    for (var i = 0; i < zeilen.length; i++) {
+      var z = zeilen[i];
+      var b = document.createElement("div");
+      b.className = "b-akte-beitrag";
+      /* Die Schritt-Nummer als ANGABE, nicht nur im Text: daran findet das
+         Abspielen den laufenden Beitrag wieder und hebt ihn hervor. Aus der
+         Überschrift zu lesen hieße, den Wortlaut zu parsen — und der darf sich
+         ändern, ohne dass die Hervorhebung ausfällt. */
+      b.setAttribute("data-schritt", String(z.schritt));
+      var k2 = document.createElement("b");
+      k2.textContent = "Schritt " + z.schritt + " · " + z.kopf;
+      b.appendChild(k2);
+      if (z.inhalt) {
+        var p2 = document.createElement("p");
+        /* VOLLSTÄNDIG. Die Blase kürzt bei 260 Zeichen, damit sie die Bühne
+           nicht verdrängt — genau dafür gibt es diese Ansicht. Hier zu kürzen
+           hieße, denselben Text zweimal zu beschneiden und nirgends zu zeigen. */
+        p2.textContent = z.inhalt;
+        b.appendChild(p2);
+      }
+      this.akte.appendChild(b);
+    }
+    /* Die Hervorhebung sofort setzen, statt auf den nächsten Schritt zu warten
+       — wer mitten im Abspielen eine Akte öffnet, will SEHEN, wo er ist. */
+    this.zeigeVolltext(this.aktuellesEreignis(), this.letzterIdx, false);
+  };
+
+  /* Auf welchem Ereignis die Bühne gerade steht. An EINER Stelle, weil drei
+     Wege danach fragen. `letzterIdx` ist -1, solange nichts gelaufen ist. */
+  Buehne.prototype.aktuellesEreignis = function () {
+    var i = this.letzterIdx;
+    return (typeof i === "number" && i >= 0 && i < this.events.length) ? this.events[i] : null;
+  };
+
+  /* Zum Lesen und Weiterreichen — Klaus wollte den Text „zur Analyse". */
+  Buehne.prototype.ladeAkte = function (rolle, name, zeilen) {
+    /*
+     * ⚠ ASCII-ZIERDE UND EIN BOM (Klaus 2026-08-22, mit zwei Bildern).
+     *
+     * Die heruntergeladene Datei stand auf seinem Tablet als „Beitrag/BeitrÃ¤ge"
+     * und „â€"". Nachgesehen: die Bytes sind sauberes UTF-8. Beim Herunterladen
+     * geht die Angabe `charset=utf-8` verloren — sie steht im MIME-Typ, auf der
+     * Platte liegen nur Bytes —, und Androids Betrachter raet dann Latin-1.
+     *
+     * Der BOM ist das Zeichen, an dem er es sicher erkennt. Die Kastenzeichen
+     * (`─`, `·`) weichen zusaetzlich ASCII: ignoriert ein Betrachter den BOM,
+     * bleibt so wenigstens die Gliederung stehen.
+     */
+    var text = name + " (" + rolle + ") - " + zeilen.length + " Beitrag/Beiträge\n" +
+      "aus der Werkstatt-Schicht, Reihenfolge wie auf der Bühne\n" +
+      new Array(60).join("-") + "\n\n";
+    for (var i = 0; i < zeilen.length; i++) {
+      text += "Schritt " + zeilen[i].schritt + " | " + zeilen[i].kopf + "\n";
+      if (zeilen[i].inhalt) text += zeilen[i].inhalt + "\n";
+      text += "\n";
+    }
+    try {
+      var b = new Blob(["\uFEFF" + text], { type: "text/plain;charset=utf-8" });
+      var u = URL.createObjectURL(b);
+      var a = document.createElement("a");
+      a.href = u;
+      a.download = "werkstatt-" + rolle + ".txt";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(u); }, 1000);
+    } catch (e) {
+      /* Kein toter Knopf: klappt der Download nicht, steht der Grund da. */
+      var w = document.createElement("p");
+      w.className = "b-akte-leer";
+      w.textContent = "Download geht in diesem Browser nicht (" + e.message + ") — " +
+        "der Text steht oben zum Markieren.";
+      this.akte.appendChild(w);
+    }
+  };
+
+  /* Neigung und Scheinwerfer folgen dem Zeiger — dieselbe Mechanik wie in
+     `family-project/assets/app.js`: vier CSS-Variablen am Element, den Rest
+     macht das Stylesheet. Ohne diese Zeilen wären `--rx/--ry/--mx/--my` nur
+     Deko-Variablen, die nie einen Wert bekommen, und die Form bliebe flach.
+
+     Auf einem Tablet gibt es keinen Zeiger — dort passiert schlicht nichts,
+     und die Knöpfe stehen gerade. Das ist kein Mangel: die Plastik kommt aus
+     den Schatten, die Neigung ist die Zugabe für den, der eine Maus hat. */
+  Buehne.prototype.verfolgeZeiger = function (wurzel) {
+    var flach = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (flach) return;
+    var knoten = this.knoten;
+    function fuer(g) {
+      g.addEventListener("pointermove", function (ev) {
+        var k = g.getBoundingClientRect();
+        var px = (ev.clientX - k.left) / k.width, py = (ev.clientY - k.top) / k.height;
+        g.style.setProperty("--mx", (px * 100).toFixed(1) + "%");
+        g.style.setProperty("--my", (py * 100).toFixed(1) + "%");
+        g.style.setProperty("--ry", ((px - 0.5) * 16).toFixed(2) + "deg");
+        g.style.setProperty("--rx", ((0.5 - py) * 16).toFixed(2) + "deg");
+      });
+      g.addEventListener("pointerleave", function () {
+        ["--mx", "--my", "--rx", "--ry"].forEach(function (v) { g.style.removeProperty(v); });
+      });
+    }
+    for (var k in knoten) if (Object.prototype.hasOwnProperty.call(knoten, k)) fuer(knoten[k].g);
+  };
+
+  /* Die Plätze stehen weiter in viewBox-Koordinaten (720 × 356) — sie werden
+     hier in Prozent umgerechnet. So bleibt die Aufstellung an EINER Stelle, und
+     die Bühne skaliert mit jeder Breite mit. */
+  var BREIT = 720, HOCH = 356;
+  Buehne.prototype.setzeOrt = function (wo) {
+    for (var i = 0; i < ROLLEN.length; i++) {
+      var r = ROLLEN[i], p = wo[r], n = this.knoten[r];
+      if (!p || !n) continue;
+      n.g.style.left = (p.x / BREIT * 100).toFixed(3) + "%";
+      n.g.style.top  = (p.y / HOCH  * 100).toFixed(3) + "%";
+      /* Die Probe liest die Aufstellung hier ab — dieselbe Zahl wie im
+         Datensatz, nicht die gerundete Prozentangabe. */
+      n.g.setAttribute("data-x", String(p.x));
+      n.g.setAttribute("data-y", String(p.y));
+    }
+  };
+
+  /** Daten übernehmen. `events` ist dieselbe Liste wie in den Texträumen. */
+  Buehne.prototype.setzeDaten = function (daten) {
+    daten = daten || {};
+    this.events = Array.isArray(daten.events) ? daten.events : [];
+    this.besetzung = Array.isArray(daten.besetzung) ? daten.besetzung : [];
+    this.laeuft = daten.laeuft === true;
+    this.istBeispiel = daten._ausBeispiel === true;
+    /* Zwei Achsen, getrennt gehalten (1.5): `istBeispiel` sagt WOHER, `art`
+       sagt WOMIT. Bis zum 2026-08-22 stand an der Bühne nur das Wort
+       „Beispiel", und es musste beides tragen — deshalb trug es keines von
+       beidem zuverlässig. */
+    this.art = daten._art || "";
+    this.datum = daten._datum || "";
+
+    /* ABGELESEN, NICHT GERATEN: enthält die Reihe keine `build`-Phase, hat die
+       Werkstatt nicht gebaut — sie hat entworfen, und gebaut wird woanders.
+       Seit dem 2026-08-20 ist der Planmodus der Normalfall (die fünf entwerfen,
+       eine Claude-Code-Sitzung baut). Die Bühne zeigte trotzdem eine Werkbank;
+       Klaus hat es gefunden: „Es handelt sich nicht um einen Bauprozess,
+       sondern um einen Entwurf. Der Bau findet in der Cloud statt."
+       Beide Fälle sind wahr — welcher gilt, sagen die Daten. */
+    this.wurdeGebaut = this.events.some(function (e) { return e && e.phase === "build"; });
+    /* NICHT „Cloud" — CLAUDE. Klaus hat es ausdrücklich richtiggestellt: „Es
+       heißt nicht, dass der Bau in die Cloud geht, sondern dass Claude baut.
+       Das heißt, die jeweilige Sitzung." Beim ersten Bau stand hier „Cloud",
+       weil ich sein gesprochenes Wort so gelesen hatte. Ein Ortsname für einen
+       Rechner irgendwo ist etwas anderes als der Name dessen, der die Arbeit
+       macht. */
+    this.bankName.textContent = this.wurdeGebaut ? "Werkbank" : "→ Claude baut";
+
+    for (var i = 0; i < this.besetzung.length; i++) {
+      var b = this.besetzung[i];
+      if (b && this.knoten[b.rolle]) this.knoten[b.rolle].name.textContent = b.name || b.rolle;
+    }
+    /* IM PLANMODUS GIBT ES KEINE `besetzung` — die steht in `lauf.json`, und
+       im Planmodus läuft nur die Konferenz. Die Namen stehen dann trotzdem da:
+       jedes Ereignis trägt `wer`. Ohne diese Zeilen hießen die fünf „ingenieur",
+       „bauer", „arzt" — richtig, aber kalt, und Klaus' Werkstatt hat Namen. */
+    for (var j = 0; j < this.events.length; j++) {
+      var e = this.events[j];
+      if (e && e.rolle && e.wer && this.knoten[e.rolle] &&
+          !this.knoten[e.rolle].name.textContent) {
+        this.knoten[e.rolle].name.textContent = e.wer;
+      }
+    }
+    /* Und wenn selbst das fehlt, wenigstens die Rolle — nie ein leerer Knopf. */
+    for (var k in this.knoten) {
+      if (!this.knoten[k].name.textContent) this.knoten[k].name.textContent = k;
+    }
+    /* Eine offene Akte zeigt sonst den VORIGEN Lauf weiter — sie steht ja
+       neben einer Bühne, die schon den neuen zeigt. Zwei Stände nebeneinander,
+       und man glaubt dem falschen. `zeigeAkte` schaltet um: einmal zu, einmal
+       auf, mit den neuen Daten. */
+    if (this.offeneAkte) {
+      var r = this.offeneAkte;
+      this.zeigeAkte(r);            /* zu  */
+      this.zeigeAkte(r);            /* auf — jetzt aus this.events */
+    }
+    this.zeigeStand(-1);
+  };
+
+  /**
+   * Stellt die Bühne auf den Stand NACH Ereignis `idx`.
+   * `idx < 0` heißt: noch nichts gelaufen.
+   */
+  Buehne.prototype.zeigeStand = function (idx, spielt) {
+    var ev = (idx >= 0 && idx < this.events.length) ? this.events[idx] : null;
+    /* Gemerkt, weil das Öffnen und Schließen einer Akte den Volltext-Kasten neu
+       stellen muss — und der braucht dafür den Schritt, auf dem wir stehen.
+       Ohne das zeigte er nach dem Schließen wieder den Stand von vor dem
+       Öffnen: eine zweite Wahrheit neben der Bühne. */
+    this.letzterIdx = idx;
+    var phase = ev ? String(ev.phase || "") : "";
+    var wo = stellung(phase);
+
+    this.setzeOrt(wo);
+    var gemeinsam = ev ? ALLE_TUN[phase] : null;
+    for (var i = 0; i < ROLLEN.length; i++) {
+      var r = ROLLEN[i], n = this.knoten[r];
+      var dran = !!(ev && ev.rolle === r);
+      /* Tun alle dasselbe, steht es bei allen. Sonst trägt jeder wieder das,
+         wofür er da ist — die Rolle ist ja auch eine echte Auskunft. */
+      n.tun.textContent = gemeinsam || KURZ[r];
+      n.g.classList.toggle("dran", dran);
+      /* Wer nicht dran ist, ist nicht weg — nur ruhig. Ausblenden hieße
+         behaupten, er sei nicht mehr da. */
+      n.g.classList.toggle("ruht", !!(ev && !dran));
+    }
+
+    /* WÄHREND DER KONFERENZ GIBT ES NOCH KEIN WERKSTÜCK. Es lag hier zuerst von
+       Anfang an auf dem Tisch — als leerer Kasten, der obendrein die
+       Tisch-Beschriftung verdeckte. Ein Ding zu zeigen, das noch nicht
+       existiert, ist dieselbe Unwahrheit wie ein leerer Kasten, der aussieht,
+       als sei etwas kaputt. Es erscheint mit dem ersten Bau-Schritt. */
+    /* Wann es ein Werkstück GIBT. Im Planmodus entsteht es mit dem Schluss der
+       Konferenz — dann steht der Auftrag fest und geht an die Cloud. Klaus:
+       „das Senden nach Cloud … das dürfen wir ruhig kommunizieren." */
+    var gebaut = (phase === "build" || phase === "urteil" ||
+                  phase === "befund" || phase === "feierabend" ||
+                  (!this.wurdeGebaut && phase === "schluss"));
+    this.stueck.classList.toggle("da", gebaut);
+    this.stueck.classList.toggle("baut", phase === "build");
+    if (ev) {
+      var beiBank = (phase === "build" || phase === "urteil" || phase === "befund" ||
+                     (!this.wurdeGebaut && phase === "schluss"));
+      this.stueck.setAttribute("transform",
+        /* Beim BAUEN liegt es über dem Bauer, bei der PRÜFUNG in der Bankmitte
+         zwischen den beiden Prüfern — sonst deckt einer von ihnen es zu. Genau
+         das war beim ersten Bau der Fall: Vera stand auf dem Werkstück. */
+      "translate(" + (beiBank ? 606 : 300) + "," +
+        (phase === "build" ? 146 : beiBank ? 178 : 178) + ")");
+      /* Wurde nicht gebaut, heißt das Ergebnis auch nicht „taugt", sondern was
+         es ist: ein geprüfter Entwurf, der weitergereicht wird. */
+      var wort = (!this.wurdeGebaut && phase === "schluss") ? "geht an Claude"
+               : phase === "build" ? STAND_WORT.build
+               : ev.urteil === "taugt" && !this.wurdeGebaut ? "Entwurf fertig"
+               : ev.urteil ? (STAND_WORT[ev.urteil] || ev.urteil)
+               : phase === "befund" ? STAND_WORT.befund
+               : phase === "idee" ? STAND_WORT.entwurf : "";
+      this.stueckText.textContent = wort;
+      this.stueck.setAttribute("data-stand", String(ev.urteil || phase || ""));
+    } else {
+      this.stueckText.textContent = "";
+      this.stueck.removeAttribute("data-stand");
+    }
+
+    this.zeigeBlase(ev);
+    this.zeigeVolltext(ev, idx, spielt === true);
+    this.zeigeLage(ev, idx);
+  };
+
+  /*
+   * WAS EIN EREIGNIS SAGT — an EINER Stelle.
+   *
+   * Die Blase zeigt es gekürzt, die Akte vollständig. Zwei Fassungen desselben
+   * Textes wären eine Drift-Quelle mit Ansage: sie laufen auseinander, und dann
+   * steht in der Akte etwas anderes als in der Blase über demselben Schritt.
+   *
+   * ⚠ HIER STAND NUR DIE TÄTIGKEIT. Klaus: „Ich sehe nicht, was Jonas
+   * schreibt. Es wäre von Vorteil zu sehen, was er gerade analysiert oder
+   * aufschreibt." Er hat recht — und der Inhalt lag die ganze Zeit in den
+   * Daten: jedes Ereignis trägt `titel`, `ergebnis`, `begruendung`, `stand`.
+   * Eine Bühne, auf der man sieht, DASS jemand arbeitet, aber nicht WAS er tut,
+   * ist eine Pantomime.
+   */
+  function textVon(ev) {
+    var kopf = "", inhalt = "";
+    var ph = ev && ev.phase;
+    if (ph === "idee" || ph === "vorschlag") {
+      kopf = "schlägt vor: „" + (ev.titel || ev.was || "?") + "“";
+      inhalt = ev.ergebnis || ev.beschreibung || "";
+    } else if (ph === "bewertung") {
+      kopf = "bewertet die Vorschläge der anderen";
+      inhalt = ev.begruendung || "";
+    } else if (ph === "schluss") {
+      kopf = "schließt die Konferenz" + (ev.sieger ? ": „" + ev.sieger + "“" : "");
+      inhalt = ev.begruendung || ev.auftrag || "";
+    } else if (ph === "build") {
+      kopf = "schreibt " + (ev.zeichen || 0) + " Zeichen in " + (ev.dateiname || "die Datei");
+      inhalt = ev.weitergabe || "";
+    } else if (ph === "urteil") {
+      kopf = "urteilt: " + (ev.urteil || "?");
+      inhalt = ev.begruendung || "";
+    } else if (ph === "befund") {
+      kopf = ev.anzahl ? "findet " + ev.anzahl + " Befund(e)" : "findet nichts";
+      inhalt = (ev.befunde && ev.befunde[0] && ev.befunde[0].was) || "";
+    } else if (ph === "feierabend") {
+      kopf = "schreibt den Feierabend-Bericht";
+      inhalt = ev.stand || ev.naechsterSchritt || "";
+    } else if (ph) {
+      /* Eine unbekannte Phase wird BENANNT, nicht verschwiegen. */
+      kopf = "— unbekannte Phase „" + ph + "“";
+    }
+    return { kopf: kopf, inhalt: inhalt };
+  }
+
+  /* Was gerade getan wird — kurz, in ganzen Sätzen, aus den Daten. */
+  Buehne.prototype.zeigeBlase = function (ev) {
+    if (!ev) { this.blase.hidden = true; this.blase.textContent = ""; return; }
+    var t = textVon(ev);
+
+    while (this.blase.firstChild) this.blase.removeChild(this.blase.firstChild);
+    if (t.kopf) {
+      var z1 = document.createElement("b");
+      z1.textContent = (ev.wer || ev.rolle || "") + " " + t.kopf;
+      this.blase.appendChild(z1);
+      if (t.inhalt) {
+        var z2 = document.createElement("p");
+        z2.className = "b-inhalt";
+        /* Gekürzt, weil die Blase sonst die Bühne verdrängt. Der VOLLE Text
+           steht in der Akte — ein Klick auf den Namen. */
+        z2.textContent = t.inhalt.length > 260 ? t.inhalt.slice(0, 260) + " …" : t.inhalt;
+        this.blase.appendChild(z2);
+      }
+    }
+    this.blase.hidden = !t.kopf;
+  };
+
+  /*
+   * DER VOLLE TEXT DES AUGENBLICKS — und die mitlaufende Akte (1.3).
+   *
+   * Zwei Fälle, und die Unterscheidung ist der ganze Punkt:
+   *
+   *   · Ist eine AKTE offen, gehört ihr der Platz. Sie zeigt ohnehin alles,
+   *     was diese Person gesagt hat; der laufende Beitrag wird darin nur
+   *     HERVORGEHOBEN und herangeholt. Ein zweiter Kasten mit demselben Text
+   *     daneben wäre doppelt und verdrängte die Bühne.
+   *   · Ist KEINE offen, steht hier der volle Text des Schritts, auf dem das
+   *     Abspielen gerade steht.
+   *
+   * ⚠ HERANGEHOLT WIRD NUR BEIM ABSPIELEN. Wer von Hand einen Schritt weiter
+   * klickt, hat den Blick schon dort, wo er ihn haben will — die Seite unter
+   * ihm wegzuziehen wäre eine Zumutung. `spielt` sagt es, und es kommt aus
+   * derselben Variablen, die das Abspielen steuert.
+   */
+  Buehne.prototype.zeigeVolltext = function (ev, idx, spielt) {
+    /* Die offene Akte führt mit — Hervorhebung und Heranholen. */
+    if (this.offeneAkte) {
+      var treffer = null;
+      var stuecke = this.akte.querySelectorAll(".b-akte-beitrag");
+      for (var i = 0; i < stuecke.length; i++) {
+        var passt = !!(ev && ev.rolle === this.offeneAkte &&
+                       Number(stuecke[i].getAttribute("data-schritt")) === idx + 1);
+        stuecke[i].classList.toggle("jetzt", passt);
+        if (passt) treffer = stuecke[i];
+      }
+      this.akte.setAttribute("data-jetzt", treffer ? String(idx + 1) : "");
+      if (treffer && spielt && treffer.scrollIntoView)
+        treffer.scrollIntoView({ block: "center", behavior: "smooth" });
+      this.volltext.hidden = true;
+      this.volltext.setAttribute("data-volltext", "akte");
+      return;
+    }
+
+    var t = ev ? textVon(ev) : { kopf: "", inhalt: "" };
+    while (this.volltext.firstChild) this.volltext.removeChild(this.volltext.firstChild);
+    if (!ev || !t.kopf) {
+      this.volltext.hidden = true;
+      this.volltext.setAttribute("data-volltext", "");
+      return;
+    }
+    this.volltext.hidden = false;
+    this.volltext.setAttribute("data-volltext", String(ev.rolle || ""));
+    this.volltext.setAttribute("data-schritt", String(idx + 1));
+
+    var kopf = document.createElement("div");
+    kopf.className = "b-volltext-kopf";
+    var wer = document.createElement("b");
+    /* DER NAME STEHT ÜBER DEM TEXT, DER IHM GEHÖRT. Klaus (1.2): „Am besten
+       wäre es, wenn ‚Jonas schreibt‘ unten dran auftaucht, was Jonas
+       geschrieben hat." Genau das ist diese Zeile — Name und Tätigkeit einmal,
+       und darunter das Gesagte, statt zweier Ebenen übereinander, die
+       Verschiedenes meinen. */
+    wer.textContent = (ev.wer || ev.rolle || "") + " " + t.kopf;
+    kopf.appendChild(wer);
+    var nr = document.createElement("span");
+    nr.className = "b-volltext-nr";
+    nr.textContent = "Schritt " + (idx + 1) + " von " + this.events.length;
+    kopf.appendChild(nr);
+
+    var selbst = this;
+    kopf.appendChild(vorleseKnopf(function () {
+      return (ev.wer || ev.rolle || "") + " " + t.kopf + ". " + (t.inhalt || "");
+    }));
+    var hin = stimmeLage();
+    kopf.appendChild((function () {
+      var a = document.createElement("button");
+      a.type = "button";
+      a.className = "b-volltext-akte";
+      a.textContent = "Alles von " + (ev.wer || ev.rolle || "dieser Person");
+      a.title = "Öffnet die Akte — jeder Beitrag dieser Person in diesem Lauf";
+      a.addEventListener("click", function () { selbst.zeigeAkte(ev.rolle); });
+      return a;
+    })());
+    this.volltext.appendChild(kopf);
+
+    if (hin.warnung) {
+      var w = document.createElement("p");
+      w.className = "b-leise-klein";
+      w.textContent = hin.warnung;
+      this.volltext.appendChild(w);
+    }
+
+    if (t.inhalt) {
+      var p = document.createElement("p");
+      p.className = "b-volltext-text";
+      /* UNGEKÜRZT. Das ist der ganze Zweck: die Blase schneidet bei 260
+         Zeichen ab, und bis zum 2026-08-22 gab es nirgends im laufenden Bild
+         den vollen Satz. Hier zu kürzen hieße, denselben Text zweimal zu
+         beschneiden und nirgends zu zeigen. */
+      p.textContent = t.inhalt;
+      this.volltext.appendChild(p);
+    } else {
+      /* NICHT stumm leer: dass dieser Schritt keinen Text trägt, ist selbst
+         eine Auskunft — ein leerer Kasten sähe aus, als fehle etwas. */
+      var leer = document.createElement("p");
+      leer.className = "b-leise-klein";
+      leer.textContent = "Zu diesem Schritt steht kein weiterer Text in den Daten.";
+      this.volltext.appendChild(leer);
+    }
+  };
+
+  /* Und wenn nichts läuft, steht das da. Ein leerer Kasten sähe aus wie
+     „kaputt" — und wer ein Beispiel sieht, erfährt es HIER, nicht im
+     Kleingedruckten. */
+  Buehne.prototype.zeigeLage = function (ev, idx) {
+    /* HERKUNFT und ART, beide beim Namen. Vorher stand hier „Beispiel-Lauf,
+       keine echte Schicht" — ein Satz, der zwei verschiedene Dinge in einem
+       Wort zusammenzog und dadurch beide falsch nannte: „Beispiel" hieß im
+       Code nur „nicht von diesem Gerät", und „keine echte Schicht" ist eine
+       Aussage über die ART, die man aus `art` ablesen muss, nicht aus dem
+       Ablageort. Klaus hat es am 2026-08-22 gefunden. */
+    var teile = [];
+    if (this.istBeispiel) teile.push("mitgeliefert" + (this.datum ? " vom " + this.datum : ""));
+    if (this.art === "trocken") teile.push("trocken, nichts bezahlt");
+    else if (this.art === "echt") teile.push("echt bezahlt");
+    var vor = teile.length ? teile.join(" · ") + " — " : "";
+    this.lage.setAttribute("data-herkunft", this.istBeispiel ? "mitgeliefert" : "geraet");
+    this.lage.setAttribute("data-art", this.art || "");
+    if (!this.events.length) {
+      this.lage.textContent = vor + "Noch keine Schicht geladen.";
+      return;
+    }
+    if (!ev) {
+      this.lage.textContent = vor + "Ruhe. " + this.events.length +
+        " Schritte liegen bereit — auf ▶ Abspielen drücken.";
+      return;
+    }
+    var wo = this.wurdeGebaut ? "" : " · gebaut wird von einer Claude-Sitzung";
+    this.lage.textContent = vor + "Schritt " + (idx + 1) + " von " + this.events.length + wo +
+      (ev.runde ? " · Runde " + ev.runde : "") +
+      " · " + (ev.ms || 0) + " ms gemessen" +
+      (this.laeuft ? " · die Schicht läuft" : "");
+  };
+
+  welt.KimhubBuehne = { Buehne: Buehne, ROLLEN: ROLLEN, PHASEN: PHASEN,
+                       _stellung: stellung, _KURZ: KURZ,
+                       _textVon: textVon, _stimmeLage: stimmeLage,
+                       /* Der Vorlese-Knopf wird auch außerhalb der Bühne
+                          gebraucht (Übergabe-Blatt, Ergebnis). EINE Fassung,
+                          weil zwei auseinanderliefen — und dann läse die eine
+                          vor und die andere schwiege. */
+                       vorleseKnopf: vorleseKnopf, vorlesenAus: vorlesenAus };
+})(typeof window !== "undefined" ? window : globalThis);

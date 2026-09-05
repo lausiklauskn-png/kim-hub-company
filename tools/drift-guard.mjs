@@ -32,10 +32,14 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
 /* `index.html` steht hier mit dem Namen, den die Datei in Kimhub trägt —
    der Inhalt ist byte-gleich, nur die Datei heisst dort anders. */
 export const ERWARTET = [
-  { datei: "index.html",                herkunft: "start.html",              sha: "1e956536dca5dbcef0316ee46befac8a50f7e92ed0ac3b85bc3b6573b6c86d6d" },
-  { datei: "company.js",                herkunft: "company.js",              sha: "c5513aeee610b16bed5803f3e9eda16bf8edbda95e82aee62e5e914b934c9ab7" },
+  { datei: "index.html",                herkunft: "start.html",              sha: "3c01a391e805786e55efb137412e2389f29fc89813ca6757ee163ecd4a738c7f" },
+  { datei: "company.js",                herkunft: "company.js",              sha: "10fdd6d1db975e63c1a3287997c442f34d0bb635712384313f225ce12b8e91a9" },
+  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "c01e5ce48580a9bd31ad7c6f384560d1f5b02be04305b2d7da6880023fe36ed6" },
+  { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "3795be82de5d08e51b8ab0bd41268cdbcaaf49b8012bd4f355d3609467b6ec92" },
+  { datei: "zeit.js",                   herkunft: "zeit.js",                 sha: "1bdb42884e8385e32aa3bc6572c1c8736d928e48bde6847081cc98efcbb85822" },
   { datei: "idb.js",                    herkunft: "idb.js",                  sha: "b244ab3f832bb4d4cd5ec87e51de364df5716ee7ca6fc8a2bceeea6b6c9bbd51" },
   { datei: "schluesseltresor.js",       herkunft: "schluesseltresor.js",     sha: "eaed30e8f3921835a3f58b69f89d9b008831f69f164ad1dfec630fa43161f666" },
+  { datei: "schicht/konferenz.mjs",     herkunft: "schicht/konferenz.mjs",   sha: "af06f97c8c9d2b4e356534a90233c19499ff4dc9cd81d8d37decdd2c613b47b7" },
   { datei: "schicht/schicht.mjs",       herkunft: "schicht/schicht.mjs",     sha: "74f5d8b8f717de31f7677537cd1d1c7c8b36ce870b4619b37a1d8d0496e99238" },
   { datei: "schicht/api.mjs",           herkunft: "schicht/api.mjs",         sha: "aca8768c19fcd3620edade75aa6df410c59ccd5a41768cdcd360c8c38d37e94a" },
   { datei: "schicht/transport-netz.mjs",herkunft: "schicht/transport-netz.mjs", sha: "1fc935a19609a7f2f3769e49a9f2ae8fe189a0dcca016c978bf91c53b078169c" },
