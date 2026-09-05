@@ -1,0 +1,41 @@
+# ══ DIE AUSSCHLUSS-LISTE STEHT VOR DER ERSTEN DATEI, DIE ETWAS TRAGEN KÖNNTE ══
+#
+# Dieses Depot ist ÖFFENTLICH, und es war leer. Der Bauplan sagt deshalb:
+# „Öffentlich ab dem ersten Commit. Die Ausschluss-Liste muss dastehen, BEVOR
+# die erste Datei kommt, die etwas tragen könnte. Nicht danach."
+#
+# Der Grund steht in Kimhubs Verfassung, und er ist teuer bezahlt: am
+# 2026-08-22 lagen 75 Anthropic-Rechnungen unter einer Pages-Adresse, obwohl
+# das Depot auf privat stand. Die Historie behält alles, was je darin lag —
+# eine Datei nachträglich zu entfernen nimmt sie nicht zurück.
+#
+# ⚠ WAS HIER NICHT STEHT, MUSS AUCH NICHT: diese App legt NICHTS im Depot ab.
+# Der Schlüssel des Nutzers, sein Auftrag, das Gebaute und das Gedächtnis der
+# Spinde liegen in SEINEM Browser (IndexedDB), nicht hier. Die Liste ist
+# trotzdem da — nicht gegen das, was die App tut, sondern gegen das, was eine
+# Sitzung versehentlich hineinlegt.
+
+# Schlüssel, Passwörter, Zugänge — nie, unter keinem Namen
+*.key
+*.pem
+.env
+.env.*
+schluessel*
+*schluessel.txt
+gaeste.json
+node_key*
+
+# Laufzeit-Stand einer Maschine. Er gehört dem Gerät, nicht dem Depot — und
+# eingecheckt scheitert auf Klaus' Tablet jeder `git pull` daran, dass seine
+# eigenen Läufe ihn überschrieben haben.
+lauf.json
+fahrtenbuch.json
+kontingent.json
+buchhaltung/
+werkstatt/lauf.json
+werkstatt/entwurf/
+
+# Werkzeug-Kram
+node_modules/
+.DS_Store
+*.log
