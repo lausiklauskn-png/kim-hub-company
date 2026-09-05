@@ -26,7 +26,11 @@ import * as spind from "./spind.mjs";
 import { macheRufer } from "./ruf.mjs";
 
 export const LAUF_VERSION = "1.0";
-export const ROLLEN_REIHE = ["ingenieur", "bauer", "arzt", "negativbauer", "beobachter"];
+/* Die Reihe IST der Ablauf, von links nach rechts gelesen. Seit dem
+   2026-09-05 acht statt fuenf (Klaus): Ben schaerft, bevor gebaut wird; Lisa
+   und Malcom pruefen mit, nachdem gebaut wurde. */
+export const ROLLEN_REIHE = ["ingenieur", "mitingenieur", "bauer", "arzt",
+                             "negativbauer", "gestalterin", "nutzer", "beobachter"];
 
 const kurz = (t, n = 400) => (t || "").length > n ? t.slice(0, n) + " …" : (t || "");
 
@@ -94,11 +98,37 @@ export async function schicht({
           titel: spec.titel, art: spec.art, pruefmerkmal: spec.pruefmerkmal });
   verlauf.push(`${wer.ingenieur.name} schlägt vor: ${spec.titel} (${spec.art})`);
 
+  // ── Ben schärft, bevor gebaut wird ───────────────────────────────────────
+  //
+  // EINMAL je Schicht, nicht je Runde: er sieht den VORSCHLAG an, und der
+  // ändert sich zwischen den Runden nicht. Ihn je Runde zu fragen kostete
+  // Aufrufe für dieselbe Antwort.
+  //
+  // Sein Ergebnis geht in `spec.schaerfung` und damit in die Anweisung an den
+  // Bauer — sonst wäre er ein Aufruf, dessen Antwort niemand liest. Das
+  // Prüfmerkmal selbst rührt er NICHT an: es ist der Maßstab, an dem der Arzt
+  // misst, und wer den Maßstab verschiebt, verschiebt das Urteil mit.
+  const mi = await ruf("mitingenieur", { spec });
+  if (mi.abbruch) return abschluss({ grund: mi.abbruch, spec, artefakt: null });
+  const schaerfung = mi.inhalt;
+  spec = { ...spec, schaerfung: schaerfung.schaerfung || "",
+           ausBauSicht: schaerfung.ausBauSicht || [] };
+  merke({ phase: "schaerfung", rolle: "mitingenieur", wer: wer.mitingenieur.name,
+          ausBauSicht: schaerfung.ausBauSicht || [],
+          ausEntwurfsSicht: schaerfung.ausEntwurfsSicht || [],
+          pruefmerkmalTraegt: !!schaerfung.pruefmerkmalTraegt,
+          schaerfung: schaerfung.schaerfung || "" });
+  verlauf.push(`${wer.mitingenieur.name} schärft: ${kurz(schaerfung.schaerfung, 160)}` +
+    (schaerfung.pruefmerkmalTraegt ? "" : " — und hält das Prüfmerkmal für nicht nachprüfbar"));
+
   // ── Runden: bauen, prüfen, angreifen ─────────────────────────────────────
   for (runde = 1; runde <= maxRunden && !fertig; runde++) {
-    // Eine ganze Runde sind drei Aufrufe. Wer nur einen prüft, beginnt Runden,
-    // die er nicht zu Ende bringen kann — und bricht dann doch mittendrin ab.
-    const genug = kasse.darfNoch(3 * Math.max(kasse.teuersterAufrufUsd, 0.25));
+    // Eine ganze Runde sind FUENF Aufrufe (Bauer, Arzt, Negativbauer,
+    // Gestalterin, Nutzer). Wer nur einen prüft, beginnt Runden, die er nicht
+    // zu Ende bringen kann — und bricht dann doch mittendrin ab. Die Zahl
+    // steht hier und in keiner zweiten Zeile: sie ist die Laenge der Schleife
+    // unten, und zwei Stellen liefen auseinander.
+    const genug = kasse.darfNoch(5 * Math.max(kasse.teuersterAufrufUsd, 0.25));
     if (!genug.ok) { stopp = genug; break; }
 
     const b = await ruf("bauer", { spec, befunde, urteil, runde });
@@ -133,9 +163,51 @@ export async function schicht({
         `${befunde.filter((x) => x.schwere === "hoch").length} schwer`
       : `${wer.negativbauer.name} findet nichts`);
 
-    // Fertig ist es nur, wenn BEIDE zufrieden sind. Ein „taugt" neben einem
-    // schweren Befund wäre genau das Grün, das keins ist.
-    fertig = urteil.urteil === "taugt" && !befunde.some((x) => x.schwere === "hoch");
+    /* ⚠ GEFRAGT WIRD DIE WERKBANK, NICHT EIN SCHALTER DANEBEN.
+       Ob Lisa nachsehen kann, hängt daran, ob wirklich ein Netz-Werkzeug in
+       ihrer Hand liegt — `--netz` ist der Weg dorthin, aber nicht die Antwort.
+       Ein zweiter Wert, der dasselbe behauptet, läuft irgendwann auseinander,
+       und dann verspricht die Anweisung einen Vergleich, den sie nicht
+       anstellen kann. Genau der tote Knopf mit Beschriftung. */
+    const netzDa = !!(werkbank && (werkbank.definitionen || [])
+      .some((d) => d && d.name === "netz_holen"));
+    const g = await ruf("gestalterin", { spec, artefakt, netzDa, runde });
+    if (g.abbruch) { stopp = g.abbruch; break; }
+    const gestaltung = g.inhalt;
+    merke({ phase: "gestaltung", runde, rolle: "gestalterin", wer: wer.gestalterin.name,
+            konnteNachsehen: !!gestaltung.konnteNachsehen,
+            befunde: gestaltung.befunde || [], vergleiche: gestaltung.vergleiche || [],
+            urteil: gestaltung.urteil || "" });
+    verlauf.push(`${wer.gestalterin.name} sieht ${(gestaltung.befunde || []).length} Sache(n) ` +
+      `an der Bedienung` +
+      (gestaltung.konnteNachsehen
+        ? `, mit ${(gestaltung.vergleiche || []).length} Vergleich(en)`
+        : ` — ohne Vergleich, sie konnte nicht nachsehen`));
+
+    const nz = await ruf("nutzer", { spec, artefakt, runde });
+    if (nz.abbruch) { stopp = nz.abbruch; break; }
+    const nutzung = nz.inhalt;
+    const haenger = nutzung.haengengeblieben || [];
+    merke({ phase: "nutzung", runde, rolle: "nutzer", wer: wer.nutzer.name,
+            ablauf: nutzung.ablauf || "", haengengeblieben: haenger,
+            durchgekommen: !!nutzung.durchgekommen });
+    verlauf.push(nutzung.durchgekommen
+      ? `${wer.nutzer.name} kommt durch` + (haenger.length ? `, bleibt aber ${haenger.length}× hängen` : "")
+      : `${wer.nutzer.name} kommt NICHT durch (${haenger.length} Stelle(n))`);
+
+    /* Fertig ist es nur, wenn ALLE VIER zufrieden sind — der Arzt am
+       Prüfmerkmal, der Negativbauer an den Schwächen, und Malcom daran, dass
+       man überhaupt durchkommt. Ein „taugt" neben einem schweren Befund wäre
+       das Grün, das keins ist; ein „taugt" an etwas, durch das niemand
+       durchkommt, ebenso.
+
+       Lisas Befunde zählen hier bewusst NICHT als Sperre: Gestaltung ist eine
+       Verbesserung, kein Mangel, und eine Rolle, die jede Runde etwas findet,
+       machte die Schicht endlos. Ihre Befunde stehen im Protokoll und gehen
+       an den Bauer weiter. */
+    fertig = urteil.urteil === "taugt"
+      && !befunde.some((x) => x.schwere === "hoch")
+      && nutzung.durchgekommen;
   }
 
   return abschluss({ grund: stopp, spec, artefakt });

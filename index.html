@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kim Hub Company</title>
-<meta name="description" content="Fünf Rollen bauen an einem Auftrag — im Browser, auf deinem eigenen KI-Zugang. Konferenz, Übergabe, Ergebnis, Fahrtenbuch.">
+<meta name="description" content="Acht Rollen bauen an einem Auftrag — im Browser, auf deinem eigenen KI-Zugang. Konferenz, Übergabe, Ergebnis, Fahrtenbuch.">
 <meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#0d1417">
 <link rel="manifest" href="company.webmanifest">
@@ -49,6 +49,10 @@ window.__WERKSTATT_QUELLE = {
   --warn:#e0a93a; --rot:#d65a5a; --gut:#3fd06b;
   --r-ingenieur:#7c9cff; --r-bauer:#36d6c3; --r-arzt:#a78bfa;
   --r-negativbauer:#e0a93a; --r-beobachter:#3fd06b;
+  /* Die drei ab dem 2026-09-05. Eigene Farbtöne, weit genug von den fünf
+     entfernt — zwei Agenten in derselben Farbe sind auf der Bühne nicht
+     auseinanderzuhalten, und die Blase sagt nur, WER spricht, nicht welcher. */
+  --r-mitingenieur:#5ab4e6; --r-gestalterin:#f07fb0; --r-nutzer:#d4d06a;
   --schein:0 0 26px rgba(54,214,195,.22), 0 0 60px rgba(124,156,255,.10);
   --schatten:0 12px 34px rgba(0,0,0,.42), 0 4px 10px rgba(0,0,0,.26);
   --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
@@ -60,6 +64,7 @@ window.__WERKSTATT_QUELLE = {
   --warn:#8a5a12; --rot:#a8331f; --gut:#1f6b39;
   --r-ingenieur:#264f9e; --r-bauer:#0d6b60; --r-arzt:#5b3a8a;
   --r-negativbauer:#8a5a12; --r-beobachter:#1f6b39;
+  --r-mitingenieur:#1d5f80; --r-gestalterin:#93314f; --r-nutzer:#6b6620;
   --schein:0 0 20px rgba(13,107,96,.16);
   --schatten:0 8px 22px rgba(20,40,45,.14), 0 2px 6px rgba(20,40,45,.10);
 }
@@ -323,6 +328,9 @@ footer{padding:18px 16px 40px;color:var(--leise);font-size:.87rem}
 .b-arzt         { color: var(--r-arzt); }
 .b-negativbauer { color: var(--r-negativbauer); }
 .b-beobachter   { color: var(--r-beobachter); }
+.b-mitingenieur { color: var(--r-mitingenieur); }
+.b-gestalterin  { color: var(--r-gestalterin); }
+.b-nutzer       { color: var(--r-nutzer); }
 
 /* Wer nicht dran ist, ist nicht weg — nur ruhig. Ausblenden hieße behaupten,
    er sei nicht mehr da. */
@@ -556,7 +564,7 @@ footer{padding:18px 16px 40px;color:var(--leise);font-size:.87rem}
   </svg>
   <div>
     <h1>Kim Hub Company</h1>
-    <small>Fünf Rollen, ein Auftrag — im Browser, auf deinem eigenen KI-Zugang.</small>
+    <small>Acht Rollen, ein Auftrag — im Browser, auf deinem eigenen KI-Zugang.</small>
   </div>
   <div class="weg">
     <button id="installieren" type="button" hidden>⬇ Installieren</button>
@@ -593,7 +601,7 @@ footer{padding:18px 16px 40px;color:var(--leise);font-size:.87rem}
   <section class="raum an" id="raum0" aria-labelledby="t0">
     <h2 id="t0">Die Werkstatt</h2>
     <p class="leise">
-      Fünf Agenten, ein Konferenztisch, eine Werkbank. Sie treffen sich, gehen
+      Acht Agenten, ein Konferenztisch, eine Werkbank. Sie treffen sich, gehen
       zum Bauen auseinander und kommen zur Gegenprüfung wieder zusammen —
       <b>ohne den, der gebaut hat</b>. Das Abspiel-Pult unten steuert auch dieses Bild.
     </p>
@@ -758,16 +766,24 @@ footer{padding:18px 16px 40px;color:var(--leise);font-size:.87rem}
     <label class="zeile" style="margin-top:12px">
       <input type="checkbox" id="mit-konferenz" style="width:auto;min-height:0">
       <span>Erst eine <b>Konferenz</b> führen — die fünf schlagen vor und stimmen ab,
-      aus dem Sieger wird der Auftrag. <b>Kostet extra:</b> der Deckel wird geteilt
+      aus dem Sieger wird der Auftrag. <b>Zusätzlicher Aufwand:</b> der Deckel wird geteilt
       (ein Drittel Konferenz, zwei Drittel Bauen), und beides muss hineinpassen.</span>
     </label>
 
     <div class="pult">
       <label class="leise zeile" for="deckel">Deckel
-        <input id="deckel" type="number" min="0.20" max="20" step="0.10" value="1.00"
+        <input id="deckel" type="number" min="0.20" max="20" step="0.10" value="2.00"
                style="width:92px"> €</label>
-      <button id="trocken" type="button">▷ Trockenlauf — kostet nichts</button>
-      <button id="echt" type="button" disabled>● Echter Lauf — kostet dein Geld</button>
+      <p class="leise" style="margin:2px 0 8px">
+        Unter <b>1,50 €</b> beginnt keine Runde, unter <b>2,00 €</b> wird sie
+        meist nicht fertig — eine Runde sind fünf Aufrufe, und die Werkstatt
+        beginnt keine, die sie nicht zu Ende bringen kann.
+        <span data-deckel-gemessen>Gemessen am 2026-09-05 an einer Trockenschicht
+        mit acht Rollen: 1,00 € → 0 Runden · 1,50 € → 1 Runde · 2,00 € → fertig
+        in 2 Runden.</span>
+      </p>
+      <button id="trocken" type="button">▷ Trockenlauf — ohne Kosten</button>
+      <button id="echt" type="button" disabled>● Echter Lauf — bis zum Deckel</button>
     </div>
     <p class="leise" id="start-sagt" data-start="" role="status" aria-live="polite"></p>
   </section>
@@ -791,7 +807,7 @@ footer{padding:18px 16px 40px;color:var(--leise);font-size:.87rem}
     <h2 id="t1"><span class="nr">1</span> Die Konferenz</h2>
     <details class="erklaer" data-erklaer="raum1">
       <summary>Wie die Konferenz läuft</summary>
-      <p class="leise">Fünf Rollen, drei Runden: jeder bringt <b>einen</b> Vorschlag ein, jeder
+      <p class="leise">Acht Rollen, drei Runden: jeder bringt <b>einen</b> Vorschlag ein, jeder
       bewertet <b>alle</b> — die eigene Stimme zählt dabei nicht mit —, und aus dem Sieger
       macht der Beobachter einen Auftrag mit Prüfmerkmal.</p>
     </details>

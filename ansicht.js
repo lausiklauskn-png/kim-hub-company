@@ -316,6 +316,53 @@
       return { marke: "Runde " + e.runde + " · Befunde (" + e.anzahl + ")",
                text: (e.befunde || []).map(function (b) { return "· " + (b.text || b.was || JSON.stringify(b)); }).join("\n") || "keine",
                mehr: "" };
+    /* Auch diese Phase fiel bis zum 2026-09-05 in den Auffang unten und zeigte
+       rohes JSON — sie steht nur in `konferenz.json`, und der mitgelieferte
+       Beispiel-Lauf trug sie nicht. */
+    if (e.phase === "merkliste") {
+      var eintr = e.eintraege || [];
+      return { marke: "Vorgemerkt (" + eintr.length + ")", knopf: "wer sich was merkt",
+               text: eintr.map(function (x) {
+                 return "· " + x.titel + " — " + x.von; }).join("\n") || "nichts vorgemerkt",
+               /* `geschrieben` ist der Unterschied zwischen „gemerkt" und „nur
+                  gezählt": ein Trockenlauf zählt, schreibt aber nichts. */
+               mehr: eintr.map(function (x) {
+                 return x.von + ": " + x.titel + " (" + x.male + "×, " +
+                        (x.geschrieben ? "in den Spind geschrieben" : "nur gezählt — Trockenlauf") + ")";
+               }).join("\n") };
+    }
+    /* Die drei Phasen der Rollen, die Klaus am 2026-09-05 dazugestellt hat.
+       OHNE diese Zeilen fällt jede in den Auffang unten und zeigt rohes JSON —
+       genau der Fehler, an dem Stens Arbeit einmal unsichtbar war. */
+    if (e.phase === "schaerfung")
+      return { marke: "Geschärft", knopf: "Bau- und Entwurfs-Sicht",
+               text: e.schaerfung || "(nichts zu schärfen)",
+               mehr: "Aus Bau-Sicht:\n" + ((e.ausBauSicht || []).map(function (x) {
+                       return "· " + x; }).join("\n") || "(nichts)") +
+                     "\n\nAus Entwurfs-Sicht:\n" + ((e.ausEntwurfsSicht || []).map(function (x) {
+                       return "· " + x; }).join("\n") || "(nichts)") +
+                     "\n\nPrüfmerkmal nachprüfbar: " + (e.pruefmerkmalTraegt ? "ja" : "NEIN") };
+    if (e.phase === "gestaltung")
+      return { marke: "Runde " + e.runde + " · Gestaltung (" + (e.befunde || []).length + ")",
+               knopf: "Vergleiche",
+               text: (e.befunde || []).map(function (b) {
+                 return "· " + b.stelle + ": " + b.was; }).join("\n") || "nichts im Weg",
+               /* Ob nachgesehen wurde, steht DABEI. Ein Vergleich, den niemand
+                  anstellen konnte, sieht sonst aus wie keiner, den es braucht. */
+               mehr: (e.konnteNachsehen
+                 ? ((e.vergleiche || []).map(function (v) {
+                     return "· " + v.woher + " — " + v.unterschied + " (besser: " + v.besser + ")";
+                   }).join("\n") || "(nachgesehen, nichts Vergleichbares gefunden)")
+                 : "Konnte nicht nachsehen — kein Netz-Werkzeug in dieser Schicht.") +
+                 "\n\n" + (e.urteil || "") };
+    if (e.phase === "nutzung")
+      return { marke: "Runde " + e.runde + " · Nutzung" +
+                      (e.durchgekommen ? " — durchgekommen" : " — steckengeblieben"),
+               knopf: "der Weg",
+               text: (e.haengengeblieben || []).map(function (h) {
+                 return "· wollte " + h.wollte + " — " + h.passierte; }).join("\n") ||
+                 "kam glatt durch",
+               mehr: e.ablauf || "" };
     if (e.phase === "feierabend")
       return { marke: "Feierabend", knopf: "nächster Schritt",
                text: e.stand, mehr: "Nächster Schritt: " + (e.naechsterSchritt || "") };

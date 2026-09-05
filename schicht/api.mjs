@@ -357,7 +357,24 @@ export class TrockenApi {
     // bekommen — deshalb erst auf 0 herunterziehen, dann klemmen. Ohne das
     // bekäme die erste Bauer-Runde den zweiten Entwurf, und die Trockenschicht
     // bewiese eine Reihenfolge, die es so nie gibt.
-    const i = Math.min(Math.max(0, runde - 1), (vorrat.length || 1) - 1);
+    /* ⚠ EINE FEHLENDE RUNDE WIRD BENANNT, NICHT GERATEN (2026-09-05).
+       Beim Einhängen der drei neuen Rollen habe ich `runde` bei zwei Aufrufen
+       vergessen. Jede Runde bekam dadurch stumm die ERSTE Antwort — und die
+       sagt bei Absicht „noch nicht fertig". Die Schicht lief bis zum
+       Rundendeckel, ohne dass irgendetwas kaputt war, und meldete am Ende
+       „noch nicht fertig · 4 Runden · Urteil: taugt". Ein Widerspruch, den man
+       lesen musste, um ihn zu sehen.
+
+       Eine Liste von Antworten IST eine Aussage über den Ablauf: „in Runde 1
+       so, in Runde 2 anders". Wer sie ohne Runde abruft, fragt etwas anderes,
+       als er glaubt. Vergessen und Absicht sehen sonst gleich aus. */
+    if (Array.isArray(vorrat) && vorrat.length > 1 && !(runde >= 1)) {
+      throw new Error(
+        `Für „${gefunden}" sind ${vorrat.length} Antworten hinterlegt, eine je Runde — ` +
+        `aber der Aufruf gibt keine Runde mit. Reich „runde" durch, sonst bekommt ` +
+        `jede Runde stumm die erste.`);
+    }
+    const i = Math.min(Math.max(0, (runde || 0) - 1), (vorrat.length || 1) - 1);
     const inhalt = Array.isArray(vorrat) ? vorrat[i] : vorrat;
     return { inhalt: JSON.parse(JSON.stringify(inhalt)),
              usage: { ...this.tokenJeAufruf }, stop: "end_turn",

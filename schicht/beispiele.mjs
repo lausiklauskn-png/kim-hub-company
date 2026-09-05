@@ -50,6 +50,30 @@ export const BEISPIELE = {
     fuerWen: "Den Bauer, damit er sie gar nicht erst einbaut.",
     aufwand: "mittel",
   },
+  "vorschlag:mitingenieur": {
+    titel: "Bau-Notizen zu jedem Prüfmerkmal",
+    warum: "Ich sehe jedes Mal dieselbe Lücke zwischen dem, was der Vorschlag verlangt, " +
+      "und dem, was beim Bauen wirklich Arbeit macht. Das steht nirgends.",
+    ergebnis: "bau-notizen.md — je Prüfmerkmal ein Satz, was daran der Aufwand ist.",
+    fuerWen: "Den Bauer, damit er nicht zweimal anfängt.",
+    aufwand: "klein",
+  },
+  "vorschlag:gestalterin": {
+    titel: "Kurze Liste: was ein Knopf sagen muss",
+    warum: "Mir fällt an fast jedem Entwurf auf, dass die Beschriftung sagt, was das " +
+      "Programm tut, statt was der Mensch bekommt.",
+    ergebnis: "knopf-beschriftung.md — sechs Beispiele, je falsch und richtig nebeneinander.",
+    fuerWen: "Jeden, der eine Oberfläche baut.",
+    aufwand: "klein",
+  },
+  "vorschlag:nutzer": {
+    titel: "Der erste Weg durch die App, aufgeschrieben",
+    warum: "Ich bleibe jedes Mal an derselben dritten Stelle hängen, und beim nächsten " +
+      "Mal weiß niemand mehr, wo das war.",
+    ergebnis: "erster-weg.md — Schritt für Schritt, mit den Stellen, an denen man rät.",
+    fuerWen: "Den Bauer und den Ingenieur.",
+    aufwand: "mittel",
+  },
   "vorschlag:beobachter": {
     titel: "Übergabe-Vorlage für den Schichtwechsel",
     warum: "Ich schreibe jede Schicht dasselbe Gerüst neu und lasse dabei mal dies, mal " +
@@ -63,34 +87,84 @@ export const BEISPIELE = {
   // aushalten muss. Ohne den Riegel gaebe es hier fuenffachen Gleichstand.
   "bewertung:ingenieur": { stimmen: [
     { nummer: 1, punkte: 5, einwand: "" },
-    { nummer: 2, punkte: 4, einwand: "Betrifft nur uns, niemand sonst hat etwas davon." },
-    { nummer: 3, punkte: 3, einwand: "" },
+    { nummer: 2, punkte: 4, einwand: "" },
+    { nummer: 3, punkte: 2, einwand: "" },
     { nummer: 4, punkte: 3, einwand: "" },
-    { nummer: 5, punkte: 2, einwand: "Eine Vorlage für eine Vorlage." } ] },
+    { nummer: 5, punkte: 1, einwand: "" },
+    { nummer: 6, punkte: 4, einwand: "" },
+    { nummer: 7, punkte: 2, einwand: "" },
+    { nummer: 8, punkte: 3, einwand: "" }
+  ] },
   "bewertung:bauer": { stimmen: [
-    { nummer: 1, punkte: 5, einwand: "Eine Seite ist knapp — sechs Regeln mit Begründung passen kaum." },
+    { nummer: 1, punkte: 4, einwand: "Eine Seite ist knapp — sechs Regeln mit Begründung passen kaum." },
+    { nummer: 2, punkte: 2, einwand: "" },
+    { nummer: 3, punkte: 5, einwand: "" },
+    { nummer: 4, punkte: 3, einwand: "" },
+    { nummer: 5, punkte: 1, einwand: "" },
+    { nummer: 6, punkte: 4, einwand: "" },
+    { nummer: 7, punkte: 2, einwand: "" },
+    { nummer: 8, punkte: 3, einwand: "" }
+  ] },
+  "bewertung:arzt": { stimmen: [
+    { nummer: 1, punkte: 4, einwand: "Braucht ein Prüfmerkmal mit Zahl, sonst fällt es bei mir durch." },
+    { nummer: 2, punkte: 2, einwand: "" },
+    { nummer: 3, punkte: 3, einwand: "Eine Checkliste, die niemand abhakt, ist eine Liste." },
+    { nummer: 4, punkte: 5, einwand: "" },
+    { nummer: 5, punkte: 1, einwand: "" },
+    { nummer: 6, punkte: 4, einwand: "" },
+    { nummer: 7, punkte: 2, einwand: "" },
+    { nummer: 8, punkte: 3, einwand: "" }
+  ] },
+  "bewertung:negativbauer": { stimmen: [
+    { nummer: 1, punkte: 4, einwand: "Wer sie aushängt, hat sie noch nicht gelesen." },
+    { nummer: 2, punkte: 2, einwand: "Wer sie aushängt, hat sie noch nicht gelesen." },
+    { nummer: 3, punkte: 3, einwand: "" },
+    { nummer: 4, punkte: 1, einwand: "" },
+    { nummer: 5, punkte: 5, einwand: "" },
+    { nummer: 6, punkte: 4, einwand: "" },
+    { nummer: 7, punkte: 2, einwand: "" },
+    { nummer: 8, punkte: 3, einwand: "" }
+  ] },
+  "bewertung:mitingenieur": { stimmen: [
+    { nummer: 1, punkte: 4, einwand: "" },
     { nummer: 2, punkte: 5, einwand: "" },
     { nummer: 3, punkte: 2, einwand: "" },
     { nummer: 4, punkte: 3, einwand: "" },
-    { nummer: 5, punkte: 2, einwand: "" } ] },
-  "bewertung:arzt": { stimmen: [
-    { nummer: 1, punkte: 5, einwand: "Braucht ein Prüfmerkmal mit Zahl, sonst fällt es bei mir durch." },
-    { nummer: 2, punkte: 3, einwand: "" },
-    { nummer: 3, punkte: 5, einwand: "" },
-    { nummer: 4, punkte: 4, einwand: "" },
-    { nummer: 5, punkte: 2, einwand: "" } ] },
-  "bewertung:negativbauer": { stimmen: [
-    { nummer: 1, punkte: 4, einwand: "Wer sie aushängt, hat sie noch nicht gelesen." },
-    { nummer: 2, punkte: 3, einwand: "" },
+    { nummer: 5, punkte: 1, einwand: "Klingt gut, ist aber ohne echten Fall nicht zu bauen." },
+    { nummer: 6, punkte: 4, einwand: "" },
+    { nummer: 7, punkte: 2, einwand: "" },
+    { nummer: 8, punkte: 3, einwand: "" }
+  ] },
+  "bewertung:gestalterin": { stimmen: [
+    { nummer: 1, punkte: 4, einwand: "Eine Karte, die man aushängt, muss man aus drei Metern lesen können." },
+    { nummer: 2, punkte: 2, einwand: "" },
     { nummer: 3, punkte: 3, einwand: "" },
-    { nummer: 4, punkte: 5, einwand: "" },
-    { nummer: 5, punkte: 1, einwand: "" } ] },
+    { nummer: 4, punkte: 1, einwand: "" },
+    { nummer: 5, punkte: 4, einwand: "" },
+    { nummer: 6, punkte: 5, einwand: "" },
+    { nummer: 7, punkte: 2, einwand: "" },
+    { nummer: 8, punkte: 3, einwand: "" }
+  ] },
+  "bewertung:nutzer": { stimmen: [
+    { nummer: 1, punkte: 4, einwand: "" },
+    { nummer: 2, punkte: 2, einwand: "" },
+    { nummer: 3, punkte: 3, einwand: "Ich würde sie beim dritten Mal nicht mehr aufmachen." },
+    { nummer: 4, punkte: 1, einwand: "" },
+    { nummer: 5, punkte: 4, einwand: "" },
+    { nummer: 6, punkte: 2, einwand: "Hilft mir beim Benutzen nicht." },
+    { nummer: 7, punkte: 5, einwand: "" },
+    { nummer: 8, punkte: 3, einwand: "" }
+  ] },
   "bewertung:beobachter": { stimmen: [
     { nummer: 1, punkte: 4, einwand: "" },
-    { nummer: 2, punkte: 3, einwand: "" },
+    { nummer: 2, punkte: 2, einwand: "" },
     { nummer: 3, punkte: 3, einwand: "" },
-    { nummer: 4, punkte: 3, einwand: "" },
-    { nummer: 5, punkte: 5, einwand: "" } ] },
+    { nummer: 4, punkte: 1, einwand: "" },
+    { nummer: 5, punkte: 4, einwand: "" },
+    { nummer: 6, punkte: 2, einwand: "" },
+    { nummer: 7, punkte: 3, einwand: "" },
+    { nummer: 8, punkte: 5, einwand: "" }
+  ] },
 
   konferenzschluss: {
     ziel: "Eine Merkkarte zum Aushängen, die einem Betrieb in wenigen Regeln sagt, worauf " +
@@ -182,9 +256,61 @@ export const BEISPIELE = {
         { was: "„Ergebnisse prüfen“ sagt nicht, woran.",
           fall: "Ein Mitarbeiter liest den Text zweimal, findet ihn schlüssig und hält ihn " +
                 "damit für geprüft.",
-          schwere: "mittel" },
-      ] },
+          schwere: "mittel" } ]
+      },
     { befunde: [] },
+  ],
+
+  /* EINMAL je Schicht — Ben sieht den Vorschlag an, nicht die Runde. Deshalb
+     KEINE Liste wie bei Bauer und Arzt, sondern eine Antwort. */
+  mitingenieur: {
+    ausBauSicht: [
+      "Sechs Regeln mit je einem Satz Begründung sind sechs Entscheidungen, nicht eine — " +
+      "die Begründungen kosten mehr Arbeit als die Regeln.",
+      "„Höchstens eine Seite\" heißt beim Schreiben: dreimal kürzen.",
+    ],
+    ausEntwurfsSicht: [
+      "Nicht entschieden, ob die Karte für den Betrieb oder für einen einzelnen " +
+      "Mitarbeiter geschrieben ist — der Ton hängt daran.",
+    ],
+    pruefmerkmalTraegt: true,
+    schaerfung: "Sag dazu, für wen die Karte hängt: Betrieb oder Einzelner. Danach " +
+      "richtet sich, ob sie anweist oder erklärt.",
+  },
+
+  /* Je Runde eine Antwort, wie bei Arzt und Negativbauer. Die erste Runde
+     findet etwas, die zweite ist zufrieden — sonst zeigte der Trockenlauf
+     eine Schicht, die nie fertig wird. */
+  gestalterin: [
+    { konnteNachsehen: false,
+      befunde: [
+        { stelle: "Überschrift der Karte",
+          was: "Sie nennt das Thema, nicht den Nutzen.",
+          wirkung: "Wer sie im Vorbeigehen sieht, weiß nicht, ob sie ihn angeht." },
+        { stelle: "Reihenfolge der Regeln",
+          was: "Die wichtigste steht an vierter Stelle.",
+          wirkung: "Wer nur den Anfang liest, liest das Falsche zuerst." },
+      ],
+      vergleiche: [],
+      urteil: "Die Gestaltung trägt, sobald die Reihenfolge stimmt — im Weg steht sie nicht." },
+    { konnteNachsehen: false, befunde: [], vergleiche: [],
+      urteil: "Reihenfolge und Überschrift sitzen jetzt; nichts mehr im Weg." },
+  ],
+
+  nutzer: [
+    { ablauf: "Ich wollte wissen, ob ich eine Kundenliste in ein KI-Feld einfügen darf. " +
+        "Ich habe die Karte von oben gelesen und bei Regel 2 aufgehört, weil sie von " +
+        "Passwörtern spricht.",
+      haengengeblieben: [
+        { wollte: "Wissen, ob Kundendaten erlaubt sind.",
+          versucht: "Regel 2 gelesen, dann die Überschriften überflogen.",
+          passierte: "Kundendaten kommen nicht vor. Ich hätte sie eingefügt." },
+      ],
+      durchgekommen: false },
+    { ablauf: "Dieselbe Frage noch einmal. Regel 3 nennt Kundendaten jetzt ausdrücklich, " +
+        "ich war nach zwei Sätzen fertig.",
+      haengengeblieben: [],
+      durchgekommen: true },
   ],
 
   beobachter: {

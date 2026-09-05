@@ -168,6 +168,144 @@ export const ROLLEN = {
       `ein erfundener Befund kostet die nächste Runde und findet nichts.`,
   },
 
+  /*
+   * ── DIE DREI, DIE KLAUS AM 2026-09-05 DAZUGESTELLT HAT ──────────────────
+   *
+   * Jede hat eine Aufgabe, die vorher NIEMAND hatte — das ist die Bedingung,
+   * unter der eine Rolle ihren Aufruf wert ist. Eine sechste Stimme, die
+   * dasselbe sagt wie eine der fünf, redet mit und trägt nichts bei.
+   */
+
+  /**
+   * Ben — zwei Augen auf denselben Vorschlag, bevor gebaut wird.
+   * Klaus: „Jemand mit Arbeitserfahrung. Jemand, der die Arbeiten eines
+   * Bauarbeiters kennt … und eines Ingenieurs, der sie entwickelt."
+   *
+   * Er baut NICHT und urteilt NICHT — sonst wäre er Emil oder Vera. Er
+   * schärft, was Nora vorgelegt hat, und zwar an der Stelle, an der es
+   * bisher niemand tat: zwischen Vorschlag und Bau.
+   */
+  mitingenieur: {
+    schema: {
+      type: "object", additionalProperties: false,
+      required: ["ausBauSicht", "ausEntwurfsSicht", "pruefmerkmalTraegt", "schaerfung"],
+      properties: {
+        ausBauSicht: liste("Was beim Bauen WIRKLICH Arbeit macht — am vorliegenden Fall, " +
+          "nicht allgemein. Leer, wenn dir nichts auffällt."),
+        ausEntwurfsSicht: liste("Was am Entwurf noch unklar ist: fehlende Entscheidung, " +
+          "zwei Wege ohne Wahl, ein Begriff, den zwei Leute verschieden lesen. Leer erlaubt."),
+        pruefmerkmalTraegt: { type: "boolean",
+          description: "Ist das Prüfmerkmal wirklich NACHPRÜFBAR — oder klingt es nur gut?" },
+        schaerfung: s("EIN Satz, wie der Vorschlag schärfer würde. Trägt das Prüfmerkmal " +
+          "schon, sag das und schlag nichts vor."),
+      },
+    },
+    frage: ({ spec }) =>
+      `Der Ingenieur schlägt vor:\n${spec.titel} (${spec.art})\n${spec.beschreibung}\n\n` +
+      `Prüfmerkmal: ${spec.pruefmerkmal}\n\n` +
+      `Sieh das mit ZWEI Augen an. Erst als jemand, der so etwas schon gebaut hat: ` +
+      `was macht daran wirklich Arbeit? Dann als jemand, der es entworfen hat: was ` +
+      `ist noch nicht entschieden? Und sag, ob man am Prüfmerkmal am Ende WIRKLICH ` +
+      `sehen kann, ob es erfüllt ist. Fällt dir nichts auf, sag das — ein erfundener ` +
+      `Einwand schickt den Bauer auf einen Umweg.`,
+  },
+
+  /**
+   * Lisa — Gestaltung und Bedienung, mit Blick nach draussen.
+   * Klaus: „sollte sich Designvorschläge aus dem Internet holen, vergleichen …
+   * ob das vorteilhaft ist in der Bedienung."
+   *
+   * ⚠ DER VERGLEICH BRAUCHT DAS NETZ, und das ist standardmässig AUS
+   * (`--netz`). Ohne es urteilt sie nur über das Vorliegende — und sie SAGT
+   * das, statt einen Vergleich zu behaupten, den sie nicht angestellt hat.
+   * Eine Rolle, die Vergleiche verspricht und keine hat, wäre der tote Knopf
+   * mit Beschriftung.
+   */
+  gestalterin: {
+    schema: {
+      type: "object", additionalProperties: false,
+      required: ["konnteNachsehen", "befunde", "vergleiche", "urteil"],
+      properties: {
+        konnteNachsehen: { type: "boolean",
+          description: "Hattest du ein Werkzeug, um draussen nachzusehen? Ehrlich — " +
+            "ein behaupteter Vergleich ist schlimmer als keiner." },
+        befunde: liste("Was an Gestaltung und Bedienung auffällt.", {
+          type: "object", additionalProperties: false,
+          required: ["stelle", "was", "wirkung"],
+          properties: {
+            stelle: s("Wo genau — Knopf, Zeile, Reihenfolge, Beschriftung."),
+            was: s("Was daran auffällt."),
+            wirkung: s("Was das für jemanden bedeutet, der es bedient."),
+          },
+        }),
+        vergleiche: liste("Nur was du WIRKLICH nachgesehen hast.", {
+          type: "object", additionalProperties: false,
+          required: ["woher", "unterschied", "besser"],
+          properties: {
+            woher: s("Woher der Vergleich stammt — Adresse oder Datei."),
+            unterschied: s("Worin sich das dort vom Vorliegenden unterscheidet."),
+            besser: { type: "string", enum: ["dort", "hier", "unentschieden"],
+                      description: "Wo die Bedienung besser ist — und im Text steht warum." },
+          },
+        }),
+        urteil: s("Ein Satz: trägt die Gestaltung die Bedienung, oder steht sie ihr im Weg?"),
+      },
+    },
+    frage: ({ spec, artefakt, netzDa }) =>
+      `Gebaut (${artefakt.dateiname}):\n---\n${artefakt.inhalt}\n---\n\n` +
+      `Es sollte erfüllen: ${spec.pruefmerkmal}\n\n` +
+      `Sieh es dir als Gestalterin an: Knöpfe, Wege, Beschriftungen, Reihenfolge — ` +
+      `was fällt ins Auge, was wird übersehen, wo muss jemand raten?\n\n` +
+      (netzDa
+        ? `Du hast ein Werkzeug, um draussen nachzusehen. Nutz es für höchstens ` +
+          `zwei gezielte Vergleiche und nenn zu JEDEM die Quelle. Ein Vergleich ` +
+          `ohne Quelle zählt nicht.`
+        : `Du hast KEIN Werkzeug, um draussen nachzusehen. Setz „konnteNachsehen" ` +
+          `auf false, lass „vergleiche" leer und urteile nur über das Vorliegende. ` +
+          `Einen Vergleich zu behaupten, den du nicht angestellt hast, ist der ` +
+          `schwerere Fehler.`),
+  },
+
+  /**
+   * Malcom — der zweite Gegenprüfer, aber als NUTZER.
+   * Klaus: „er sollte selber die App nutzen und schauen, wo es für ihn
+   * Probleme gibt … in die Lage eines Menschen, der die App täglich nutzt."
+   *
+   * Der Unterschied zu Sten ist die Brille, nicht die Sorgfalt: Sten fragt
+   * „wo geht es kaputt", Malcom fragt „wo komme ich nicht weiter". Ein Ding
+   * kann fehlerfrei und trotzdem unbenutzbar sein.
+   */
+  nutzer: {
+    schema: {
+      type: "object", additionalProperties: false,
+      required: ["ablauf", "haengengeblieben", "durchgekommen"],
+      properties: {
+        ablauf: s("Was du erreichen wolltest und welchen Weg du genommen hast — " +
+          "Schritt für Schritt, wie du es wirklich versucht hast."),
+        haengengeblieben: liste("Jede Stelle, an der du nicht weiterkamst.", {
+          type: "object", additionalProperties: false,
+          required: ["wollte", "versucht", "passierte"],
+          properties: {
+            wollte: s("Was du an dieser Stelle vorhattest."),
+            versucht: s("Was du getan hast."),
+            passierte: s("Was statt dessen geschah — oder ausblieb."),
+          },
+        }),
+        durchgekommen: { type: "boolean",
+          description: "Bist du am Ende durchgekommen? Ehrlich, auch wenn es mühsam war." },
+      },
+    },
+    frage: ({ spec, artefakt }) =>
+      `Du benutzt das hier zum ersten Mal — nicht um es zu prüfen, sondern weil du ` +
+      `damit etwas erledigen willst.\n\n` +
+      `Vor dir (${artefakt.dateiname}):\n---\n${artefakt.inhalt}\n---\n\n` +
+      `Wozu es da sein soll: ${spec.beschreibung}\n\n` +
+      `Versetz dich in jemanden, der das TÄGLICH benutzt und wenig Geduld hat. Geh ` +
+      `einen Ablauf wirklich durch. Nenn jede Stelle, an der du hängen bleibst, mit ` +
+      `drei Angaben: was du wolltest, was du versucht hast, was passierte. ` +
+      `„Unübersichtlich" ist kein Befund. Kommst du glatt durch, sag das.`,
+  },
+
   /** Schreibt auf, wo die Schicht steht. Daran knüpft die nächste an. */
   beobachter: {
     schema: {

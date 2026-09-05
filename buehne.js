@@ -28,35 +28,81 @@
 (function (welt) {
   "use strict";
 
-  /* Wo wer steht. Drei Aufstellungen — mehr braucht es nicht, um „zusammen",
-     „auseinander" und „Gegenprüfung" zu zeigen. */
-  var TISCH = {
-    ingenieur:    { x: 300, y:  86 },
-    bauer:        { x: 408, y: 146 },
-    arzt:         { x: 372, y: 250 },
-    negativbauer: { x: 228, y: 250 },
-    beobachter:   { x: 192, y: 146 }
-  };
-  var WEG = {                          /* auseinander: gebaut wird woanders */
-    ingenieur:    { x: 118, y:  76 },
-    bauer:        { x: 606, y: 216 },  /* an der Werkbank, UNTER dem Werkstück */
-    arzt:         { x: 118, y: 178 },
-    negativbauer: { x: 118, y: 286 },
-    beobachter:   { x: 300, y: 296 }   /* schreibt mit, immer sichtbar */
-  };
-  var PRUEFUNG = {                     /* Gegenprüfung: OHNE den Bauer */
-    ingenieur:    { x: 118, y:  76 },
-    bauer:        { x: 250, y: 178 },  /* zurück am Tisch — er urteilt nicht mit */
-    arzt:         { x: 606, y: 110 },
-    negativbauer: { x: 606, y: 246 },
-    beobachter:   { x: 300, y: 296 }
-  };
+  /* ══ WO WER STEHT — GERECHNET, NICHT GESETZT (2026-09-05) ═════════════════
+   *
+   * Hier standen fünfzehn Zahlenpaare von Hand: fünf Plätze × drei
+   * Aufstellungen. Als Klaus drei Rollen dazustellte, wären es vierundzwanzig
+   * geworden — und jede neue Rolle hätte wieder drei Stellen gebraucht, die
+   * man einzeln vergessen kann.
+   *
+   * Die drei Aufstellungen behalten ihre BEDEUTUNG, nur die Koordinaten
+   * kommen aus der Rechnung:
+   *
+   *   TISCH     alle im Kreis — „zusammen"
+   *   WEG       der Bauer an der Werkbank, alle anderen warten links
+   *   PRUEFUNG  die Prüfenden rechts, der Bauer zurück am Tisch (er urteilt
+   *             nicht mit), der Beobachter unten — er schreibt immer mit
+   *
+   * Der Beobachter steht in ALLEN dreien unten in der Mitte. Das ist keine
+   * Ausnahme aus Bequemlichkeit: er ist der Einzige, der nie weggeht. */
+  var ROLLEN = ["ingenieur", "mitingenieur", "bauer", "arzt",
+                "negativbauer", "gestalterin", "nutzer", "beobachter"];
 
-  var ROLLEN = ["ingenieur", "bauer", "arzt", "negativbauer", "beobachter"];
+  /* Wer prüft, steht in der Gegenprüfung rechts. Der Bauer NIE — wer gebaut
+     hat, urteilt nicht mit. */
+  var PRUEFENDE = ["arzt", "negativbauer", "gestalterin", "nutzer"];
+
+  var MITTE = { x: 300, y: 178 }, RX = 150, RY = 104;
+  var UNTEN = { x: 300, y: 296 };
+
+  function kreis(namen) {
+    var lage = {}, n = namen.length;
+    for (var i = 0; i < n; i++) {
+      /* Bei -90° beginnen: der Erste steht oben, nicht rechts. Ein Kreis, der
+         rechts anfängt, liest sich nicht als Reihe. */
+      var w = (-Math.PI / 2) + (i * 2 * Math.PI / n);
+      lage[namen[i]] = { x: Math.round(MITTE.x + RX * Math.cos(w)),
+                         y: Math.round(MITTE.y + RY * Math.sin(w)) };
+    }
+    return lage;
+  }
+
+  /* Eine Spalte, gleichmässig verteilt — für alle, die gerade warten. */
+  function spalte(namen, x, von, bis) {
+    var lage = {}, n = namen.length;
+    for (var i = 0; i < n; i++)
+      lage[namen[i]] = { x: x, y: Math.round(n === 1 ? (von + bis) / 2
+                                                     : von + i * (bis - von) / (n - 1)) };
+    return lage;
+  }
+
+  function ohne(liste, weg) {
+    return liste.filter(function (r) { return weg.indexOf(r) < 0; });
+  }
+
+  var TISCH = kreis(ROLLEN);
+
+  var WEG = (function () {
+    var l = spalte(ohne(ROLLEN, ["bauer", "beobachter"]), 118, 68, 288);
+    l.bauer = { x: 606, y: 216 };      /* an der Werkbank, UNTER dem Werkstück */
+    l.beobachter = UNTEN;
+    return l;
+  })();
+
+  var PRUEFUNG = (function () {
+    var l = spalte(ohne(ROLLEN, PRUEFENDE.concat(["bauer", "beobachter"])), 118, 76, 260);
+    var rechts = spalte(PRUEFENDE, 606, 96, 262);
+    for (var k in rechts) l[k] = rechts[k];
+    l.bauer = { x: 250, y: 178 };      /* zurück am Tisch — er urteilt nicht mit */
+    l.beobachter = UNTEN;
+    return l;
+  })();
 
   /* Wofür einer DA ist. Das steht unter seinem Knopf, solange nichts läuft. */
-  var KURZ = { ingenieur: "Idee", bauer: "baut", arzt: "prüft",
-               negativbauer: "sucht Fehler", beobachter: "schreibt auf" };
+  var KURZ = { ingenieur: "Idee", mitingenieur: "schärft", bauer: "baut",
+               arzt: "prüft", negativbauer: "sucht Fehler",
+               gestalterin: "sieht hin", nutzer: "benutzt es",
+               beobachter: "schreibt auf" };
 
   /* ⚠ IN DER KONFERENZ TUN ALLE DASSELBE — und das ist der Punkt, den Klaus
      gefunden hat: „Im Normalfall bringen alle eine Idee ein am Konferenztisch
@@ -80,14 +126,25 @@
      begann. Das ist der sichtbare Schluss. */
   function stellung(phase) {
     if (phase === "build") return WEG;
-    if (phase === "urteil" || phase === "befund") return PRUEFUNG;
-    return TISCH;   /* idee · vorschlag · bewertung · schluss · feierabend */
+    /* Vier Phasen sind Gegenprüfung, nicht zwei: Lisa und Malcom sehen sich
+       dasselbe Werkstück an wie Vera und Sten, nur mit anderer Frage. */
+    if (phase === "urteil" || phase === "befund" ||
+        phase === "gestaltung" || phase === "nutzung") return PRUEFUNG;
+    /* `schaerfung` gehört an den TISCH: Ben spricht mit dem Ingenieur, bevor
+       irgendjemand losgeht. */
+    return TISCH;   /* idee · schaerfung · vorschlag · bewertung · schluss · feierabend */
   }
 
   /* Jede Phase MUSS hier stehen. Eine unbekannte fiele sonst still durch und
      die Blase bliebe leer — der Zuschauer sähe eine Bewegung ohne Auskunft. */
-  var PHASEN = ["idee", "vorschlag", "bewertung", "schluss",
-                "build", "urteil", "befund", "feierabend"];
+  /* ⚠ „merkliste" stand hier NIE, obwohl die Konferenz sie seit jeher
+     schreibt — der mitgelieferte Beispiel-Lauf trug sie nur nicht, und deshalb
+     hat es keine Probe gesehen. Aufgefallen erst, als der Lauf am 2026-09-05
+     mit acht Rollen NEU AUFGEZEICHNET wurde. Dieselbe Lehre, die zwei Absätze
+     weiter oben schon steht: „nicht gefunden" ist erst dann eine Aussage, wenn
+     man überall hineingesehen hat — und ein Beispiel ist nicht überall. */
+  var PHASEN = ["idee", "schaerfung", "vorschlag", "bewertung", "merkliste", "schluss",
+                "build", "urteil", "befund", "gestaltung", "nutzung", "feierabend"];
 
   var STAND_WORT = {
     entwurf: "Entwurf", build: "im Bau", nachbessern: "nachbessern",
