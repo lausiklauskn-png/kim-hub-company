@@ -1,0 +1,362 @@
+/*
+ * company.js — der app-eigene Klebstoff von Kim Hub Company.
+ *
+ * ══ WAS HIER STEHT UND WAS NICHT ═══════════════════════════════════════════
+ *
+ * Diese Datei zeichnet NICHTS. Die Räume — Werkstatt mit Bühne, Konferenz,
+ * Übergabe, Ergebnis, Buchhaltung — kommen aus `ansicht.js` und `buehne.js`,
+ * byte-1:1 aus der Werkstatt. Hier steht nur, was Company mehr hat als sie:
+ * der eigene KI-Zugang, der Auftrag, und der Start der Schicht IM BROWSER.
+ *
+ * ⚠ WARUM DAS SO IST — und es war anders (Klaus 2026-09-05). Die erste Fassung
+ * dieser Seite war ein Formular mit einer selbstgebauten Fortschritts-Liste.
+ * Klaus hat beide Seiten nebeneinandergelegt und gefragt, ob das eine Kopie
+ * sein soll: „Also wenn ich sehe, die Werkstatt, die Buchhaltung und all diese
+ * ganzen Sachen und auch das Abspielen bei Kimhub, dann sieht das ganz, ganz
+ * anders aus als Company." Er hatte recht. Es war keine Kopie, es war ein
+ * Nachbau — und ein Nachbau ist eine zweite Fassung, die ausläuft.
+ *
+ * Der erste Reparatur-Versuch war ebenfalls falsch: die Räume aus `ansicht.js`
+ * herausoperieren. Gemessen ist `verdrahten()` dort **42.841 Zeichen in EINER
+ * Funktion**, und auf der Datei sitzen 1293 Prüfungen — ein Umbau hätte Klaus'
+ * laufende Werkstatt aufs Spiel gesetzt, um eine zweite App zu bauen.
+ *
+ * Was den besseren Weg möglich gemacht hat, war seine Entscheidung, dass
+ * Fahrtenbuch und Stechuhr MITGEHEN sollen („falls Forscher, die mein Paper
+ * lesen, nachschauen wollen, wie wir das gelöst haben mit der Dokumentation").
+ * Damit fällt der Grund weg, überhaupt zu schneiden: **die Datei wandert ganz,
+ * und nur die QUELLE wechselt.** Dieselbe Naht wie Ablage, Bote und Baum vom
+ * selben Tag — WO etwas herkommt ist von WAS damit gilt getrennt.
+ */
+import "./idb.js";
+import "./schluesseltresor.js";
+import { schicht, ROLLEN_REIHE } from "./schicht/schicht.mjs";
+import { konferenz, KONFERENZ_ANTEIL } from "./schicht/konferenz.mjs";
+import { EchteApi, TrockenApi } from "./schicht/api.mjs";
+import { netzTransport } from "./schicht/transport-netz.mjs";
+import { Kasse } from "./schicht/kosten.mjs";
+import { BEISPIELE } from "./schicht/beispiele.mjs";
+import { deuteGrundsaetze, KEINE } from "./schicht/grundsaetze.mjs";
+import { idbAblage } from "./schicht/ablage-idb.mjs";
+import { speicherBaum } from "./schicht/baum-speicher.mjs";
+import { macheWerkbank } from "./schicht/werkzeuge.mjs";
+
+const TRESOR = globalThis.WERKSTATT_SCHLUESSEL;
+const IDB = globalThis.WERKSTATT_IDB;
+/* ⚠ ABGEBROCHEN STATT HALB WEITERGEMACHT. Ohne Tresor gäbe es keine
+   Verschlüsselung, ohne Ablage keinen Wohnort — beides wäre eine Seite, die
+   aussieht, als täte sie etwas. */
+if (!TRESOR || !IDB) throw new Error(
+  "schluesseltresor.js oder idb.js haben sich nicht ans Global gehängt.");
+/* Und ohne die Ansicht gäbe es keine Räume. Sie wird VOR dieser Datei geladen
+   (klassisches `defer` läuft vor Modulen) — fehlt sie trotzdem, sagen wir das,
+   statt eine Seite ohne Inhalt zu zeigen. */
+if (!window.__werkstatt || typeof window.__werkstatt.speise !== "function")
+  throw new Error("ansicht.js fehlt oder ist zu alt — ohne die Quell-Naht " +
+    "(`__werkstatt.speise`) kann ein laufender Lauf nicht in die Räume.");
+
+/* Der Name IST die Grenze zur Schwester-App: `github.io` ist EINE Adresse, und
+   IndexedDB gehört dem Ursprung, nicht der App. Derselbe Name wie im `<head>`;
+   dass beide übereinstimmen, bewacht eine Probe. */
+const idb = IDB.macheIdb({ name: window.__WERKSTATT_DB || "KimHubCompany1" });
+
+const $ = (id) => document.getElementById(id);
+const zeigen = (el, ja) => { if (el) el.hidden = !ja; };
+
+const stand = {
+  passwort: null,       // NUR im Arbeitsspeicher. Nie in eine Ablage.
+  schluessel: null,
+  basisUrl: null,
+  laeuft: false,
+  letzterLauf: null,
+  dateien: {},
+};
+
+/* ══ TEIL 1 · DER SCHLÜSSEL ═════════════════════════════════════════════════
+ *
+ * Drei Zustände, und sie werden UNTERSCHIEDEN statt geraten — dafür gibt
+ * `holen()` drei verschiedene Gründe zurück (`leer` · `fassung` · `passwort`).
+ */
+function lageSetzen(wert, text) {
+  const l = $("schluessel-lage");
+  if (!l) return;
+  l.setAttribute("data-stand", wert);
+  $("schluessel-lage-text").textContent = text;
+}
+function sagt(text, sorte = "") {
+  const p = $("schluessel-sagt");
+  if (!p) return;
+  p.textContent = text;
+  p.setAttribute("data-sagt", sorte);
+}
+
+async function schluesselLageZeichnen() {
+  const liegt = await TRESOR.liegtEtwas(idb);
+  const offen = stand.schluessel !== null;
+
+  zeigen($("einlegen"), !liegt || offen);
+  zeigen($("aufschliessen"), liegt && !offen);
+  zeigen($("werfen"), liegt);
+  zeigen($("neu-block"), !liegt);
+  $("pw-zweck").textContent = liegt ? "— dasselbe wie beim Einlegen" : "— du wählst es jetzt";
+
+  if (offen) lageSetzen("offen", "aufgeschlossen, für diesen Besuch");
+  else if (liegt) lageSetzen("zu", "verschlossen — Passwort eingeben");
+  else lageSetzen("leer", "keiner hinterlegt");
+  startLageZeichnen();
+}
+
+$("einlegen").onclick = async () => {
+  const pw = $("pw").value, key = $("key").value.trim();
+  if (!pw) { sagt("Ohne Passwort kann nichts verschlossen werden.", "fehlt"); return; }
+  try {
+    await TRESOR.einlegen(idb, pw, key);
+  } catch (e) {
+    /* Die Form-Prüfung sagt genau, WAS nicht stimmt — „zu kurz" und „sieht aus
+       wie eine Befehlszeile" sind verschiedene Fehler, und der Nutzer sucht
+       sonst an der falschen Stelle. Der Schlüssel steht NIE in der Meldung. */
+    sagt(e.pruefung ? `${e.pruefung.grund}. ${e.pruefung.hinweis}`
+                    : "Konnte nicht abgelegt werden: " + e.message, "fehler");
+    return;
+  }
+  stand.passwort = pw; stand.schluessel = key;
+  stand.basisUrl = $("basis").value.trim() || null;
+  $("key").value = "";
+  const dauer = await IDB.dauerhaft();   // erst fragen, wenn es etwas zu schützen gibt
+  sagt("Abgelegt und aufgeschlossen. Der Browser sagt zum dauerhaften Speicher: " +
+       (dauer ? "zugesagt" : "nicht zugesagt — er darf ihn aufräumen") + ".", "gut");
+  await schluesselLageZeichnen();
+};
+
+$("aufschliessen").onclick = async () => {
+  const pw = $("pw").value;
+  if (!pw) { sagt("Ohne Passwort geht der Tresor nicht auf.", "fehlt"); return; }
+  try {
+    stand.schluessel = await TRESOR.holen(idb, pw);
+    stand.passwort = pw;
+    stand.basisUrl = $("basis").value.trim() || null;
+    sagt("Aufgeschlossen. Er bleibt für diesen Besuch offen.", "gut");
+  } catch (e) {
+    /* ERST DIE FASSUNG, DANN DAS PASSWORT — jeder Grund bekommt seinen eigenen
+       Satz. Eine Auskunft, die in die falsche Richtung zeigt, ist teurer als
+       gar keine: der Nutzer tippte sonst ein richtiges Passwort immer wieder. */
+    const grund = e && e.message;
+    sagt(grund === "fassung"
+        ? "Der hinterlegte Schlüssel stammt aus einer neueren Fassung dieser Seite. " +
+          "Das Passwort ist NICHT das Problem — lade die Seite neu (⟳), oder wirf " +
+          "den Schlüssel weg und lege ihn erneut ein."
+      : grund === "leer"
+        ? "Es liegt gar nichts da. In diesem Browser wurde noch kein Schlüssel abgelegt."
+        : "Das Passwort passt nicht zu dem, was hier liegt.", "fehler");
+  }
+  await schluesselLageZeichnen();
+};
+
+$("werfen").onclick = async () => {
+  await TRESOR.werfen(idb);
+  stand.schluessel = null; stand.passwort = null;
+  sagt("Weg. Es gibt kein Zurückholen — das ist der Preis echter Verschlüsselung.", "gut");
+  await schluesselLageZeichnen();
+};
+
+/* ══ TEIL 2 · WAS DIE ROLLEN LESEN DÜRFEN ══════════════════════════════════
+ * „Was der Nutzer übergibt" (Klaus 2026-09-04). Keine Dateien ⇒ gar keine
+ * Werkbank: drei Werkzeuge, die „geht nicht" sagen, kosten eine BEZAHLTE Runde. */
+$("dateien").onchange = async (e) => {
+  const liste = [...(e.target.files || [])];
+  stand.dateien = {};
+  for (const f of liste) {
+    try { stand.dateien[f.name] = await f.text(); } catch { /* kein Text, kein Baum */ }
+  }
+  const n = Object.keys(stand.dateien).length;
+  const wo = document.querySelector("[data-werkzeug-grund]");
+  if (wo) wo.innerHTML = n
+    ? `<b>${n} ${n === 1 ? "Datei" : "Dateien"}</b> übergeben. Die Rollen dürfen darin ` +
+      `<b>lesen und suchen</b> — schreiben kann keines der Werkzeuge, es gibt kein ` +
+      `schreibendes. Was du nicht übergibst, sehen sie nicht.`
+    : `Ohne Dateien laufen die Rollen <b>ohne Werkzeuge</b> — und das ist Absicht: ` +
+      `drei Werkzeuge, die „geht nicht" antworten, kosten in einem echten Lauf eine ` +
+      `<b>bezahlte</b> Runde.`;
+};
+
+/* ══ TEIL 3 · DER LAUF ══════════════════════════════════════════════════════ */
+function startLageZeichnen() {
+  const ziel = ($("ziel").value || "").trim();
+  const p = $("start-sagt");
+  $("trocken").disabled = stand.laeuft;
+  $("echt").disabled = stand.laeuft || !stand.schluessel || !ziel;
+  p.setAttribute("data-start",
+    stand.laeuft ? "laeuft" : !ziel ? "ohne-auftrag"
+      : !stand.schluessel ? "ohne-schluessel" : "bereit");
+  p.textContent = stand.laeuft
+    ? "Eine Schicht läuft. Zwei gleichzeitig gingen auf dasselbe Gedächtnis."
+    : !ziel
+      ? "Für den echten Lauf fehlt noch der Auftrag. Der Trockenlauf geht auch ohne — er spielt eine hinterlegte Schicht ab."
+      : !stand.schluessel
+        ? "Für den echten Lauf fehlt noch dein Schlüssel (oben). Der Trockenlauf geht ohne."
+        : "Bereit. Der echte Lauf gibt höchstens den Deckel aus, den du gesetzt hast.";
+}
+$("ziel").oninput = startLageZeichnen;
+
+async function fahre({ echt }) {
+  if (stand.laeuft) return;
+  stand.laeuft = true;
+  startLageZeichnen();
+
+  try {
+    const mitarbeiter = await holeMitarbeiter();
+    const g = await holeGrundsaetze();
+    /* ══ ZWEI KASSEN AUS EINEM DECKEL ═════════════════════════════════════
+     *
+     * ⚠ DER ERSTE ANLAUF GAB BEIDEN DIESELBE KASSE, und der Trockenlauf brach
+     * mit `feierabendGrund: "geld"` ab — gemessen am 2026-09-05: die Konferenz
+     * verbrauchte 0,126 € von 1,00 €, und danach reichte der Rest der Schicht
+     * nicht mehr für ihre Anlaufprüfung (`3 × teuerster Aufruf` gegen den Rest
+     * ohne Rücklage). Der Nutzer hätte für eine Konferenz bezahlt und kein
+     * Werkstück bekommen.
+     *
+     * In Kimhub sind das ZWEI Läufe mit je eigenem Deckel — `lauf.mjs` ruft
+     * entweder die Konferenz oder die Schicht. Company fährt beide hintereinander,
+     * also bekommt jede ihren Teil: `KONFERENZ_ANTEIL` (ein Drittel) für die
+     * Konferenz, der Rest fürs Bauen. **Die Summe bleibt der Deckel, den du
+     * gesetzt hast** — mehr wird nie ausgegeben, und das ist der ganze Zweck
+     * einer Bremse. */
+    const deckelEur = Math.max(0.20, Number($("deckel").value) || 1);
+    /* ⚠ DIE KONFERENZ IST ZUSCHALTBAR UND STANDARDMÄSSIG AUS — gemessen am
+       2026-09-05, warum: mit beiden auf einem Deckel von 1,00 € brach die
+       Schicht mit `feierabendGrund: "geld"` ab (die Konferenz hatte 0,126 €
+       verbraucht, der Rest reichte der Schicht nicht mehr für ihre
+       Anlaufprüfung). Mit geteiltem Deckel war dann BEIDES zu knapp.
+       In Kimhub sind das zwei getrennte Läufe mit je vollem Deckel — hier ist
+       es eine Entscheidung des Nutzers, und sie steht mit ihrem Preis daneben.
+       Ein Lauf, der still das halbe Geld in eine Vorstufe steckt und ohne
+       Werkstück endet, wäre die teuerste Art, nichts zu liefern. */
+    const mitKonferenz = !!($("mit-konferenz") && $("mit-konferenz").checked);
+    const deckelKonferenz = mitKonferenz ? deckelEur * KONFERENZ_ANTEIL : 0;
+    const deckelSchicht = deckelEur - deckelKonferenz;
+    const macheKasse = (d) => new Kasse({
+      deckelEur: d,
+      laufzeitMs: 2 * 3600_000,
+      // Zurückgelegt für den Feierabend-Bericht — ein Zehntel, mindestens 20
+      // Cent. Dieselbe Zahl wie in `lauf.mjs`; eine Probe hält beide zusammen.
+      reserveEur: Math.max(0.20, d * 0.1),
+    });
+    const kasse = macheKasse(deckelSchicht);
+
+    const api = echt
+      ? new EchteApi({
+          schluessel: stand.schluessel, basisUrl: stand.basisUrl,
+          transport: netzTransport({ schluessel: stand.schluessel, basisUrl: stand.basisUrl }),
+        })
+      : new TrockenApi(BEISPIELE);
+
+    const dateien = Object.keys(stand.dateien);
+    const werkbank = dateien.length
+      ? macheWerkbank({ baum: speicherBaum(stand.dateien, { wo: "übergeben" }) })
+      : null;
+    const ablage = await idbAblage(idb);
+
+    const auftrag = {
+      ziel: ($("ziel").value || "").trim() ||
+        "Ein kleines, eigenständiges Werkzeug, das jemand sofort benutzen kann.",
+      pruefmerkmal: ($("merkmal").value || "").trim() || null,
+    };
+
+    /* ══ ERST DIE KONFERENZ, DANN DIE SCHICHT ═══════════════════════════
+     *
+     * Das ist der volle Ablauf der Werkstatt, und Klaus hat genau ihn gezeigt:
+     * fünf Rollen schlagen vor und bewerten, aus dem Sieger wird ein Auftrag,
+     * dann wird gebaut. Ohne sie bliebe Raum 1 („Wer spricht" · „Was gesagt
+     * wurde") in Company leer — der Raum aus seinem Bildschirmfoto.
+     *
+     * `konferenz()` hat dieselbe Form wie `schicht()` und steht seit dem
+     * 2026-09-04 in `OHNE_NODE`: sie läuft im Browser, ohne dass etwas daran
+     * geändert werden müsste.
+     *
+     * ⚠ SIE KOSTET MIT. `KONFERENZ_ANTEIL` teilt den Deckel — die Konferenz
+     * bekommt ihren Teil, der Rest bleibt fürs Bauen. Das ist die Aufteilung
+     * aus Kimhub, nicht eine hier erfundene.
+     */
+    const konf = mitKonferenz ? await konferenz({
+      api, mitarbeiter, kasse: macheKasse(deckelKonferenz), spindAblage: ablage,
+      grundsaetze: g, werkbank, lage: auftrag.ziel,
+      /* `anteil: 1` — die Konferenz hat hier eine EIGENE Kasse, ihr Anteil ist
+         also schon im Deckel enthalten. Ohne diese Zeile nähme sie ein Drittel
+         von einem Drittel. */
+      anteil: 1,
+    }) : null;
+    if (konf) window.__werkstatt.speise("konferenz", konf);
+
+    /* ⚠ HIER LÖST SICH DIE NAHT EIN. `schicht.mjs` gibt seinen Zwischenstand in
+       DERSELBEN Form heraus wie das Endergebnis — das steht dort im Code, mit
+       der Begründung „zwei Formen wären zwei Stellen, an denen eine Anzeige
+       etwas anderes behauptet als die Datei". Also geht er unverändert in die
+       Räume: Bühne, Konferenz, Übergabe, Ergebnis zeichnen mit, während die
+       Schicht läuft. */
+    const lauf = await schicht({
+      api, auftrag, mitarbeiter, kasse, spindAblage: ablage, grundsaetze: g, werkbank,
+      aufZwischenstand: (z) => window.__werkstatt.speise("lauf", z),
+    });
+
+    /* ⚠ GESICHERT WIRD NUR NACH EINEM ECHTEN LAUF — dieselbe Zusicherung wie in
+       Node, an derselben Stelle. Ein zweiter Riegel in der Ablage sähe nach mehr
+       Sicherheit aus und wäre weniger. */
+    if (echt) await ablage.sichern();
+
+    stand.letzterLauf = lauf;
+    window.__werkstatt.speise("lauf", lauf);
+  } catch (e) {
+    /* Was die Kasse WEISS, sagt sie; woran es lag, weiss sie nicht. */
+    const p = $("start-sagt");
+    p.setAttribute("data-start", "abbruch");
+    p.textContent = "Die Schicht ist abgebrochen: " + (e && e.message ? e.message : e);
+  } finally {
+    stand.laeuft = false;
+    startLageZeichnen();
+  }
+}
+
+$("trocken").onclick = () => fahre({ echt: false });
+$("echt").onclick = () => fahre({ echt: true });
+
+/* ══ WAS DIE SEITE SICH HOLT ═══════════════════════════════════════════════ */
+async function holeMitarbeiter() {
+  const a = await fetch("schicht/mitarbeiter.json");
+  if (!a.ok) throw new Error(
+    `Die Besetzung (schicht/mitarbeiter.json) war nicht zu holen: ${a.status}. ` +
+    `Ohne sie weiss die Schicht nicht, wer welche Rolle hat — abgebrochen statt geraten.`);
+  const d = await a.json();
+  const m = d.mitarbeiter || [];
+  for (const r of ROLLEN_REIHE)
+    if (!m.some((x) => x.rolle === r)) throw new Error(`Für die Rolle „${r}" ist niemand eingetragen.`);
+  return m;
+}
+
+/* ⚠ UNTERSCHIEDEN STATT GERATEN. `KEINE` heisst ausdrücklich „ohne Haltung" und
+   trägt seinen Hinweis mit; ein vergessenes `undefined` liesse `macheRufer`
+   abbrechen. Das eine ist eine Entscheidung, das andere ein Versehen. */
+async function holeGrundsaetze() {
+  try {
+    const a = await fetch("schicht/grundsaetze.md");
+    if (!a.ok) return KEINE;
+    return deuteGrundsaetze(await a.text(), { woher: "schicht/grundsaetze.md" });
+  } catch { return KEINE; }
+}
+
+/* ══ HOCHFAHREN ════════════════════════════════════════════════════════════ */
+(async function start() {
+  await schluesselLageZeichnen();
+  startLageZeichnen();
+  /* Der Haken für die Proben. Er gibt NIE ein Geheimnis heraus — nur ja/nein.
+     Ein Test-Haken, der ein Geheimnis herausreicht, ist ein Loch mit Prüfsiegel;
+     genau das hat die Gegenprobe in Kimhub am 2026-08-22 bewiesen. */
+  window.__company = {
+    bereit: true,
+    hatSchluessel: () => stand.schluessel !== null,
+    hatPasswort: () => stand.passwort !== null,
+    laeuft: () => stand.laeuft,
+    dateien: () => Object.keys(stand.dateien).slice(),
+    letzterLauf: () => (stand.letzterLauf ? JSON.parse(JSON.stringify(stand.letzterLauf)) : null),
+    idbName: idb.name,
+  };
+})();

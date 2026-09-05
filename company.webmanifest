@@ -1,0 +1,18 @@
+{
+  "name": "Kim Hub Company",
+  "short_name": "Kim Hub Co",
+  "description": "Fünf Rollen bauen an einem Auftrag — im Browser, auf deinem eigenen KI-Zugang.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0c0f12",
+  "theme_color": "#0c0f12",
+  "lang": "de",
+  "icons": [
+    { "src": "icons/kimhub-96.png",  "sizes": "96x96",   "type": "image/png" },
+    { "src": "icons/kimhub-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/kimhub-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/kimhub-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
