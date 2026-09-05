@@ -34,7 +34,7 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const ERWARTET = [
   { datei: "index.html",                herkunft: "start.html",              sha: "3c01a391e805786e55efb137412e2389f29fc89813ca6757ee163ecd4a738c7f" },
   { datei: "company.js",                herkunft: "company.js",              sha: "10fdd6d1db975e63c1a3287997c442f34d0bb635712384313f225ce12b8e91a9" },
-  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "c01e5ce48580a9bd31ad7c6f384560d1f5b02be04305b2d7da6880023fe36ed6" },
+  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "36122e911ce68a8a512ab8b6808d1b9543aa0e2b31cd74d7db297651008df04d" },
   { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "3795be82de5d08e51b8ab0bd41268cdbcaaf49b8012bd4f355d3609467b6ec92" },
   { datei: "zeit.js",                   herkunft: "zeit.js",                 sha: "1bdb42884e8385e32aa3bc6572c1c8736d928e48bde6847081cc98efcbb85822" },
   { datei: "idb.js",                    herkunft: "idb.js",                  sha: "b244ab3f832bb4d4cd5ec87e51de364df5716ee7ca6fc8a2bceeea6b6c9bbd51" },

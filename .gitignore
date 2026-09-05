@@ -21,6 +21,15 @@
 .env
 .env.*
 schluessel*
+# ⚠ EINE BENANNTE AUSNAHME, und sie ist teuer bezahlt (2026-09-05).
+# `schluessel*` sollte SCHLÜSSEL fangen — es fing auch `schluesseltresor.js`,
+# also den CODE des Tresors, der kein Geheimnis trägt, sondern eines schützt.
+# Folge: die Datei wurde nie eingecheckt, obwohl `sw.js` sie im Offline-Vorrat
+# nennt und der Drift-Guard sie pinnt. Die Probe blieb grün, weil die Datei
+# ungeführt auf der Platte lag — sie maß die PLATTE, nicht das Depot.
+# Genau die Lehre aus Kimhubs Verfassung: „Der Vorrat und die Platte sind zwei
+# Listen." Die breite Regel bleibt; die Ausnahme ist eine Zeile und benannt.
+!schluesseltresor.js
 *schluessel.txt
 gaeste.json
 node_key*

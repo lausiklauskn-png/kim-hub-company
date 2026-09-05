@@ -199,12 +199,26 @@
       // Das Übergabe-Blatt (1.6). Es LAG die ganze Zeit da und wurde nie geladen —
       // Raum 2 erklärte die Übergabe, statt sie zu zeigen.
       ausQuelle("blatt", function () { return holeText("plan-offen.md"); }),
+      /* DIE BESETZUNG — wer die fuenf SIND, unabhaengig von einem Lauf.
+         Klaus am 2026-09-05, vor der Vorschau: „hatten die Bauer nicht Namen?"
+         Er hatte recht, und der Code wusste es sogar: unten in `buehne.js`
+         steht „richtig, aber kalt, und Klaus' Werkstatt hat Namen". Die Namen
+         standen aber NUR in `lauf.json` und in den Ereignissen — wer die Seite
+         oeffnet, ohne je eine Schicht gefahren zu haben, sah „ingenieur",
+         „bauer", „arzt". Die Datei mit den Namen lag die ganze Zeit daneben
+         und wurde von der Ansicht nie gelesen. */
+      ausQuelle("besetzung", function () {
+        return fetch("schicht/mitarbeiter.json", { cache: "no-store" })
+          .then(function (a) { return a.ok ? a.json() : null; })
+          .then(function (j) { return (j && j.mitarbeiter) || null; })
+          .catch(function () { return null; }); }),
     ]).then(function (r) {
       daten.konferenz = r[0]; daten.lauf = r[1]; daten.gegen = r[2];
       daten.belege = tresorEinsortieren("belege", r[3]);
       daten.zeiten = tresorEinsortieren("zeiten", r[4]);
       daten.fahrten = r[5]; daten.zapf = r[6]; daten.version = r[7];
       daten.blatt = r[8];
+      daten.besetzung = r[9];
       neuAufbauen();
     });
   }
@@ -3047,7 +3061,13 @@
          darunter — und man glaubte dem falschen. */
       buehne.setzeDaten({
         events: achse.map(function (p) { return p.e; }),
-        besetzung: (daten.lauf && daten.lauf.besetzung) || [],
+        /* DER LAUF GEWINNT, die Datei traegt nur nach. Ein gefahrener Lauf
+           weiss, WER wirklich gearbeitet hat — die Datei sagt nur, wer heute
+           in der Liste steht. Beides zu mischen hiesse, einem alten Lauf
+           Namen von heute unterzuschieben. */
+        besetzung: (daten.lauf && daten.lauf.besetzung && daten.lauf.besetzung.length)
+          ? daten.lauf.besetzung
+          : (daten.besetzung || []),
         laeuft: !!(daten.lauf && daten.lauf.laeuft),
         _ausBeispiel: istBeispiel("schicht") || istBeispiel("konferenz"),
         /* Die ZWEITE Achse geht mit (1.5): woher ist nicht dasselbe wie womit.

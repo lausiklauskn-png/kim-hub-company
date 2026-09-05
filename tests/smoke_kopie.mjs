@@ -7,6 +7,7 @@
  * der Prüfstand drüben steht.
  */
 import { readFileSync, existsSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pruefe, ERWARTET } from "../tools/drift-guard.mjs";
@@ -70,6 +71,22 @@ export async function lauf(ok) {
   const fehltAufPlatte = gebraucht.filter((g) => !existsSync(join(WURZEL, g)));
   ok(`jede liegt auch wirklich da${fehltAufPlatte.length ? " — fehlt: " + fehltAufPlatte.join(", ") : ""}`,
     fehltAufPlatte.length === 0);
+
+  /* ⚠ UND DIE PLATTE IST NICHT DAS DEPOT (2026-09-05, teuer bezahlt).
+     `schluesseltresor.js` lag hier, war aber NIE eingecheckt: die
+     Ausschluss-Liste fing es mit `schluessel*`. Der Vorrat nannte es, der
+     Drift-Guard pinnte es, `existsSync` fand es — und ausgeliefert wurde es
+     nie. Die Zeile darüber war grün, weil sie die PLATTE misst.
+
+     Was ein Besucher bekommt, ist das, was `git` FÜHRT. Also wird das
+     gemessen. Beide Zeilen bleiben: die eine fängt eine vergessene Datei, die
+     andere eine ausgeschlossene — das sind zwei verschiedene Fehler mit
+     derselben Wirkung. */
+  const gefuehrt = new Set(execFileSync("git", ["-C", WURZEL, "ls-files"], { encoding: "utf8" })
+    .split("\n").filter(Boolean));
+  const nichtGefuehrt = gebraucht.filter((g) => !gefuehrt.has(g));
+  ok(`jede wird auch von git geführt${nichtGefuehrt.length ? " — NUR auf der Platte: " + nichtGefuehrt.join(", ") : ""}`,
+    nichtGefuehrt.length === 0);
 
   /* ---- 4 · Kein Schlüssel, kein Geheimnis im Depot ----------------------- */
   const verdaechtig = [];
