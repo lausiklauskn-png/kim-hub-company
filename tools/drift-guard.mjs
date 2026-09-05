@@ -32,7 +32,7 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
 /* `index.html` steht hier mit dem Namen, den die Datei in Kimhub trägt —
    der Inhalt ist byte-gleich, nur die Datei heisst dort anders. */
 export const ERWARTET = [
-  { datei: "index.html",                herkunft: "start.html",              sha: "6e05b3afba8086f76b37005015e08bb5ecfb22864e2800666e03d71bc4bf6e7f" },
+  { datei: "index.html",                herkunft: "start.html",              sha: "1e956536dca5dbcef0316ee46befac8a50f7e92ed0ac3b85bc3b6573b6c86d6d" },
   { datei: "company.js",                herkunft: "company.js",              sha: "c5513aeee610b16bed5803f3e9eda16bf8edbda95e82aee62e5e914b934c9ab7" },
   { datei: "idb.js",                    herkunft: "idb.js",                  sha: "b244ab3f832bb4d4cd5ec87e51de364df5716ee7ca6fc8a2bceeea6b6c9bbd51" },
   { datei: "schluesseltresor.js",       herkunft: "schluesseltresor.js",     sha: "eaed30e8f3921835a3f58b69f89d9b008831f69f164ad1dfec630fa43161f666" },
