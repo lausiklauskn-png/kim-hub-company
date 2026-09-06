@@ -34,6 +34,7 @@ import { schicht, ROLLEN_REIHE } from "./schicht/schicht.mjs";
 import { konferenz, KONFERENZ_ANTEIL } from "./schicht/konferenz.mjs";
 import { EchteApi, TrockenApi } from "./schicht/api.mjs";
 import { netzTransport, macheNotaus } from "./schicht/transport-netz.mjs";
+import { planBlatt } from "./schicht/plan-form.mjs";
 import { Kasse } from "./schicht/kosten.mjs";
 import { BEISPIELE } from "./schicht/beispiele.mjs";
 import { deuteGrundsaetze, KEINE } from "./schicht/grundsaetze.mjs";
@@ -157,7 +158,10 @@ async function fahrtEintragen({ art, echt, bericht, titel = "", ergebnis = "",
   } catch (err) { console.warn("Fahrtenbuch nicht geschrieben:", err); }
   return e;
 }
-let letzterStand = { konferenz: null, lauf: null, wann: "", fertig: false, echt: false };
+/*  steht mit drin, weil es das Einzige ist, was ein abgebrochener Lauf
+   hinterlässt, das man weitergeben kann. Ohne diese Zeile wäre es nach einem
+   Neuladen weg — und ein Auftrag, den man verloren hat, ist keiner. */
+let letzterStand = { konferenz: null, lauf: null, blatt: null, wann: "", fertig: false, echt: false };
 let sicherKette = Promise.resolve();
 
 /** Sichert den Stand — nie im Weg, nie laut. Ein Lauf darf nicht daran
@@ -493,6 +497,10 @@ async function fahre({ echt }) {
      und ist in Millisekunden vorbei; ein Anhalten-Knopf daneben verspräche,
      etwas aufzuhalten, das schon vorbei ist. */
   laufendesNotaus = echt ? macheNotaus() : null;
+  /* Die Meldung des VORIGEN Abbruchs geht weg, sobald ein neuer Lauf beginnt —
+     sonst stünde sie über einer Schicht, die gerade gut läuft. */
+  $("abbruch-sagt").hidden = true;
+  $("abbruch-sagt").removeAttribute("data-abbruch");
   startLageZeichnen();
 
   /* ⚠ DIE UHR BEGINNT MIT DEM DRUCK, NICHT MIT DEM ERSTEN ZWISCHENSTAND.
@@ -595,8 +603,22 @@ async function fahre({ echt }) {
      * bekommt ihren Teil, der Rest bleibt fürs Bauen. Das ist die Aufteilung
      * aus Kimhub, nicht eine hier erfundene.
      */
+    /* Die Konferenz-Kasse bekommt einen NAMEN, weil das Übergabe-Blatt ihren
+       Bericht braucht. Inline hätte niemand mehr Zugriff darauf, und die
+       Kosten-Zeile im Blatt stünde leer.
+     *
+     * ⚠ NUR WENN ES EINE KONFERENZ GIBT. Die erste Fassung zog die Zeile aus
+     * dem Ternär heraus und baute sie IMMER — ohne Konferenz ist der Anteil 0,
+     * und `Kasse` wirft zu Recht „Die Kasse braucht einen Deckel > 0". Die
+     * ganze Schicht starb, bevor sie begann, und die Meldung wurde vom
+     * `finally` gleich wieder überschrieben.
+     *
+     * **Eine Zeile, die aus einer Bedingung herauswandert, läuft in Fällen,
+     * für die sie nie gedacht war.** Gefunden hat es die Browser-Probe, weil
+     * sie den Weg OHNE Konferenz wirklich fährt. */
+    const kasseKonf = mitKonferenz ? macheKasse(deckelKonferenz) : null;
     const konf = mitKonferenz ? await konferenz({
-      api, mitarbeiter, kasse: macheKasse(deckelKonferenz), spindAblage: ablage,
+      api, mitarbeiter, kasse: kasseKonf, spindAblage: ablage,
       unterlagen: stand.unterlagen.length ? stand.unterlagen : null,
       grundsaetze: g, werkbank, lage: auftrag.ziel,
       /* `anteil: 1` — die Konferenz hat hier eine EIGENE Kasse, ihr Anteil ist
@@ -606,6 +628,29 @@ async function fahre({ echt }) {
     }) : null;
     if (konf) {
       window.__werkstatt.speise("konferenz", konf);
+      /*
+       * ══ DAS ÜBERGABE-BLATT — DER AUSGANG, DER GEFEHLT HAT ═══════════════
+       *
+       * Klaus 2026-09-07, nach drei Tagen ohne Ergebnis: „ich müsste
+       * mindestens einen Prompt herausbekommen, den ich an ein großes Modell
+       * weitergeben kann, damit der etwas bauen kann."
+       *
+       * Das Blatt IST dieser Prompt — und es entstand bis heute nur in Node.
+       * Raum 2 meldete bei jedem Browser-Lauf „Das Übergabe-Blatt fehlt".
+       *
+       * ⚠ ES ENTSTEHT HIER, NICHT AM ENDE. Eine Schicht, die später abbricht
+       * oder am Deckel stirbt, hat die Konferenz trotzdem bezahlt — und dann
+       * ist dieses Blatt das EINZIGE, was übrig bleibt. Am Ende gebaut wäre
+       * es genau in dem Fall weg, in dem man es am nötigsten braucht.
+       */
+      if (konf.ok && konf.auftrag) {
+        letzterStand.blatt = {
+          text: planBlatt(konf, kasseKonf.bericht(),
+                          new Date().toISOString().slice(0, 10), !echt),
+          ausBeispiel: false,
+        };
+        window.__werkstatt.speise("blatt", letzterStand.blatt);
+      }
       letzterStand.konferenz = konf;
       letzterStand.wann = new Date().toISOString();
       await standSichern();
@@ -679,9 +724,19 @@ async function fahre({ echt }) {
         ergebnis: "abgebrochen: " + (e && e.message ? e.message : String(e)),
       });
     } catch (err) { console.warn("Abbruch nicht ins Buch:", err); }
-    /* Was die Kasse WEISS, sagt sie; woran es lag, weiss sie nicht. */
-    const p = $("start-sagt");
-    p.setAttribute("data-start", "abbruch");
+    /*
+     * ⚠ DER GRUND BEKOMMT EINE EIGENE ZEILE — sonst wischt ihn das `finally`
+     * weg. `startLageZeichnen()` schreibt `#start-sagt` bedingungslos neu; die
+     * Abbruch-Meldung stand also genau so lange da, wie der `catch` dauert,
+     * und Klaus sah danach „Bereit." Eine Schicht, die stirbt und dabei sagt
+     * „bereit", ist die schlimmste Auskunft von allen.
+     *
+     * Dieselbe Lehre wie bei `#wieder-sagt` am 2026-09-05: **zwei Aussagen,
+     * zwei Zeilen.**
+     */
+    const p = $("abbruch-sagt");
+    p.hidden = false;
+    p.setAttribute("data-abbruch", "ja");
     p.textContent = "Die Schicht ist abgebrochen: " + (e && e.message ? e.message : e);
   } finally {
     stand.laeuft = false;
@@ -730,6 +785,9 @@ window.addEventListener("beforeunload", (e) => {
   letzterStand = g;
   if (g.konferenz) window.__werkstatt.speise("konferenz", g.konferenz);
   if (g.lauf) window.__werkstatt.speise("lauf", g.lauf);
+  /* Auch das Blatt überlebt ein Neuladen — sonst wäre der Auftrag weg, den
+     Klaus gerade weitergeben wollte. */
+  if (g.blatt) window.__werkstatt.speise("blatt", g.blatt);
 
   /* ⚠ EIGENE ZEILE, NICHT `#start-sagt` (Klaus 2026-09-06: „Trockenlauf startet
    * nicht"). Die erste Fassung schrieb diese Meldung in dieselbe Zeile, in der

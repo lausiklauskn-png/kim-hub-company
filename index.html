@@ -869,6 +869,10 @@ footer{padding:18px 16px 40px;color:var(--leise);font-size:.87rem}
       <button id="anhalten" type="button" hidden>■ Anhalten</button>
     </div>
     <p class="leise" id="start-sagt" data-start="" role="status" aria-live="polite"></p>
+    <!-- ⚠ EIGENE ZEILE FÜR DEN ABBRUCH. In #start-sagt stand er genau so lange,
+         bis das finally die Bereitschafts-Zeile neu schrieb — danach las Klaus
+         „Bereit“, während die Schicht gerade gestorben war. -->
+    <p class="warn" id="abbruch-sagt" data-abbruch="" role="alert" hidden></p>
 
     <!-- DAS TOR ZWISCHEN IDEE UND BAU (Klaus 2026-09-06).
          Es steht hier und nicht in einem eigenen Fenster: wer gerade auf den
