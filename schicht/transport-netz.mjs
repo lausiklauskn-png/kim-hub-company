@@ -94,6 +94,47 @@ function dauerWort(ms) {
   return ms < 120000 ? `${Math.round(ms / 1000)} Sekunden` : `${Math.round(ms / 60000)} Minuten`;
 }
 
+/**
+ * DER NOTAUS — von Hand anhalten, was Geld ausgibt.
+ *
+ * Klaus 2026-09-06, nach 22:54 an einem bezahlten Lauf: „Es lässt sich nicht
+ * unterbrechen." Er hatte recht — es gab keinen Weg zurück ausser die Seite
+ * neu zu laden, und ein Neuladen führt KEINEN Abbruch-Pfad aus: das bis dahin
+ * ausgegebene Geld stünde in keinem Buch. Genau die Lücke vom 2026-08-22,
+ * „als hätten sie nie gearbeitet und kein Geld gekostet", nur eine Ebene
+ * weiter.
+ *
+ * Er hält ZWEI Dinge auf, und beide sind nötig: den Aufruf, der gerade
+ * unterwegs ist (sonst wartet man bis zu dessen Ende), und jeden folgenden
+ * (sonst zieht die Schicht danach seelenruhig weiter). Ein Notaus, der nur
+ * eines von beidem täte, sähe aus wie einer.
+ */
+export function macheNotaus() {
+  let gezogen = false;
+  const wachen = new Set();
+  return {
+    get gezogen() { return gezogen; },
+    /* Der Zug ist ENDGÜLTIG für diesen Lauf. Wer ihn zurücknehmen könnte,
+       hätte einen Schalter statt eines Notaus — und die halbe Schicht, die
+       danach weiterläuft, wäre nicht zu erklären. Ein neuer Lauf bekommt
+       einen neuen. */
+    ziehen() {
+      gezogen = true;
+      for (const w of wachen) { try { w.abort(); } catch { /* schon vorbei */ } }
+      wachen.clear();
+    },
+    _anmelden(w) { if (!gezogen) wachen.add(w); },
+    _abmelden(w) { wachen.delete(w); },
+  };
+}
+
+function notausFehler() {
+  const fehler = new Error(
+    "Von Hand angehalten. Was bis hierher hinausging, ist bezahlt und steht im Buch.");
+  fehler.notaus = true;
+  return fehler;
+}
+
 function fristFehler(stroemen, gilt) {
   const fehler = new Error(
     `Der Aufruf hat ${stroemen
@@ -234,7 +275,8 @@ function neuerBau() {
 }
 
 export function netzTransport({ schluessel, basisUrl = null, holen = null,
-                                fristMs = FRIST_MS, stilleMs = STILLE_MS } = {}) {
+                                fristMs = FRIST_MS, stilleMs = STILLE_MS,
+                                notaus = null } = {}) {
   if (!schluessel) throw new Error(
     "Der Netz-Bote braucht einen Schlüssel. Im Browser tippt ihn der Nutzer " +
     "selbst ein; er steht nirgends im Code und nirgends im Depot.");
@@ -247,6 +289,11 @@ export function netzTransport({ schluessel, basisUrl = null, holen = null,
   const wurzel = String(basisUrl || ANTHROPIC).replace(/\/+$/, "");
 
   async function schicke(pfad, koerper, { stroemen = false } = {}) {
+    /* ⚠ ZUERST DER NOTAUS, VOR jedem Aufbau. Ein gezogener Notaus, der den
+       naechsten Aufruf noch hinausliesse, waere keiner — die Schicht zieht
+       sonst nach dem Anhalten noch eine ganze Runde durch, und jede davon
+       kostet. */
+    if (notaus && notaus.gezogen) throw notausFehler();
     /* Die Frist. `AbortController` gibt es im Browser und in Node ab 18 —
        dieselbe Naht wie bei `fetch` selbst.
 
@@ -274,6 +321,7 @@ export function netzTransport({ schluessel, basisUrl = null, holen = null,
        der fertig ist und trotzdem nicht endet, sieht aus wie ein Hänger, also
        genau wie der Fehler, gegen den die Frist gebaut ist. */
     stelle();
+    if (notaus) notaus._anmelden(wache);
     try {
       let antwort;
       try {
@@ -298,6 +346,12 @@ export function netzTransport({ schluessel, basisUrl = null, holen = null,
            wissen muss, steht in der eigenen Meldung — samt der unbequemen
            Hälfte: ob die Gegenseite die Antwort trotzdem erzeugt hat, wissen wir
            von hier aus nicht, und dann ist sie bezahlt. */
+        /* ⚠ ZWEI GRÜNDE, DERSELBE ABBRUCH — und der Unterschied ist die ganze
+           Auskunft. Beide erscheinen hier als geworfener Fehler; wer sie
+           zusammenwirft, meldet dem Nutzer eine abgelaufene Frist, während er
+           selbst gerade auf „Anhalten" gedrückt hat. Der Notaus zuerst: er ist
+           die Absicht, die Frist das Versehen. */
+        if (notaus && notaus.gezogen) throw notausFehler();
         if (abgelaufen) throw fristFehler(stroemen, gilt);
         /* ⚠ DER SCHLÜSSEL KOMMT NIE IN EINE MELDUNG. Was in eine Meldung gerät,
            landet früher oder später in einem Protokoll — die Regel steht in
@@ -328,11 +382,13 @@ export function netzTransport({ schluessel, basisUrl = null, holen = null,
       try {
         return await sammleStrom(antwort, stelle);
       } catch (e) {
+        if (notaus && notaus.gezogen) throw notausFehler();
         if (abgelaufen) throw fristFehler(stroemen, gilt);
         throw e;
       }
     } finally {
       if (wecker) clearTimeout(wecker);
+      if (notaus) notaus._abmelden(wache);
     }
   }
 

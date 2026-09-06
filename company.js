@@ -33,7 +33,7 @@ import "./schluesseltresor.js";
 import { schicht, ROLLEN_REIHE } from "./schicht/schicht.mjs";
 import { konferenz, KONFERENZ_ANTEIL } from "./schicht/konferenz.mjs";
 import { EchteApi, TrockenApi } from "./schicht/api.mjs";
-import { netzTransport } from "./schicht/transport-netz.mjs";
+import { netzTransport, macheNotaus } from "./schicht/transport-netz.mjs";
 import { Kasse } from "./schicht/kosten.mjs";
 import { BEISPIELE } from "./schicht/beispiele.mjs";
 import { deuteGrundsaetze, KEINE } from "./schicht/grundsaetze.mjs";
@@ -446,6 +446,13 @@ function startLageZeichnen() {
   const p = $("start-sagt");
   $("trocken").disabled = stand.laeuft;
   $("echt").disabled = stand.laeuft || !stand.schluessel || !ziel;
+  /* Der Notaus zeigt sich nur, solange es etwas anzuhalten gibt — und sagt
+     nach dem Druck, dass er gezogen IST, statt weiter zum Drücken einzuladen. */
+  const halt = $("anhalten");
+  halt.hidden = !laufendesNotaus;
+  halt.disabled = !laufendesNotaus || laufendesNotaus.gezogen;
+  halt.textContent = laufendesNotaus && laufendesNotaus.gezogen
+    ? "■ Wird angehalten …" : "■ Anhalten";
   p.setAttribute("data-start",
     stand.laeuft ? "laeuft" : !ziel ? "ohne-auftrag"
       : !stand.schluessel ? "ohne-schluessel" : "bereit");
@@ -458,10 +465,34 @@ function startLageZeichnen() {
         : "Bereit. Der echte Lauf gibt höchstens den Deckel aus, den du gesetzt hast.";
 }
 $("ziel").oninput = startLageZeichnen;
+/* ⚠ ER BRICHT NICHT AB, ER HÄLT AN — der Unterschied steht in der Meldung.
+   Der laufende Aufruf wird abgebrochen und kein weiterer geschickt; was bis
+   dahin hinausging, IST bezahlt und geht denselben Weg wie jeder andere
+   Abbruch: in die Kasse, ins Fahrtenbuch, in den gesicherten Stand. Ein
+   Knopf, der stattdessen die Seite neu lüde, wäre der teurere Weg — dabei
+   läuft KEIN Abbruch-Pfad, und das Geld stünde in keinem Buch. */
+$("anhalten").onclick = () => {
+  if (!laufendesNotaus || laufendesNotaus.gezogen) return;
+  laufendesNotaus.ziehen();
+  const p = $("start-sagt");
+  p.setAttribute("data-start", "anhalten");
+  p.textContent = "Angehalten. Der laufende Aufruf wird abgebrochen — was bis " +
+    "hierher hinausging, ist bezahlt und kommt ins Buch.";
+  startLageZeichnen();
+};
+
+/* Der Notaus DIESES Laufs. Modulweit, weil der Knopf ihn braucht und die
+   Fahrt ihn setzt — und `null`, sobald nichts läuft: ein Notaus, der einen
+   toten Lauf anhielte, wäre ein Knopf ohne Wirkung mit Beschriftung. */
+let laufendesNotaus = null;
 
 async function fahre({ echt }) {
   if (stand.laeuft) return;
   stand.laeuft = true;
+  /* ⚠ NUR DER ECHTE LAUF BEKOMMT EINEN. Ein Trockenlauf schickt nichts hinaus
+     und ist in Millisekunden vorbei; ein Anhalten-Knopf daneben verspräche,
+     etwas aufzuhalten, das schon vorbei ist. */
+  laufendesNotaus = echt ? macheNotaus() : null;
   startLageZeichnen();
 
   /* ⚠ DIE UHR BEGINNT MIT DEM DRUCK, NICHT MIT DEM ERSTEN ZWISCHENSTAND.
@@ -532,7 +563,8 @@ async function fahre({ echt }) {
     const api = echt
       ? new EchteApi({
           schluessel: stand.schluessel, basisUrl: stand.basisUrl,
-          transport: netzTransport({ schluessel: stand.schluessel, basisUrl: stand.basisUrl }),
+          transport: netzTransport({ schluessel: stand.schluessel, basisUrl: stand.basisUrl,
+                                     notaus: laufendesNotaus }),
         })
       : new TrockenApi(BEISPIELE);
 
@@ -653,6 +685,7 @@ async function fahre({ echt }) {
     p.textContent = "Die Schicht ist abgebrochen: " + (e && e.message ? e.message : e);
   } finally {
     stand.laeuft = false;
+    laufendesNotaus = null;
     /* Und weg damit — sonst tickte sie weiter, während nichts mehr läuft.
        Der fertige Lauf trägt seine eigene Zeit; ab hier gilt wieder seine. */
     window.__werkstatt.speise("schichtlaeuft", null);
