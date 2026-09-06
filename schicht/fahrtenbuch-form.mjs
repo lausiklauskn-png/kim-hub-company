@@ -102,6 +102,15 @@ export function eintrag({ art, echt, datum, bericht, besetzung = [],
        nächsten Lauf: `werkstatt/lauf.json` hält den letzten, das Fahrtenbuch
        hält alle. Derselbe Grund, aus dem es das Fahrtenbuch überhaupt gibt. */
     tokenJeRolle: bericht.tokenJeRolle || {},
+    /* ⚠ WO DIE ZEIT HINGEHT — und das ist eine ANDERE Frage als, wo das Geld
+       hingeht. `kosten.mjs` misst es seit jeher je Rolle und schreibt daneben:
+       „die billigen Prüfer laufen oft länger als der teure Bauer." Ins Buch kam
+       es nie — die Zahl entstand und wurde weggeworfen.
+       Klaus am 2026-09-06, an einem laufenden Lauf: „Jonas schreibt um einiges
+       zu langsam." Er hat recht damit, dass man das sehen können muss; woran
+       es liegt, sagt erst diese Spalte. Ohne sie bleibt es ein Eindruck gegen
+       einen Eindruck. */
+    msJeRolle: bericht.msJeRolle || {},
     /* UNTER WELCHER BEDINGUNG die Fahrt lief („voll" oder „nackt"). Eine Zahl
        ohne ihre Bedingung ist keine Messung — und alte Fahrten aus der Zeit vor
        dem Versuch tragen „voll", weil sie genau so gelaufen sind. */
