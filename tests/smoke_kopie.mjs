@@ -10,7 +10,8 @@ import { readFileSync, existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { pruefe, ERWARTET } from "../tools/drift-guard.mjs";
+import { pruefe, ERWARTET, HERKUNFT } from "../tools/drift-guard.mjs";
+import { inhalt } from "../tools/version-schreiben.mjs";
 
 export const NAME = "Die Kopie (Drift + Schale)";
 const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -96,6 +97,22 @@ export async function lauf(ok) {
   }
   ok(`nirgends ein echter Schlüssel${verdaechtig.length ? " — " + verdaechtig.join(", ") : ""}`,
     verdaechtig.length === 0);
+  /* ---- 5 · Die Stand-Zeile sagt die Wahrheit ----------------------------
+     ⚠ Sie beantwortet für Klaus genau eine Frage: „läuft bei mir das Neue?"
+     Am 2026-09-06 log sie: die Schichtuhr war kopiert, `version.json` blieb
+     bei `c7a76b6` stehen, und die Seite meldete einen Stand von vorgestern
+     Mittag. Eine falsche Auskunft an dieser Stelle ist schlimmer als keine —
+     sie beruhigt.
+
+     Die Herkunft steht seitdem an EINER Stelle (drift-guard) und
+     `version.json` wird daraus erzeugt. Gemessen wird, dass die abgelegte
+     Datei genau das ist, was der Schreiber ausgäbe: wer die Fingerabdrücke
+     nachzieht und den Stand vergisst, wird rot statt still falsch. */
+  ok(`die Herkunft nennt einen Kimhub-Commit (${HERKUNFT.commit})`,
+    /^[0-9a-f]{7,40}$/.test(HERKUNFT.commit) && HERKUNFT.datum && HERKUNFT.betreff);
+  ok("version.json ist genau das, was aus der Herkunft folgt — nicht Handarbeit daneben",
+    lies("version.json") === inhalt());
+
   ok("die Ausschluss-Liste steht da und nennt die Zugänge",
     /^\*\.key$/m.test(lies(".gitignore")) && /^\.env$/m.test(lies(".gitignore")));
 }

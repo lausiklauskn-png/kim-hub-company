@@ -314,6 +314,24 @@ async function fahre({ echt }) {
   stand.laeuft = true;
   startLageZeichnen();
 
+  /* ⚠ DIE UHR BEGINNT MIT DEM DRUCK, NICHT MIT DEM ERSTEN ZWISCHENSTAND.
+   *
+   * Klaus 2026-09-06, mit Bild: „Uhr läuft nicht obwohl die Schicht begonnen
+   * hat." Sie lief wirklich nicht — und schlimmer: sie stand auf „✓ Schicht
+   * beendet · 00:00", weil die Bühne noch den WIEDERHERGESTELLTEN Lauf von
+   * vorhin zeigte. Eine Uhr, die „beendet" sagt, während gearbeitet wird, ist
+   * schlimmer als gar keine: sie beantwortet die Frage, und zwar falsch.
+   *
+   * Die Ursache war eine Lücke in der Reihenfolge. `laeuft` und der Beginn
+   * kamen bis dahin AUS DEM LAUF (`kasse.beginnIso`), und der erste
+   * Zwischenstand entsteht erst, wenn die erste Rolle der Schicht geantwortet
+   * hat. Die Konferenz davor — fünf Aufrufe, Minuten — lag komplett davor.
+   *
+   * Also ein eigener Teil: die APP weiss, wann Klaus gedrückt hat, und das ist
+   * die Zeit, die ihn interessiert. Er ersetzt den Lauf nicht (sonst wäre das
+   * bisher Gezeigte weg, bevor Neues da ist) — er legt sich darüber. */
+  window.__werkstatt.speise("schichtlaeuft", { seit: new Date().toISOString() });
+
   /* ⚠ WAS DER `catch` BRAUCHT, STEHT VOR DEM `try`. `const` im try-Block ist
    * im catch nicht sichtbar — und bei einem `const` in der toten Zone wirft
    * sogar `typeof`, der übliche Ausweg wäre also selbst der nächste Fehler.
@@ -479,6 +497,9 @@ async function fahre({ echt }) {
     p.textContent = "Die Schicht ist abgebrochen: " + (e && e.message ? e.message : e);
   } finally {
     stand.laeuft = false;
+    /* Und weg damit — sonst tickte sie weiter, während nichts mehr läuft.
+       Der fertige Lauf trägt seine eigene Zeit; ab hier gilt wieder seine. */
+    window.__werkstatt.speise("schichtlaeuft", null);
     startLageZeichnen();
   }
 }

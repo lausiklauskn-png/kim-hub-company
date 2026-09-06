@@ -3115,14 +3115,21 @@
         besetzung: (daten.lauf && daten.lauf.besetzung && daten.lauf.besetzung.length)
           ? daten.lauf.besetzung
           : (daten.besetzung || []),
-        laeuft: !!(daten.lauf && daten.lauf.laeuft),
+        /* ⚠ DIE LAUFENDE SCHICHT SCHLÄGT DEN ANGEZEIGTEN LAUF. `daten.lauf`
+           kann ein WIEDERHERGESTELLTER, längst fertiger Lauf sein — dann stand
+           „✓ Schicht beendet" an der Bühne, während gearbeitet wurde (Klaus
+           2026-09-06, mit Bild). `schichtlaeuft` speist die App beim Druck auf
+           den Knopf ein und nimmt es am Ende wieder weg; nur sie weiß von der
+           Konferenz-Strecke, die vor dem ersten Zwischenstand liegt. */
+        laeuft: !!daten.schichtlaeuft || !!(daten.lauf && daten.lauf.laeuft),
         /* DIE WANDUHR, NICHT DIE EINSPRITZBARE. `kasse.beginnIso`/`endeIso`
            stehen in JEDEM Zwischenstand — dadurch laeuft die Schichtuhr nach
            einem Neuladen mitten in der Schicht richtig weiter, statt wieder
            bei null zu beginnen und eine Dauer zu behaupten, die es nie gab.
            `minuten` daneben ist gerundet und kommt aus der Uhr, die eine
            Probe einspritzen darf — fuer eine Anzeige unbrauchbar. */
-        beginn: (daten.lauf && daten.lauf.kasse && daten.lauf.kasse.beginnIso) || "",
+        beginn: (daten.schichtlaeuft && daten.schichtlaeuft.seit) ||
+                (daten.lauf && daten.lauf.kasse && daten.lauf.kasse.beginnIso) || "",
         ende: (daten.lauf && daten.lauf.kasse && daten.lauf.kasse.endeIso) || "",
         _ausBeispiel: istBeispiel("schicht") || istBeispiel("konferenz"),
         /* Die ZWEITE Achse geht mit (1.5): woher ist nicht dasselbe wie womit.
