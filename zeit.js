@@ -97,6 +97,28 @@
    * dort — damit misst sie genau den Pfad, den auch der Browser nimmt, statt
    * einen zweiten, der nur für Tests existiert.
    */
-  if (welt) welt.WERKSTATT_ZEIT = { fahrtAbschnitte: fahrtAbschnitte, vereinigt: vereinigt };
+  /**
+   * Eine Spanne in Millisekunden als Uhrzeit-Text: `mm:ss`, ab einer Stunde
+   * `h:mm:ss`.
+   *
+   * ⚠ SIE STEHT HIER UND NICHT IN `buehne.js`, obwohl nur die Schichtuhr sie
+   * braucht. Der Grund ist derselbe, aus dem diese Datei überhaupt existiert:
+   * eine Rechnung in `buehne.js` wäre nur im Browser prüfbar, und die
+   * Gegenprobe fährt mit `WERKSTATT_OHNE_BROWSER=1` — der Wächter darüber
+   * wäre die fünfte Art, wie ein Fall nichts misst.
+   *
+   * Abgeschnitten, nicht gerundet: eine Uhr, die bei 0,6 s schon „01" zeigt,
+   * ginge der Wirklichkeit voraus.
+   */
+  function dauerText(ms) {
+    var s = Math.max(0, Math.floor(ms / 1000));
+    var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
+    var zz = function (n) { return (n < 10 ? "0" : "") + n; };
+    return h > 0 ? h + ":" + zz(m) + ":" + zz(r) : zz(m) + ":" + zz(r);
+  }
+
+  if (welt) welt.WERKSTATT_ZEIT = {
+    fahrtAbschnitte: fahrtAbschnitte, vereinigt: vereinigt, dauerText: dauerText
+  };
 })(typeof window !== "undefined" ? window
    : (typeof globalThis !== "undefined" ? globalThis : null));

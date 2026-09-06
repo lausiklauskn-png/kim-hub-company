@@ -32,11 +32,11 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
 /* `index.html` steht hier mit dem Namen, den die Datei in Kimhub trägt —
    der Inhalt ist byte-gleich, nur die Datei heisst dort anders. */
 export const ERWARTET = [
-  { datei: "index.html",                herkunft: "start.html",              sha: "17b89b16062ddb5b8c5888d4524ed12dacd5131ce6440f3b48b35d4d34cdc33c" },
+  { datei: "index.html",                herkunft: "start.html",              sha: "e3b5c42baaf94bea04279053c4b51821b1f81b381e668ee596f2f2734f32dd76" },
   { datei: "company.js",                herkunft: "company.js",              sha: "0e5becb745680461a6ffe615502edb6108c56d0f65e25e1e7b568d1edd79bece" },
-  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "3e1e8b1c5f73a7935239c5c06c05505c77c76c0b2877cda9896b0602638ccd2d" },
-  { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "5e00e9bb39ab11ac8179c281c555c9644f7c5c56900cde6e8585a4f5dbb25a66" },
-  { datei: "zeit.js",                   herkunft: "zeit.js",                 sha: "1bdb42884e8385e32aa3bc6572c1c8736d928e48bde6847081cc98efcbb85822" },
+  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "b483bdb69b0b893a58f3d67f71e7ab7bc8e34717749c3880feebc872c63428c6" },
+  { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "9605533c7b78df9df1ac554e6e08a1a79d2021360184d5623a4c572e757998a0" },
+  { datei: "zeit.js",                   herkunft: "zeit.js",                 sha: "48f940fd937b93d35e2752f6ad542d7ad18ff7bb956fb065197105e373816d98" },
   { datei: "idb.js",                    herkunft: "idb.js",                  sha: "b244ab3f832bb4d4cd5ec87e51de364df5716ee7ca6fc8a2bceeea6b6c9bbd51" },
   { datei: "schluesseltresor.js",       herkunft: "schluesseltresor.js",     sha: "eaed30e8f3921835a3f58b69f89d9b008831f69f164ad1dfec630fa43161f666" },
   { datei: "schicht/konferenz.mjs",     herkunft: "schicht/konferenz.mjs",   sha: "af06f97c8c9d2b4e356534a90233c19499ff4dc9cd81d8d37decdd2c613b47b7" },

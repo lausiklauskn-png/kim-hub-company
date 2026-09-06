@@ -3116,6 +3116,14 @@
           ? daten.lauf.besetzung
           : (daten.besetzung || []),
         laeuft: !!(daten.lauf && daten.lauf.laeuft),
+        /* DIE WANDUHR, NICHT DIE EINSPRITZBARE. `kasse.beginnIso`/`endeIso`
+           stehen in JEDEM Zwischenstand — dadurch laeuft die Schichtuhr nach
+           einem Neuladen mitten in der Schicht richtig weiter, statt wieder
+           bei null zu beginnen und eine Dauer zu behaupten, die es nie gab.
+           `minuten` daneben ist gerundet und kommt aus der Uhr, die eine
+           Probe einspritzen darf — fuer eine Anzeige unbrauchbar. */
+        beginn: (daten.lauf && daten.lauf.kasse && daten.lauf.kasse.beginnIso) || "",
+        ende: (daten.lauf && daten.lauf.kasse && daten.lauf.kasse.endeIso) || "",
         _ausBeispiel: istBeispiel("schicht") || istBeispiel("konferenz"),
         /* Die ZWEITE Achse geht mit (1.5): woher ist nicht dasselbe wie womit.
            Ohne sie stand an der Bühne nur „Beispiel" — ein Wort für zwei

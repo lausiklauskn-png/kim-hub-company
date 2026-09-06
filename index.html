@@ -363,6 +363,52 @@ footer{padding:18px 16px 40px;color:var(--leise);font-size:.87rem}
   100% { transform: scale(1.85); opacity: 0; }
 }
 
+/* ── DIE SCHICHTUHR ───────────────────────────────────────────────────────
+   Klaus 2026-09-06: „wenn der Werkstattlauf losgeht, dass man trotzdem einen
+   Balken hat oder irgendetwas sieht, dass der Lauf läuft. Und der Text reicht
+   nicht aus … wie eine Betriebsuhr." Und, im selben Atemzug: „mit
+   Sekundenzeiger … wenn sie zu Ende ist, sollte man das auch sehen."
+
+   DREI ZUSTÄNDE, und der dritte ist der, der zuerst fehlte. Die erste Fassung
+   versteckte die Uhr am Ende — damit war „fertig" von „hat nie gelaufen" nicht
+   zu unterscheiden, also von genau der Frage, die sie beantworten soll.
+
+   Der Punkt schlägt im Sekundentakt, dieselbe Sekunde, die auch die Ziffern
+   weiterstellt. Wer nur hinsieht, ohne zu lesen, hat damit schon eine Auskunft
+   — und ein stehender Punkt neben einer stehenden Zahl ist unmissverständlich
+   nicht mehr „läuft". */
+.b-uhr {
+  position: absolute; top: 10px; right: 12px; z-index: 3;
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px; border-radius: 999px;
+  border: 1px solid var(--kante); background: var(--karte2);
+  color: var(--schrift); font: 600 12px var(--mono);
+  /* Ohne das hüpft die Breite bei jedem Sekundenwechsel — eine Uhr, die
+     zappelt, sieht nach Fehler aus statt nach Betrieb. */
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.b-uhr::before { content: "●"; font-size: 11px; line-height: 1; }
+.b-uhr[data-schichtuhr="laeuft"],
+.b-uhr[data-schichtuhr="laeuft-ohne-zeit"] { border-color: var(--akzent); }
+.b-uhr[data-schichtuhr="laeuft"]::before,
+.b-uhr[data-schichtuhr="laeuft-ohne-zeit"]::before {
+  color: var(--akzent);
+  animation: b-uhr-schlag 1s steps(1, end) infinite;
+}
+.b-uhr[data-schichtuhr="fertig"] { color: var(--leise); }
+.b-uhr[data-schichtuhr="fertig"]::before { content: "✓"; color: var(--gut); }
+@keyframes b-uhr-schlag {
+  0%, 49%   { opacity: 1; }
+  50%, 100% { opacity: .22; }
+}
+/* Wer Bewegung abbestellt hat, bekommt sie nicht — die Ziffern tragen die
+   Auskunft dann allein. */
+@media (prefers-reduced-motion: reduce) {
+  .b-uhr[data-schichtuhr="laeuft"]::before,
+  .b-uhr[data-schichtuhr="laeuft-ohne-zeit"]::before { animation: none; }
+}
+
 /* Das Werkstück. Es wandert mit, pulst beim Bauen und trägt seinen Stand als
    WORT — nur Farbe wäre für Farbenblinde keine Auskunft. */
 .b-stueck { opacity: 0; transition: transform .85s cubic-bezier(.4,0,.2,1), opacity .3s; }
