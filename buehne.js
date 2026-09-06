@@ -796,6 +796,34 @@
     } else if (ph === "feierabend") {
       kopf = "schreibt den Feierabend-Bericht";
       inhalt = ev.stand || ev.naechsterSchritt || "";
+    /* ⚠ DIE VIER, DIE HIER GEFEHLT HABEN (Klaus 2026-09-06, mit Bild).
+       Bei Lisa stand auf der Bühne „unbekannte Phase „gestaltung"" — während
+       die Räume denselben Schritt vollständig zeigten. Als die drei neuen
+       Rollen am 2026-09-05 dazukamen, hat es die SATZ-BILDUNG in `ansicht.js`
+       gelernt und diese Datei nicht. Der mitgelieferte Beispiel-Lauf trug die
+       Phasen nicht, also fiel es keiner Probe auf.
+       Es ist dieselbe Lehre wie bei `merkliste` am selben Tag: ein Beispiel ist
+       nicht überall. Seitdem hält ein Wächter beide Listen gegeneinander — eine
+       Regel, an die man sich erinnern muss, ist keine. */
+    } else if (ph === "schaerfung") {
+      kopf = "schärft den Vorschlag";
+      inhalt = ev.schaerfung ||
+        (ev.pruefmerkmalTraegt === false ? "Das Prüfmerkmal trägt nicht." : "");
+    } else if (ph === "gestaltung") {
+      var bef = ev.befunde || [];
+      kopf = bef.length ? "sieht hin: " + bef.length + " Sache(n)" : "sieht hin: nichts im Weg";
+      /* Ob nachgesehen werden KONNTE, gehört an den Befund. Ein Vergleich, den
+         niemand anstellen konnte, sieht sonst aus wie keiner, den es braucht. */
+      inhalt = (bef[0] && (bef[0].stelle ? bef[0].stelle + ": " + bef[0].was : bef[0].was)) ||
+        (ev.konnteNachsehen === false ? "ohne Netz-Werkzeug — konnte nicht nachsehen" : "");
+    } else if (ph === "nutzung") {
+      kopf = ev.durchgekommen ? "benutzt es — kommt durch" : "benutzt es — bleibt stecken";
+      var h = (ev.haengengeblieben || [])[0];
+      inhalt = h ? "wollte " + h.wollte + " — " + h.passierte : (ev.ablauf || "");
+    } else if (ph === "merkliste") {
+      var eintr = ev.eintraege || [];
+      kopf = eintr.length ? "merkt sich " + eintr.length + " Idee(n)" : "merkt sich nichts";
+      inhalt = eintr.length ? eintr.map(function (x) { return x.titel; }).join(" · ") : "";
     } else if (ph) {
       /* Eine unbekannte Phase wird BENANNT, nicht verschwiegen. */
       kopf = "— unbekannte Phase „" + ph + "“";
