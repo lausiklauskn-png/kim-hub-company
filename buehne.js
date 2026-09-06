@@ -375,6 +375,36 @@
     this.volltext.hidden = true;
     this.wurzel.appendChild(this.volltext);
 
+    /* ══ DIE SCHICHTUHR ═══════════════════════════════════════════════════
+     * Klaus 2026-09-06: „Wenn der Werkstattlauf losgeht, dass man trotzdem
+     * einen Balken hat oder irgendetwas sieht, dass der Lauf läuft. Der Text
+     * reicht nicht aus. […] wie eine Betriebsuhr."
+     *
+     * Er hat recht: ein echter Schritt dauert eine halbe Minute und mehr, und
+     * dazwischen steht das Bild still. Ein Satz in einer Zeile beantwortet
+     * „läuft es noch?" nicht — eine Zahl, die sich jede Sekunde bewegt, schon.
+     *
+     * ⚠ SIE RECHNET AUS DER STARTZEIT DES LAUFS, nicht ab dem Moment, in dem
+     * die Seite sie anlegt. Nach einem Neuladen mitten in der Schicht liefe
+     * sie sonst wieder bei null los und behauptete eine Dauer, die es nicht
+     * gab. `kasse.beginnIso` steht in jedem Zwischenstand.
+     *
+     * ⚠ UND SIE IST KEIN KNOPF. Sie sieht aus wie einer, weil sie im Feld der
+     * Agenten sitzt — aber sie tut nichts, und ein Knopf, der nichts tut, ist
+     * genau der tote Knopf, den diese Werkstatt nicht baut. */
+    this.uhr = document.createElement("div");
+    this.uhr.className = "b-uhr";
+    this.uhr.setAttribute("data-schichtuhr", "aus");
+    this.uhr.hidden = true;
+    /* IN DAS FELD, NICHT DARUNTER (Klaus 2026-09-06: „in dem Feld, wo die
+       Agenten zu sehen sind ... wie eine Betriebsuhr"). `.b-bild` traegt
+       `position:relative` — die Uhr haengt darin wie eine Wanduhr ueber der
+       Werkbank, statt als weitere Textzeile unter dem Bild zu stehen. Genau
+       das war ja der Befund: „der Text reicht nicht aus". */
+    bild.appendChild(this.uhr);
+    this.uhrTakt = null;
+    this.uhrBeginn = 0;
+
     this.lage = document.createElement("p");
     this.lage.className = "b-lage";
     this.wurzel.appendChild(this.lage);
@@ -628,11 +658,76 @@
   };
 
   /** Daten übernehmen. `events` ist dieselbe Liste wie in den Texträumen. */
+  /** mm:ss, ab einer Stunde h:mm:ss. Keine Fremd-Abhängigkeit für sechs Zeilen. */
+  /* DIE DAUER RECHNET `zeit.js`, nicht diese Datei. Eine zweite Fassung
+     derselben Rechnung liefe auseinander — und nur die dort ist ohne Browser
+     prüfbar. Aufgelöst wird beim GEBRAUCH, nicht beim Laden: `zeit.js` hängt
+     an `defer` und ist zur Parse-Zeit dieser Datei noch nicht gelaufen. */
+  function zeit() {
+    return (typeof window !== "undefined" ? window : globalThis).WERKSTATT_ZEIT;
+  }
+
+  /** Startet, aktualisiert oder stoppt die Schichtuhr — je nach Lage.
+   *
+   * ⚠ DREI ZUSTÄNDE, NICHT ZWEI (Klaus 2026-09-06: „wenn sie zu Ende ist,
+   * sollte man das auch sehen"). Die erste Fassung versteckte die Uhr am Ende
+   * — damit war „fertig" von „hat nie gelaufen" nicht zu unterscheiden, und
+   * genau das ist die Frage, die sie beantworten soll.
+   *
+   *   läuft   ● tickt jede Sekunde
+   *   fertig  ✓ steht still und nennt die Gesamtdauer
+   *   nichts  weg — hier ist keine Schicht gelaufen
+   */
+  Buehne.prototype.uhrZeichnen = function () {
+    if (!this.uhr) return;
+    if (this.uhrTakt) { clearInterval(this.uhrTakt); this.uhrTakt = null; }
+    var uhr = this.uhr, beginn = this.uhrBeginn;
+
+    /* DAS ZEICHEN STEHT IM CSS, NICHT IM TEXT. Der pulsende Punkt ist die
+       Haelfte der Auskunft, die man OHNE Lesen bekommt — und pulsen kann nur,
+       was ein Element ist. Als Zeichen im textContent waere er ein Buchstabe,
+       der stillsteht, und eine stehengebliebene Uhr sieht aus wie eine
+       laufende. Gesteuert ueber `data-schichtuhr`, damit eine Probe den
+       Zustand messen kann, ohne am Wortlaut zu haengen. */
+
+    if (this.laeuft) {
+      var zeigen = function () {
+        uhr.textContent = beginn
+          ? "Schicht läuft · " + zeit().dauerText(Date.now() - beginn)
+          : "Schicht läuft";
+      };
+      uhr.hidden = false;
+      uhr.setAttribute("data-schichtuhr", beginn ? "laeuft" : "laeuft-ohne-zeit");
+      zeigen();
+      this.uhrTakt = setInterval(zeigen, 1000);
+      return;
+    }
+
+    /* Gelaufen und fertig — nur wenn wirklich etwas gelaufen IST. Ohne
+       Ereignisse gab es keine Schicht, und eine Uhr, die „beendet" sagt, wo
+       nichts war, behauptet etwas. */
+    if (this.events.length && beginn) {
+      uhr.hidden = false;
+      uhr.setAttribute("data-schichtuhr", "fertig");
+      uhr.textContent = "Schicht beendet · " +
+        zeit().dauerText(Math.max(0, (this.uhrEnde || beginn) - beginn));
+      return;
+    }
+
+    uhr.hidden = true;
+    uhr.setAttribute("data-schichtuhr", "aus");
+    uhr.textContent = "";
+  };
+
   Buehne.prototype.setzeDaten = function (daten) {
     daten = daten || {};
     this.events = Array.isArray(daten.events) ? daten.events : [];
     this.besetzung = Array.isArray(daten.besetzung) ? daten.besetzung : [];
     this.laeuft = daten.laeuft === true;
+    /* Die WANDUHR-Startzeit des Laufs. Fehlt sie, zeigt die Uhr keine Dauer an
+       statt einer erfundenen — eine geratene Zahl klingt wie eine gemessene. */
+    this.uhrBeginn = Date.parse(daten.beginn || "") || 0;
+    this.uhrEnde = Date.parse(daten.ende || "") || 0;
     this.istBeispiel = daten._ausBeispiel === true;
     /* Zwei Achsen, getrennt gehalten (1.5): `istBeispiel` sagt WOHER, `art`
        sagt WOMIT. Bis zum 2026-08-22 stand an der Bühne nur das Wort
@@ -685,6 +780,7 @@
       this.zeigeAkte(r);            /* zu  */
       this.zeigeAkte(r);            /* auf — jetzt aus this.events */
     }
+    this.uhrZeichnen();
     this.zeigeStand(-1);
   };
 
