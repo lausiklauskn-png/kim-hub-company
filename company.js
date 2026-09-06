@@ -38,6 +38,7 @@ import { Kasse } from "./schicht/kosten.mjs";
 import { BEISPIELE } from "./schicht/beispiele.mjs";
 import { deuteGrundsaetze, KEINE } from "./schicht/grundsaetze.mjs";
 import { idbAblage } from "./schicht/ablage-idb.mjs";
+import { eintrag as fahrtEintrag } from "./schicht/fahrtenbuch-form.mjs";
 import { speicherBaum } from "./schicht/baum-speicher.mjs";
 import { macheWerkbank } from "./schicht/werkzeuge.mjs";
 
@@ -84,6 +85,78 @@ const idb = IDB.macheIdb({ name: window.__WERKSTATT_DB || "KimHubCompany1" });
  * das niemand hat. Deshalb trägt der Stand `fertig` mit.
  */
 const LAUF_FACH = "lauf-stand";
+
+/* ══ DAS FAHRTENBUCH DIESES BROWSERS ════════════════════════════════════════
+ *
+ * ⚠ KLAUS AM 2026-09-06: „auch abgebrochene Schichten sollten gespeichert und
+ * dokumentiert werden, damit man sehen kann — für die Forschung — was
+ * schiefgelaufen ist."
+ *
+ * Bis dahin schrieb diese App **gar kein** Buch. Die Ansicht suchte es unter
+ * `werkstatt/buchhaltung/fahrtenbuch.json` — eine Datei, die es hier nie gibt.
+ * Seine bezahlten Läufe hinterliessen damit keine Spur: nicht was sie
+ * kosteten, nicht wie lange sie liefen, nicht warum einer abbrach. Dieselbe
+ * Lücke wie am 2026-08-22 in der Werkstatt, nur eine Ebene weiter:
+ * **„als hätten sie nie gearbeitet und kein Geld gekostet."**
+ *
+ * ⚠ DIE ABGEBROCHENE FAHRT IST DER EIGENTLICHE PUNKT. Was bis zum Abbruch
+ * hinausging, IST bezahlt. Fehlte sie im Buch, wäre die Summe zu niedrig — und
+ * eine zu niedrige Zahl sieht genauso aus wie eine gemessene.
+ *
+ * Der Ort ist der Browser-Speicher, nicht das Depot: es ist der Stand DIESES
+ * Geräts, und in ihm stehen die Ausgaben seines Besitzers.
+ */
+const FAHRTEN_FACH = "fahrtenbuch";
+const FAHRTEN_KOPF = {
+  quelle: "kim-hub-company · company.js — jede Fahrt hängt sich selbst an",
+  bedeutung: "Stand DIESES Browsers. Fehlt es, heisst das NICHT „keine Kosten\" — " +
+             "es heisst, hier steht nichts.",
+};
+
+async function buchLesen() {
+  let roh = null;
+  try { roh = await idb.lies(FAHRTEN_FACH); } catch (e) { roh = null; }
+  if (!roh) return { ...FAHRTEN_KOPF, fahrten: [] };
+  try {
+    const b = JSON.parse(roh);
+    /* Ein kaputtes Buch wird NICHT stillschweigend geleert — dieselbe Regel wie
+       in `fahrtenbuch.mjs`. Was nicht zu lesen ist, wird beiseitegelegt und
+       gesagt; ein leeres Buch sähe aus wie „nichts ausgegeben". */
+    if (!Array.isArray(b && b.fahrten))
+      return { ...FAHRTEN_KOPF, fahrten: [], beiseitegelegt: "unlesbar" };
+    return { ...FAHRTEN_KOPF, fahrten: b.fahrten };
+  } catch (e) {
+    return { ...FAHRTEN_KOPF, fahrten: [], beiseitegelegt: String(e && e.message || e) };
+  }
+}
+
+/** Trägt eine Fahrt ein. Wirft nie: die Fahrt IST gelaufen und bezahlt, daran
+ *  ändert ein voller Speicher nichts — aber es wird gesagt, still wäre dasselbe
+ *  Verschweigen noch einmal. */
+async function fahrtEintragen({ art, echt, bericht, titel = "", ergebnis = "",
+                                mitarbeiter = [] }) {
+  if (!bericht) return null;
+  let e;
+  try {
+    e = fahrtEintrag({
+      art, echt, bericht,
+      datum: new Date().toISOString().slice(0, 10),
+      titel, ergebnis,
+      /* `wer` bleibt LEER. In dieser App bringt jeder seinen eigenen Zugang mit;
+         einen Namen zu erfinden wäre eine Angabe, die niemand gemacht hat. */
+      wer: "",
+      besetzung: (mitarbeiter || []).map((m) => `${m.name} (${m.rolle})`),
+    });
+  } catch (err) { console.warn("Fahrtenbuch:", err.message); return null; }
+
+  try {
+    const buch = await buchLesen();
+    buch.fahrten.push(e);
+    await idb.schreib(FAHRTEN_FACH, JSON.stringify(buch));
+    window.__werkstatt.speise("fahrten", buch);
+  } catch (err) { console.warn("Fahrtenbuch nicht geschrieben:", err); }
+  return e;
+}
 let letzterStand = { konferenz: null, lauf: null, wann: "", fertig: false, echt: false };
 let sicherKette = Promise.resolve();
 
@@ -241,8 +314,15 @@ async function fahre({ echt }) {
   stand.laeuft = true;
   startLageZeichnen();
 
+  /* ⚠ WAS DER `catch` BRAUCHT, STEHT VOR DEM `try`. `const` im try-Block ist
+   * im catch nicht sichtbar — und bei einem `const` in der toten Zone wirft
+   * sogar `typeof`, der übliche Ausweg wäre also selbst der nächste Fehler.
+   * Der Abbruch-Eintrag ins Fahrtenbuch braucht die Kasse und die Besetzung;
+   * ohne diese zwei Zeilen wäre er genau dort kaputt, wo er gebraucht wird. */
+  let kasse = null, mitarbeiter = [];
+
   try {
-    const mitarbeiter = await holeMitarbeiter();
+    mitarbeiter = await holeMitarbeiter();
     const g = await holeGrundsaetze();
     /* ══ ZWEI KASSEN AUS EINEM DECKEL ═════════════════════════════════════
      *
@@ -279,7 +359,7 @@ async function fahre({ echt }) {
       // Cent. Dieselbe Zahl wie in `lauf.mjs`; eine Probe hält beide zusammen.
       reserveEur: Math.max(0.20, d * 0.1),
     });
-    const kasse = macheKasse(deckelSchicht);
+    kasse = macheKasse(deckelSchicht);
 
     const api = echt
       ? new EchteApi({
@@ -357,6 +437,17 @@ async function fahre({ echt }) {
     letzterStand.wann = new Date().toISOString();
     letzterStand.fertig = true;
     await standSichern();
+
+    /* ⚠ ERST DAS BUCH, DANN DIE MELDUNG. Bricht etwas dazwischen ab, steht die
+       Fahrt im Buch und die Meldung fehlt — andersherum wäre Geld ausgegeben,
+       das nirgends steht, und genau diese Lücke war der Befund. Dieselbe
+       Reihenfolge wie in `lauf.mjs`. */
+    await fahrtEintragen({
+      art: mitKonferenz ? "planmodus" : "schicht", echt,
+      bericht: lauf && lauf.kasse, mitarbeiter,
+      titel: (auftrag && auftrag.ziel) || "",
+      ergebnis: (lauf && lauf.ergebnis && lauf.ergebnis.urteil) || "",
+    });
   } catch (e) {
     /* Ein Abbruch ist ein Stand wie jeder andere — er wird gesichert, nur
        ausdrücklich NICHT als fertig. Ohne diese Zeile wäre der letzte
@@ -365,6 +456,23 @@ async function fahre({ echt }) {
     letzterStand.fertig = false;
     letzterStand.wann = new Date().toISOString();
     standSichern();
+
+    /* ⚠ UND DIE ABGEBROCHENE FAHRT GEHÖRT INS BUCH, WEIL sie abgebrochen ist:
+       was bis dahin hinausging, IST bezahlt. Ohne diesen Eintrag fehlte das
+       Geld in der Buchhaltung — und eine zu niedrige Zahl sieht genauso aus
+       wie eine gemessene. Klaus' Grund war ein anderer und derselbe: „damit
+       man sehen kann, für die Forschung, was schiefgelaufen ist." */
+    try {
+      await fahrtEintragen({
+        art: "abbruch", echt, bericht: kasse && kasse.bericht(),
+        mitarbeiter,
+        titel: (($("ziel").value || "").trim()) || "",
+        /* Der GRUND steht im Buch, nicht nur „abgebrochen". Ein Eintrag, der
+           verschweigt, woran es lag, dokumentiert die Zeile und nicht den
+           Vorfall. */
+        ergebnis: "abgebrochen: " + (e && e.message ? e.message : String(e)),
+      });
+    } catch (err) { console.warn("Abbruch nicht ins Buch:", err); }
     /* Was die Kasse WEISS, sagt sie; woran es lag, weiss sie nicht. */
     const p = $("start-sagt");
     p.setAttribute("data-start", "abbruch");
@@ -394,6 +502,13 @@ window.addEventListener("beforeunload", (e) => {
  * Der letzte Stand kommt zurück in die Räume — und mit ihm die Angabe, WANN er
  * war und ob er zu Ende lief. Ein abgebrochener Lauf, der aussieht wie ein
  * fertiger, behauptet ein Ergebnis, das es nicht gibt. */
+/* Das Buch dieses Browsers kommt beim Öffnen in die Buchhaltung — sonst stünde
+ * dort „kein Fahrtenbuch", während die Fahrten daneben im Speicher liegen. */
+(async function buchZeigen() {
+  const buch = await buchLesen();
+  if (buch.fahrten.length) window.__werkstatt.speise("fahrten", buch);
+})();
+
 (async function laufWiederherstellen() {
   let roh = null;
   try { roh = await idb.lies(LAUF_FACH); } catch (e) { roh = null; }
@@ -406,11 +521,28 @@ window.addEventListener("beforeunload", (e) => {
   if (g.konferenz) window.__werkstatt.speise("konferenz", g.konferenz);
   if (g.lauf) window.__werkstatt.speise("lauf", g.lauf);
 
-  const p = $("start-sagt");
-  if (!p || stand.laeuft) return;
+  /* ⚠ EIGENE ZEILE, NICHT `#start-sagt` (Klaus 2026-09-06: „Trockenlauf startet
+   * nicht"). Die erste Fassung schrieb diese Meldung in dieselbe Zeile, in der
+   * `startLageZeichnen()` sagt, WARUM nichts startet — „fehlt noch der
+   * Auftrag", „fehlt noch dein Schlüssel". Sie überdeckte damit genau die
+   * Auskunft, die man in dem Moment braucht, und aus „es fehlt etwas" wurde
+   * „es geht einfach nicht".
+   *
+   * Zwei Aussagen, zwei Zeilen. Die Bereitschafts-Zeile gehört
+   * `startLageZeichnen()` allein — sonst streiten sich zwei Schreiber um
+   * denselben Platz, und wer gewinnt, hängt an der Reihenfolge. */
+  const anker = $("start-sagt");
+  if (!anker) return;
+  let w = document.getElementById("wieder-sagt");
+  if (!w) {
+    w = document.createElement("p");
+    w.id = "wieder-sagt";
+    w.className = anker.className;
+    anker.insertAdjacentElement("afterend", w);
+  }
   const wann = g.wann ? new Date(g.wann).toLocaleString("de-DE") : "unbekannt";
-  p.setAttribute("data-wieder", g.fertig ? "fertig" : "abgebrochen");
-  p.textContent = g.fertig
+  w.setAttribute("data-wieder", g.fertig ? "fertig" : "abgebrochen");
+  w.textContent = g.fertig
     ? `Der letzte Lauf vom ${wann} ist wieder da — er lief zu Ende.`
     : `Der letzte Lauf vom ${wann} ist wieder da, ABER er lief NICHT zu Ende. ` +
       `Was du siehst, ist der Stand bis zum Abbruch, kein Ergebnis.`;
