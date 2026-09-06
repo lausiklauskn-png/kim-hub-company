@@ -75,7 +75,7 @@ export const MASSSTAB_SCHEMATA = new Set(["arzt"]);
 export const ARME = ["voll", "nackt"];
 
 export function macheRufer({ api, wer, spinde, kasse, grundsaetze, werkbank = null,
-                             arm = "voll" } = {}) {
+                             arm = "voll", unterlagen = null } = {}) {
   if (!ARME.includes(arm))
     throw new Error(`Unbekannter Versuchsarm "${arm}". Bekannt: ${ARME.join(", ")}. ` +
       `Lieber abbrechen als raten — ein falsch benannter Arm macht die Messung wertlos.`);
@@ -174,6 +174,10 @@ export function macheRufer({ api, wer, spinde, kasse, grundsaetze, werkbank = nu
       nachrichten: [{ role: "user", content: ROLLEN[schemaName].frage(ladung) }],
       schema: ROLLEN[schemaName].schema,
       werkbank,
+      /* Die Unterlagen gehen an JEDE Rolle. Eine Rolle, die das Dokument nicht
+         sieht, urteilt über eine Aufgabe, die sie nicht kennt — und das fiele
+         niemandem auf, weil sie trotzdem etwas antwortet. */
+      unterlagen,
     });
     // Die Dauer ist die Zahl, ohne die sich „wo staut es sich" gar nicht
     // beantworten lässt. Bis zum 2026-08-20 gab es nur `t` — eine Reihenfolge,

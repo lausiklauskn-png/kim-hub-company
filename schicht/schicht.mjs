@@ -36,6 +36,7 @@ const kurz = (t, n = 400) => (t || "").length > n ? t.slice(0, n) + " …" : (t 
 
 export async function schicht({
   api, auftrag, mitarbeiter, kasse, spindAblage, grundsaetze: g, aufZwischenstand = null, werkbank = null,
+  unterlagen = null,
   maxRunden = 4, datum = new Date().toISOString().slice(0, 10), arm = "voll",
 } = {}) {
   const wer = Object.fromEntries(mitarbeiter.map((m) => [m.rolle, m]));
@@ -81,7 +82,7 @@ export async function schicht({
     weitergaben, kasse: kasse.bericht(), events,
   });
 
-  const ruf = macheRufer({ api, wer, spinde, kasse, grundsaetze: g, werkbank, arm });
+  const ruf = macheRufer({ api, wer, spinde, kasse, grundsaetze: g, werkbank, arm, unterlagen });
   const weitergaben = [];
 
   // Vor dem ersten möglichen Abbruch angelegt: der Feierabend-Block liest sie,

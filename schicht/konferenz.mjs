@@ -135,7 +135,7 @@ export function merkeVor({ api, wer, spinde, spindAblage, vorschlaege, tafel, si
 
 export async function konferenz({
   api, mitarbeiter, kasse, spindAblage, lage = "", anteil = KONFERENZ_ANTEIL, werkbank = null,
-  grundsaetze, datum = new Date().toISOString().slice(0, 10),
+  grundsaetze, datum = new Date().toISOString().slice(0, 10), unterlagen = null,
 } = {}) {
   const wer = Object.fromEntries(mitarbeiter.map((m) => [m.rolle, m]));
   const spinde = Object.fromEntries(
@@ -149,7 +149,7 @@ export async function konferenz({
    * ganze Ruf-Kette an Node, und wo die Datei fehlte, verschwand der Hinweis
    * darauf spurlos. Die Konferenz lief dann ohne Haltung und sagte es niemandem.
    */
-  const ruf = macheRufer({ api, wer, spinde, kasse, werkbank, grundsaetze });
+  const ruf = macheRufer({ api, wer, spinde, kasse, werkbank, grundsaetze, unterlagen });
   const deckel = kasse.deckelEur * anteil;
 
   const protokoll = [];

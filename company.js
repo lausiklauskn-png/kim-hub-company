@@ -181,6 +181,7 @@ const stand = {
   laeuft: false,
   letzterLauf: null,
   dateien: {},
+  unterlagen: [],
 };
 
 /* ══ TEIL 1 · DER SCHLÜSSEL ═════════════════════════════════════════════════
@@ -273,21 +274,79 @@ $("werfen").onclick = async () => {
 /* ══ TEIL 2 · WAS DIE ROLLEN LESEN DÜRFEN ══════════════════════════════════
  * „Was der Nutzer übergibt" (Klaus 2026-09-04). Keine Dateien ⇒ gar keine
  * Werkbank: drei Werkzeuge, die „geht nicht" sagen, kosten eine BEZAHLTE Runde. */
+
+/* ⚠ EINE PDF IST KEIN TEXT — und `f.text()` merkt das nicht.
+ *
+ * Klaus 2026-09-06: „über vierzig Minuten für ein PDF-Dokument". Gemessen an
+ * einer echten PDF aus seinen Repos: `f.text()` wirft NICHT, sie liefert
+ * klaglos 27 158 Zeichen, in denen der Inhalt in 12 komprimierten Strömen
+ * steckt. Was ankam, war PDF-Gerüst (`/Type`, `/Pages`, `FlateDecode`) und
+ * Binärrauschen — kein einziger Satz des Dokuments. Der `catch` daneben lief
+ * nie: es gab nichts zu fangen.
+ *
+ * Acht bezahlte Rollen hätten an diesem Rauschen geraten. Deshalb geht eine
+ * PDF NICHT in den Baum, sondern als DOKUMENT in die Anfrage — die API nimmt
+ * sie direkt entgegen und liest sie selbst. Zwei Wege, zwei Töpfe:
+ *
+ *   stand.dateien     Text, für die Werkzeuge (lesen und suchen)
+ *   stand.unterlagen  PDF, reist als Dokument mit JEDER Frage
+ */
+function istPdf(f) {
+  return f.type === "application/pdf" || /\.pdf$/i.test(f.name || "");
+}
+
+/** Bytes als base64 — ohne Zeilenumbrüche, die weist die API ab. */
+function alsBase64(puffer) {
+  const b = new Uint8Array(puffer);
+  let roh = "";
+  /* In Stücken, sonst sprengt eine grosse Datei den Aufruf-Stapel
+     (`String.fromCharCode(...b)` mit 20 MB wirft „Maximum call stack size"). */
+  for (let i = 0; i < b.length; i += 8192)
+    roh += String.fromCharCode.apply(null, b.subarray(i, i + 8192));
+  return btoa(roh);
+}
+
 $("dateien").onchange = async (e) => {
   const liste = [...(e.target.files || [])];
   stand.dateien = {};
+  stand.unterlagen = [];
   for (const f of liste) {
+    if (istPdf(f)) {
+      try {
+        stand.unterlagen.push({ name: f.name, bytes: f.size, base64: alsBase64(await f.arrayBuffer()) });
+      } catch { /* unlesbar — dann eben nicht, aber nie als Text weiterreichen */ }
+      continue;
+    }
     try { stand.dateien[f.name] = await f.text(); } catch { /* kein Text, kein Baum */ }
   }
   const n = Object.keys(stand.dateien).length;
+  const u = stand.unterlagen.length;
   const wo = document.querySelector("[data-werkzeug-grund]");
-  if (wo) wo.innerHTML = n
-    ? `<b>${n} ${n === 1 ? "Datei" : "Dateien"}</b> übergeben. Die Rollen dürfen darin ` +
-      `<b>lesen und suchen</b> — schreiben kann keines der Werkzeuge, es gibt kein ` +
-      `schreibendes. Was du nicht übergibst, sehen sie nicht.`
-    : `Ohne Dateien laufen die Rollen <b>ohne Werkzeuge</b> — und das ist Absicht: ` +
+  if (!wo) return;
+  if (!n && !u) {
+    wo.innerHTML =
+      `Ohne Dateien laufen die Rollen <b>ohne Werkzeuge</b> — und das ist Absicht: ` +
       `drei Werkzeuge, die „geht nicht" antworten, kosten in einem echten Lauf eine ` +
       `<b>bezahlte</b> Runde.`;
+    return;
+  }
+  const teile = [];
+  if (n) teile.push(
+    `<b>${n} ${n === 1 ? "Textdatei" : "Textdateien"}</b> übergeben. Die Rollen dürfen darin ` +
+    `<b>lesen und suchen</b> — schreiben kann keines der Werkzeuge, es gibt kein ` +
+    `schreibendes.`);
+  if (u) teile.push(
+    /* ⚠ DER PREIS STEHT DABEI. Eine Unterlage reist mit JEDER Frage mit, also
+       bei acht Rollen achtmal je Runde. Wer das nicht dazuschreibt, lässt den
+       Nutzer den Betrag erst auf der Rechnung sehen. */
+    `<b>${u} ${u === 1 ? "PDF" : "PDFs"}</b> (${Math.round(
+      stand.unterlagen.reduce((k, x) => k + x.bytes, 0) / 1024)} KB) gehen als ` +
+    `<b>Dokument</b> in jede Frage — die KI liest sie selbst, nicht über ein Werkzeug. ` +
+    `Das kostet: sie reisen bei <b>jeder</b> Rolle und <b>jeder</b> Runde mit. ` +
+    `Sieben der acht Rollen laufen auf einem Modell mit kleinerem Fenster; dort sind ` +
+    `<b>100 Seiten</b> die Grenze.`);
+  teile.push(`Was du nicht übergibst, sehen sie nicht.`);
+  wo.innerHTML = teile.join(" ");
 };
 
 /* ══ TEIL 3 · DER LAUF ══════════════════════════════════════════════════════ */
@@ -415,6 +474,7 @@ async function fahre({ echt }) {
      */
     const konf = mitKonferenz ? await konferenz({
       api, mitarbeiter, kasse: macheKasse(deckelKonferenz), spindAblage: ablage,
+      unterlagen: stand.unterlagen.length ? stand.unterlagen : null,
       grundsaetze: g, werkbank, lage: auftrag.ziel,
       /* `anteil: 1` — die Konferenz hat hier eine EIGENE Kasse, ihr Anteil ist
          also schon im Deckel enthalten. Ohne diese Zeile nähme sie ein Drittel
@@ -436,6 +496,7 @@ async function fahre({ echt }) {
        Schicht läuft. */
     const lauf = await schicht({
       api, auftrag, mitarbeiter, kasse, spindAblage: ablage, grundsaetze: g, werkbank,
+      unterlagen: stand.unterlagen.length ? stand.unterlagen : null,
       aufZwischenstand: (z) => {
         window.__werkstatt.speise("lauf", z);
         letzterStand.lauf = z;
