@@ -863,6 +863,28 @@ footer{padding:18px 16px 40px;color:var(--leise);font-size:.87rem}
       <button id="echt" type="button" disabled>● Echter Lauf — bis zum Deckel</button>
     </div>
     <p class="leise" id="start-sagt" data-start="" role="status" aria-live="polite"></p>
+
+    <!-- DAS TOR ZWISCHEN IDEE UND BAU (Klaus 2026-09-06).
+         Es steht hier und nicht in einem eigenen Fenster: wer gerade auf den
+         Start gedrückt hat, sieht danach an derselben Stelle weiter. Ein
+         Dialog, der über die Seite springt, nimmt den Zusammenhang weg. -->
+    <div id="tor" class="karte" data-tor="zu" hidden>
+      <h3>Bevor gebaut wird — passt die Idee?</h3>
+      <p class="leise">Die Konferenz ist durch, zwei billige Aufrufe sind gelaufen.
+        Dahinter beginnt die erste Runde mit <b>fünf</b> Aufrufen, darunter der
+        einzige auf dem teuren Modell. Was du hier verwirfst, kostet nichts mehr.</p>
+      <dl id="tor-idee"></dl>
+      <p class="leise" id="tor-warnung" data-tor-warnung hidden></p>
+      <div class="pult">
+        <button id="tor-bauen" type="button">▶ Bauen</button>
+        <button id="tor-verwerfen" type="button">✕ Verwerfen</button>
+        <button id="tor-kopieren" type="button">⧉ Idee kopieren</button>
+      </div>
+      <p class="leise">Die Uhr läuft weiter, während du überlegst — es geht nichts
+        hinaus, aber die Zeit zählt als Arbeitszeit. Zum Besprechen: kopieren und
+        in die Sitzung einfügen.</p>
+      <p class="leise" id="tor-sagt" role="status" aria-live="polite"></p>
+    </div>
   </section>
 
     <details class="erklaer" data-erklaer="abspielen">

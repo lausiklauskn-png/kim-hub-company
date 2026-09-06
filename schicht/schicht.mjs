@@ -36,7 +36,7 @@ const kurz = (t, n = 400) => (t || "").length > n ? t.slice(0, n) + " …" : (t 
 
 export async function schicht({
   api, auftrag, mitarbeiter, kasse, spindAblage, grundsaetze: g, aufZwischenstand = null, werkbank = null,
-  unterlagen = null,
+  unterlagen = null, freigabe = null,
   maxRunden = 4, datum = new Date().toISOString().slice(0, 10), arm = "voll",
 } = {}) {
   const wer = Object.fromEntries(mitarbeiter.map((m) => [m.rolle, m]));
@@ -121,6 +121,65 @@ export async function schicht({
           schaerfung: schaerfung.schaerfung || "" });
   verlauf.push(`${wer.mitingenieur.name} schärft: ${kurz(schaerfung.schaerfung, 160)}` +
     (schaerfung.pruefmerkmalTraegt ? "" : " — und hält das Prüfmerkmal für nicht nachprüfbar"));
+
+  /*
+   * ══ DAS TOR ZWISCHEN IDEE UND BAU (Klaus 2026-09-06) ══════════════════════
+   *
+   * „Vielleicht ist es sinnvoll, wenn eine Idee, die die Agenten haben, einmal
+   *  zwischen dir und mir noch einmal zum Schluss geprüft wird, BEVOR die
+   *  bauen … sie entscheiden, eine PDF-Liste zu machen, die sie selber nur
+   *  lesen können — völlig sinnlos, weil kein anderer Nutzer etwas damit
+   *  anfangen kann."
+   *
+   * ⚠ ES STEHT GENAU HIER, UND DAS IST DER GANZE PUNKT. Bis hierher sind zwei
+   * billige Aufrufe gelaufen (Nora, Ben). Dahinter beginnt die erste Runde mit
+   * FÜNF Aufrufen, darunter der einzige auf Opus. Ein Tor davor kostet nichts
+   * und spart alles, wenn die Idee nichts taugt; ein Tor dahinter spart nur
+   * noch die zweite Runde.
+   *
+   * ⚠ ES STEHT NACH BEN, NICHT VOR IHM. Er sagt, ob das Prüfmerkmal überhaupt
+   * nachprüfbar ist — und genau das will ein Mensch wissen, bevor er „bauen"
+   * drückt. Sein Aufruf ist einer, der billigste Preis für die bessere Frage.
+   *
+   * ⚠ OHNE `freigabe` ÄNDERT SICH NICHTS. An der Kommandozeile und im
+   * Trockenlauf ist niemand da, der drückt; ein Tor, das dort wartet, wäre ein
+   * Hänger. Wer nichts übergibt, merkt von dieser Stelle nichts.
+   *
+   * ⚠ DIE UHR LÄUFT WEITER, während überlegt wird. Für die Kosten ist das
+   * gleichgültig (es geht nichts hinaus), für den Stundennachweis richtig — es
+   * IST Arbeitszeit. Nur der Laufzeit-Deckel zählt sie mit; bei zwei Stunden
+   * ist das reichlich, aber es steht hier, statt jemanden zu überraschen.
+   */
+  if (freigabe) {
+    let antwort = null;
+    try {
+      antwort = await freigabe({
+        titel: spec?.titel || auftrag?.ziel || "",
+        warum: spec?.warum || "",
+        fuerWen: spec?.fuerWen || "",
+        ergebnis: spec?.ergebnis || "",
+        pruefmerkmal: auftrag?.pruefmerkmal || spec?.pruefmerkmal || "",
+        schaerfung: spec?.schaerfung || "",
+        ausBauSicht: spec?.ausBauSicht || [],
+        pruefmerkmalTraegt: !!schaerfung?.pruefmerkmalTraegt,
+      });
+    } catch (e) {
+      /* Ein Tor, das beim Fragen stolpert, darf keinen bezahlten Lauf
+         mitreissen — es hält ihn an, und der Grund steht dabei. */
+      antwort = { weiter: false, grund: "Das Tor hat nicht geantwortet: " +
+        (e && e.message ? e.message : e) };
+    }
+    if (!antwort || antwort.weiter !== true) {
+      merke({ phase: "tor", rolle: "ingenieur", wer: wer.ingenieur.name,
+              freigegeben: false, grund: (antwort && antwort.grund) || "" });
+      return abschluss({
+        grund: { grund: "verworfen", text: (antwort && antwort.grund) ||
+          "Vor dem Bauen verworfen — die Idee wurde nicht freigegeben." },
+        spec, artefakt: null });
+    }
+    merke({ phase: "tor", rolle: "ingenieur", wer: wer.ingenieur.name,
+            freigegeben: true, grund: (antwort && antwort.grund) || "" });
+  }
 
   // ── Runden: bauen, prüfen, angreifen ─────────────────────────────────────
   for (runde = 1; runde <= maxRunden && !fertig; runde++) {
