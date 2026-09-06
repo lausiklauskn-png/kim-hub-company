@@ -711,6 +711,11 @@ footer{padding:18px 16px 40px;color:var(--leise);font-size:.87rem}
 
     <div id="neu-block">
       <label for="key">Anthropic-Schlüssel (beginnt mit <code>sk-ant-</code>)</label>
+      <p class="leise" data-woher-schluessel>Noch keinen? Er wird bei Anthropic
+        erzeugt — <a href="https://console.anthropic.com/settings/keys"
+        target="_blank" rel="noopener">console.anthropic.com/settings/keys</a>:
+        anmelden, <b>Create Key</b>, den Wert <b>vollständig</b> kopieren (er
+        wird nur einmal angezeigt) und hier einfügen.</p>
       <input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-…">
       <label for="basis">Eigene KI-Adresse <span class="leise">— optional</span></label>
       <input id="basis" type="text" autocomplete="off" spellcheck="false"
