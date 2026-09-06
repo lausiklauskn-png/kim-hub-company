@@ -82,7 +82,7 @@ export function pruefmerkmalTauglich({ echt, quelleArt }) {
 
 export async function gegenpruefung({
   api, spec, artefakt, mitarbeiter, kasse, spindAblage, datum, werkbank = null,
-  grundsaetze,
+  grundsaetze, unterlagen = null,
 } = {}) {
   const wer = Object.fromEntries(mitarbeiter.map((m) => [m.rolle, m]));
   const art = api?.art === "echt" ? "echt" : "trocken";
@@ -91,7 +91,10 @@ export async function gegenpruefung({
   // Gereicht, nicht geholt — siehe die Begründung in `ruf.mjs`. Bis zum
   // 2026-09-04 verließ sich diese Stelle auf einen Vorgabewert, der eine Datei
   // las; fehlte sie, urteilte die Gegenprüfung ohne Haltung und stumm.
-  const ruf = macheRufer({ api, wer, spinde, kasse, werkbank, grundsaetze });
+  /* ⚠ AUCH HIER DIE UNTERLAGEN. Die Gegenprüfung misst das Werkstück gegen das
+     Prüfmerkmal — und das Prüfmerkmal kam aus dem Dokument. Wer hier ohne es
+     urteilt, urteilt blind und merkt es nicht: er antwortet ja trotzdem. */
+  const ruf = macheRufer({ api, wer, spinde, kasse, werkbank, grundsaetze, unterlagen });
 
   const beginn = Date.now();
   const events = [];

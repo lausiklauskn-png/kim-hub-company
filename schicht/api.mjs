@@ -74,6 +74,35 @@ export function leseInhalt(antwort, modell = "?") {
     (text ? `\nAnfang der Antwort: ${text.slice(0, 200)}` : ""));
 }
 
+/**
+ * Macht aus dem SDK-Objekt einen Boten mit derselben Fläche wie jeder andere —
+ * zwei Handgriffe, sonst nichts. Was das SDK an Bequemlichkeit mitbringt, wird
+ * bewusst NICHT genutzt: sonst könnte der Browser-Bote es nicht nachbilden, und
+ * die Naht wäre eine Behauptung.
+ *
+ * ⚠ EIGENE FUNKTION, WEIL SIE SONST NICHT ZU MESSEN IST. Sie stand bis zum
+ * 2026-09-05 mitten in `_hol()`, hinter einem `import()` des SDK — eine Probe
+ * kam dort nur vorbei, wenn das SDK installiert ist, und ein Wächter, der den
+ * Boten von aussen einsetzt, fährt diese Zeilen gerade NICHT. Genau deshalb war
+ * der Gegenprobe-Fall „der Zaehler erzeugt in Wahrheit eine Antwort" blind: er
+ * sabotierte eine Zeile, die keine Probe je ausführte.
+ *
+ * Der Unterschied, um den es geht: `zaehle` nimmt `count_tokens` und NICHT
+ * `create`. Beides liefert eine Eingabe-Zahl — nur ist die eine bezahlt. Ein
+ * Fehler hier ist unsichtbar: gleiche Zahl, gleiche Form, eine Rechnung dahinter.
+ */
+export function boteAusSdk(roh) {
+  return {
+    /* ⚠ GESTRÖMT, GENAU WIE DER NETZ-BOTE. Zwei Boten, die sich hier
+       unterscheiden, wären zwei Verhalten: im Browser liefe eine lange Antwort
+       durch, an der Kommandozeile liefe sie in eine Zeitgrenze — oder
+       andersherum. `finalMessage()` gibt dieselbe Form heraus wie `create()`,
+       also merkt `frage()` von beidem nichts. */
+    erzeuge: (bitte) => roh.messages.stream(bitte).finalMessage(),
+    zaehle: (bitte) => roh.messages.countTokens(bitte).then((r) => r.input_tokens),
+  };
+}
+
 export class EchteApi {
   /** Steht so im Lauf-Protokoll. Nicht am Klassennamen ablesen — der ist Zufall. */
   art = "echt";
@@ -164,14 +193,7 @@ export class EchteApi {
     const roh = new Anthropic(this.basisUrl
       ? { apiKey: this.schluessel, baseURL: this.basisUrl }
       : { apiKey: this.schluessel });
-    // Dieselbe Fläche wie jeder andere Bote — zwei Handgriffe, sonst nichts.
-    // Was das SDK an Bequemlichkeit mitbringt, wird hier bewusst NICHT genutzt:
-    // sonst könnte der Browser-Bote es nicht nachbilden, und die Naht wäre eine
-    // Behauptung.
-    this._client = {
-      erzeuge: (bitte) => roh.messages.create(bitte),
-      zaehle: (bitte) => roh.messages.countTokens(bitte).then((r) => r.input_tokens),
-    };
+    this._client = boteAusSdk(roh);
     return this._client;
   }
 
@@ -194,7 +216,8 @@ export class EchteApi {
     return await bote.zaehle(bitte);
   }
 
-  async frage({ modell, aufwand, system, nachrichten, schema, werkbank = null }) {
+  async frage({ modell, aufwand, system, nachrichten, schema, werkbank = null,
+                unterlagen = null }) {
     const kann = KANN[modell];
     if (!kann) throw new Error(`Unbekanntes Modell "${modell}" — lieber abbrechen als raten.`);
     const bote = await this._hol();
@@ -219,7 +242,33 @@ export class EchteApi {
     // DER VERLAUF WÄCHST. Ohne Werkzeuge ist das genau eine Runde und verhält
     // sich wie vorher; mit Werkzeugen kommen Antwort und Werkzeug-Ergebnis
     // hinten dran, bis das Modell fertig ist.
-    const verlauf = [...nachrichten];
+    /*
+     * ══ UNTERLAGEN — eine PDF geht als DOKUMENT hinein, nicht als Text ═══════
+     *
+     * Klaus 2026-09-06: „über vierzig Minuten für ein PDF-Dokument". Der
+     * Dateiwähler las bis dahin jede Datei mit `f.text()`; bei einer PDF kommt
+     * dabei kein Satz des Dokuments heraus, sondern Gerüst und Binärrauschen
+     * (gemessen: 12 komprimierte Ströme). Acht bezahlte Rollen hätten daran
+     * geraten.
+     *
+     * ⚠ SIE GEHÖREN VOR DEN TEXT. Steht die Frage zuerst, liest das Modell
+     * eine Aufgabe zu einem Dokument, das es noch nicht gesehen hat.
+     *
+     * ⚠ UND SIE REISEN MIT JEDER FRAGE MIT. Das ist der Preis und steht
+     * deshalb auch auf der Seite, nicht nur hier: acht Rollen, jede Runde.
+     */
+    const verlauf = nachrichten.map((n2, i) => {
+      if (i !== 0 || !unterlagen || !unterlagen.length) return n2;
+      const bloecke = unterlagen.map((u) => ({
+        type: "document",
+        source: { type: "base64", media_type: "application/pdf", data: u.base64 },
+      }));
+      /* Der Text kann schon eine Liste sein — dann wird angehängt, nicht
+         ersetzt. Sonst verlöre ein späterer Umbau still den Fragetext. */
+      const rest = Array.isArray(n2.content)
+        ? n2.content : [{ type: "text", text: String(n2.content) }];
+      return { ...n2, content: [...bloecke, ...rest] };
+    });
     // JEDE Runde ist bezahlt. Würde nur die letzte `usage` zurückgegeben,
     // meldete das Fahrtenbuch zu wenig — und eine zu niedrige Zahl sieht genauso
     // aus wie eine gemessene. Deshalb wird summiert, nicht überschrieben.
