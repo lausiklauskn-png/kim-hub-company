@@ -79,12 +79,26 @@ export const ROLLEN = {
   ingenieur: {
     schema: {
       type: "object", additionalProperties: false,
-      required: ["titel", "art", "beschreibung", "pruefmerkmal"],
+      required: ["titel", "art", "beschreibung", "fuerWen", "pruefmerkmal"],
       properties: {
         titel: s("Kurzer Name der Sache, die gebaut wird."),
         art: { type: "string", enum: ["markdown", "html", "skill"],
                description: "Welche Gestalt das Ergebnis hat." },
         beschreibung: s("Was es tut und wem es nützt, in drei bis fünf Sätzen."),
+        /*
+         * ⚠ EIN EIGENES PFLICHTFELD, und das ist der ganze Punkt (Klaus
+         * 2026-09-06, nach einem Lauf): „Sie entscheiden, eine PDF-Liste zu
+         * machen, die sie selber nur lesen können — völlig sinnlos, weil kein
+         * anderer Nutzer etwas damit anfangen kann."
+         *
+         * „Wem es nützt" stand bis dahin MITTEN in `beschreibung`, zwischen
+         * drei bis fünf Sätzen. Dort lässt es sich mitschreiben, ohne es zu
+         * beantworten — und niemandem fällt es auf. Als eigenes Feld muss es
+         * dastehen, und im Tor vor dem Bauen steht es ganz oben.
+         */
+        fuerWen: s("WER AUSSERHALB dieser Werkstatt hat etwas davon? Ein Name, " +
+          "eine Gruppe, eine Lage — nicht „uns selbst\". Nützt es nur der " +
+          "Werkstatt, sag das ausdrücklich; dann ist es kein Vorschlag."),
         pruefmerkmal: s("Woran man am Ende SIEHT, dass es erfüllt ist. Nachprüfbar, nicht 'gut gemacht'."),
       },
     },

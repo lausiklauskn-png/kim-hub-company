@@ -349,6 +349,97 @@ $("dateien").onchange = async (e) => {
   wo.innerHTML = teile.join(" ");
 };
 
+/* ══ DAS TOR ZWISCHEN IDEE UND BAU (Klaus 2026-09-06) ══════════════════════
+ *
+ * „Vielleicht ist es sinnvoll, wenn eine Idee, die die Agenten haben, einmal
+ *  zwischen dir und mir noch einmal geprüft wird, BEVOR die bauen … sie
+ *  entscheiden, eine PDF-Liste zu machen, die sie selber nur lesen können —
+ *  völlig sinnlos, weil kein anderer Nutzer etwas damit anfangen kann."
+ *
+ * ⚠ „FÜR WEN" STEHT GANZ OBEN, und das ist kein Layout-Geschmack. Genau diese
+ * Frage hat gefehlt: das Feld gibt es längst, und im mitgelieferten Beispiel
+ * steht darin „mich selbst und jeden, der nach mir baut" — niemand hat
+ * widersprochen. Wer es zuerst liest, verwirft so etwas in einer Sekunde.
+ */
+var TOR_FELDER = [
+  ["fuerWen", "Für wen"],
+  ["titel", "Was"],
+  ["warum", "Warum"],
+  ["ergebnis", "Was herauskommt"],
+  ["pruefmerkmal", "Woran man es sieht"],
+  ["schaerfung", "Was Ben dazu sagt"],
+];
+
+function torText(idee) {
+  var z = [];
+  for (var i = 0; i < TOR_FELDER.length; i++) {
+    var k = TOR_FELDER[i][0];
+    if (idee[k]) z.push(TOR_FELDER[i][1] + ": " + idee[k]);
+  }
+  if (idee.ausBauSicht && idee.ausBauSicht.length)
+    z.push("Aus Bau-Sicht: " + idee.ausBauSicht.join(" · "));
+  if (!idee.pruefmerkmalTraegt)
+    z.push("⚠ Ben hält das Prüfmerkmal für NICHT nachprüfbar.");
+  return z.join("\n");
+}
+
+/** Öffnet das Tor und gibt zurück, was Klaus entschieden hat. */
+function torOeffnen(idee) {
+  return new Promise(function (fertig) {
+    var kasten = $("tor"), liste = $("tor-idee"), sagt = $("tor-sagt");
+    liste.textContent = "";
+    for (var i = 0; i < TOR_FELDER.length; i++) {
+      var k = TOR_FELDER[i][0];
+      if (!idee[k]) continue;
+      var dt = document.createElement("dt"); dt.textContent = TOR_FELDER[i][1];
+      var dd = document.createElement("dd"); dd.textContent = idee[k];
+      liste.appendChild(dt); liste.appendChild(dd);
+    }
+    if (idee.ausBauSicht && idee.ausBauSicht.length) {
+      var dt2 = document.createElement("dt"); dt2.textContent = "Aus Bau-Sicht";
+      var dd2 = document.createElement("dd"); dd2.textContent = idee.ausBauSicht.join(" · ");
+      liste.appendChild(dt2); liste.appendChild(dd2);
+    }
+    /* ⚠ BENS EINWAND IST DIE WICHTIGSTE ZEILE, wenn er ihn hat. Er sagt, ob das
+       Prüfmerkmal überhaupt nachprüfbar ist — ohne das misst die Gegenprüfung
+       später gegen etwas, das sich nicht messen lässt. */
+    var w = $("tor-warnung");
+    w.hidden = !!idee.pruefmerkmalTraegt;
+    w.textContent = idee.pruefmerkmalTraegt ? ""
+      : "⚠ Ben hält das Prüfmerkmal für NICHT nachprüfbar. Dann kann auch die " +
+        "Gegenprüfung am Ende nichts messen.";
+    sagt.textContent = "";
+    kasten.hidden = false;
+    kasten.setAttribute("data-tor", "offen");
+    $("tor-bauen").focus();
+
+    function schliesse(antwort) {
+      kasten.hidden = true;
+      kasten.setAttribute("data-tor", "zu");
+      $("tor-bauen").onclick = null;
+      $("tor-verwerfen").onclick = null;
+      fertig(antwort);
+    }
+    $("tor-bauen").onclick = function () { schliesse({ weiter: true }); };
+    $("tor-verwerfen").onclick = function () {
+      schliesse({ weiter: false, grund: "Vor dem Bauen verworfen — die Idee " +
+        "wurde nicht freigegeben." });
+    };
+    /* Kopieren schliesst das Tor NICHT: wer die Idee bespricht, will danach
+       immer noch entscheiden. Ein Knopf, der nebenbei zumacht, wäre eine Falle. */
+    $("tor-kopieren").onclick = function () {
+      var t = torText(idee);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(t).then(
+          function () { sagt.textContent = "Kopiert — in die Sitzung einfügen."; },
+          function () { sagt.textContent = "Kopieren ging nicht. Der Text steht oben."; });
+      } else {
+        sagt.textContent = "Kopieren ging nicht. Der Text steht oben.";
+      }
+    };
+  });
+}
+
 /* ══ TEIL 3 · DER LAUF ══════════════════════════════════════════════════════ */
 function startLageZeichnen() {
   const ziel = ($("ziel").value || "").trim();
@@ -497,6 +588,10 @@ async function fahre({ echt }) {
     const lauf = await schicht({
       api, auftrag, mitarbeiter, kasse, spindAblage: ablage, grundsaetze: g, werkbank,
       unterlagen: stand.unterlagen.length ? stand.unterlagen : null,
+      /* ⚠ NUR BEIM ECHTEN LAUF. Im Trockenlauf kostet das Bauen nichts, und ein
+         Tor, das dort nach Freigabe fragt, hält eine Vorführung an, die gerade
+         zeigen soll, dass die Kette durchläuft. */
+      freigabe: echt ? torOeffnen : null,
       aufZwischenstand: (z) => {
         window.__werkstatt.speise("lauf", z);
         letzterStand.lauf = z;

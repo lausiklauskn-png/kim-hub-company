@@ -192,6 +192,8 @@ export const BEISPIELE = {
       "Eine Karte zum Aushängen, die einem Betrieb in wenigen Regeln sagt, worauf beim " +
       "Einsatz von KI zu achten ist. Kein Rechtstext, sondern etwas, das jemand am " +
       "Arbeitsplatz nachliest, bevor er etwas in ein KI-Feld tippt.",
+    fuerWen: "Betriebe, die KI einsetzen und ihre Leute nicht schulen können — " +
+      "nicht die Werkstatt selbst.",
     pruefmerkmal:
       "Erfüllt, wenn die Karte höchstens eine Seite lang ist, mindestens fünf konkrete " +
       "Regeln nennt und jede Regel einen Satz Begründung hat.",
