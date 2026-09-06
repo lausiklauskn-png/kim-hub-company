@@ -46,14 +46,14 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
  * Fingerabdrücke unten nachzieht und das hier vergisst, wird rot.
  */
 export const HERKUNFT = {
-  commit: "a5e0b57",
-  datum:  "2026-09-07T00:27:32+02:00",
-  betreff: "Eine Trockenschicht stand als „echt bezahlt\" auf der Bühne (#107)",
+  commit: "fd07f7b",
+  datum:  "2026-09-07T00:51:44+02:00",
+  betreff: "Ein bezahlter Lauf lässt sich anhalten (#108)",
 };
 
 export const ERWARTET = [
-  { datei: "index.html",                herkunft: "start.html",              sha: "9151b62e14616294b58bde061591513567b08f57e29c5eedbf6fa67209614227" },
-  { datei: "company.js",                herkunft: "company.js",              sha: "8021b76bb2ebbdef39a23f2313a9c1897d2f23ea30209bc0efbe0c8fca94908b" },
+  { datei: "index.html",                herkunft: "start.html",              sha: "e0411f350dedcb95d3269cbd66d9396f8ee5e969ad7e6c2040ce436fbf2f1a19" },
+  { datei: "company.js",                herkunft: "company.js",              sha: "fde5fc8dd100ce64432e4e960a407ce91492e0c0f952d8b7d04dced826492e21" },
   { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "2aa26e4a5f472ce7fe4340d532c5d6142b61d5312ee5149a08edf24064921db8" },
   { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "dd5fbdebacf092a1135e36f6dcdc7c8c653f45cb4c368f8d6f0a861fae97671c" },
   { datei: "zeit.js",                   herkunft: "zeit.js",                 sha: "48f940fd937b93d35e2752f6ad542d7ad18ff7bb956fb065197105e373816d98" },
@@ -62,7 +62,7 @@ export const ERWARTET = [
   { datei: "schicht/konferenz.mjs",     herkunft: "schicht/konferenz.mjs",   sha: "616136428a0e7960cc1ef9455dcfd66b1fed087017e3b512a3f2119e28287920" },
   { datei: "schicht/schicht.mjs",       herkunft: "schicht/schicht.mjs",     sha: "353177c0fa24843bd64647765db12a145063c4b401b07446b96bbe0365214ad0" },
   { datei: "schicht/api.mjs",           herkunft: "schicht/api.mjs",         sha: "4151fb4758eea0331683e57d693961358130b598f430254207ae3fd6416153bd" },
-  { datei: "schicht/transport-netz.mjs",herkunft: "schicht/transport-netz.mjs", sha: "d3bd8a6059672d3e816acaba5b68834027d6a4d9fd160e93490c5660edc76413" },
+  { datei: "schicht/transport-netz.mjs",herkunft: "schicht/transport-netz.mjs", sha: "5d722b8461501c1cba830782e4dd154f2b9277e320bd79ae268e8eb2e9a9edf3" },
   { datei: "schicht/kosten.mjs",        herkunft: "schicht/kosten.mjs",      sha: "e901b14a295d6d332e5deb8d6100c6731cff1c3f0909e05ea0477a888c685841" },
   { datei: "schicht/beispiele.mjs",     herkunft: "schicht/beispiele.mjs",   sha: "8529582d68441b87b14bc70e35cc32e355b173bd2c1b1f4103d5b9ac24fddb5f" },
   { datei: "schicht/grundsaetze.mjs",   herkunft: "schicht/grundsaetze.mjs", sha: "340117e1f311aba0bfce9730fad28b90e3fdddde8aa3d0e103073b0bea883523" },
