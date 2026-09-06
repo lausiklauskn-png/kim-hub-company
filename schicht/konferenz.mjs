@@ -138,6 +138,20 @@ export async function konferenz({
   grundsaetze, datum = new Date().toISOString().slice(0, 10), unterlagen = null,
 } = {}) {
   const wer = Object.fromEntries(mitarbeiter.map((m) => [m.rolle, m]));
+  /*
+   * WOMIT gelaufen wurde — an JEDEM Ergebnis, auch am abgebrochenen.
+   *
+   * `schicht.mjs` und `gegenpruefung.mjs` tragen das seit jeher; die Konferenz
+   * war die einzige, die es nicht tat. In Node fiel das nicht auf, weil
+   * `schreibeKonferenz` das Feld beim Schreiben der Datei aus `trocken`
+   * nachtraegt — im Browser gibt es diese Datei nicht, dort geht das Ergebnis
+   * unveraendert in die Anzeige. Eine Trockenschicht stand dadurch als
+   * „echt bezahlt" auf der Buehne (Klaus 2026-09-06, mit Bild).
+   *
+   * Im Zweifel trocken — nie „echt" behaupten. Dieselbe Regel, derselbe
+   * Wortlaut wie an den beiden anderen Stellen.
+   */
+  const art = api?.art === "echt" ? "echt" : "trocken";
   const spinde = Object.fromEntries(
     mitarbeiter.map((m) => [m.rolle,
       spind.oeffnen(spindAblage, m, { schreiben: api?.art === "echt" })]));
@@ -175,7 +189,7 @@ export async function konferenz({
             begruendung: a.inhalt.begruendung || "", dauerMs: a.dauerMs || 0 });
   }
   if (vorschlaege.length < 2)
-    return { ok: false, grund: "zu wenige Vorschläge", vorschlaege, protokoll, events,
+    return { ok: false, art, grund: "zu wenige Vorschläge", vorschlaege, protokoll, events,
              auftrag: null, tafel: [], eigenlob: [], vorgemerkt: [], haenger: [] };
 
   // ── Runde 2: jeder bewertet alle ─────────────────────────────────────────
@@ -189,7 +203,7 @@ export async function konferenz({
             stimmen: a.inhalt.stimmen || [], dauerMs: a.dauerMs || 0 });
   }
   if (!stimmzettel.length)
-    return { ok: false, grund: "niemand hat abgestimmt", vorschlaege, protokoll, events,
+    return { ok: false, art, grund: "niemand hat abgestimmt", vorschlaege, protokoll, events,
              auftrag: null, tafel: [], eigenlob: [], vorgemerkt: [], haenger: [] };
 
   const { tafel, sortiert, sieger, eigenlob, gleichstand } = auszaehlen(vorschlaege, stimmzettel);
@@ -218,7 +232,7 @@ export async function konferenz({
     tafel: sortiert, einwaende: sieger.einwaende, haenger,
   });
   if (schluss.abbruch)
-    return { ok: false, grund: schluss.abbruch.text, vorschlaege, protokoll, events,
+    return { ok: false, art, grund: schluss.abbruch.text, vorschlaege, protokoll, events,
              auftrag: null, tafel: sortiert, eigenlob, vorgemerkt, haenger };
 
   merke({ phase: "schluss", rolle: "beobachter", wer: wer.beobachter?.name || "",
@@ -228,7 +242,7 @@ export async function konferenz({
           haengerText: schluss.inhalt.haenger || "", dauerMs: schluss.dauerMs || 0 });
 
   return {
-    ok: true,
+    ok: true, art,
     events, dauerMs: Date.now() - beginn,
     auftrag: { ziel: schluss.inhalt.ziel, pruefmerkmal: schluss.inhalt.pruefmerkmal,
                ausKonferenz: true, sieger: voll.titel, von: voll.von },

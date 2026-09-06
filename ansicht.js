@@ -1560,10 +1560,21 @@
    * bezahlt. Hier steht deshalb, was in den Daten steht, nicht was im Brief
    * stand.
    */
-  function artWort(d) {
-    if (!d) return "";
-    return d.art === "trocken" ? "trocken" : "echt";
+  /*
+   * WOMIT gelaufen wurde — die Umrechnung steht in `buehne.js`, hier nur die
+   * Tür dorthin. EINE Fassung, weil zwei auseinanderliefen: `zeigeLage` hielt
+   * die drei Fälle schon richtig auseinander, während hier zwei standen und
+   * alles Unbekannte als „echt bezahlt" durchging.
+   *
+   * KEIN Rückfall auf eine eigene Rechnung. Fehlt das Modul, ist die Antwort
+   * „unbekannt" — und das ist die richtige: eine zweite Fassung wäre genau
+   * die Drift-Quelle, die diesen Fehler erzeugt hat.
+   */
+  function buehneModul() {
+    return (typeof window !== "undefined" && window.KimhubBuehne) || null;
   }
+  function artWort(d) { var b = buehneModul(); return b && b.artWort ? b.artWort(d) : ""; }
+  function artVon(a, z) { var b = buehneModul(); return b && b.artVon ? b.artVon(a, z) : ""; }
 
   /* Der eine Satz, der beide Achsen nennt — an EINER Stelle, weil ihn das Band
      und die Bühne brauchen. Zwei Fassungen liefen auseinander, und dann sagte
@@ -1576,9 +1587,11 @@
        Parameter ist keine. */
     var t = trenner || " · ";
     var wo = d._ausBeispiel ? "mitgeliefert" : "von diesem Gerät";
-    var was = artWort(d) === "trocken"
-      ? "trocken, keine Modelle gefragt, nichts bezahlt"
-      : "echt bezahlt";
+    var a = artWort(d);
+    var was = a === "trocken" ? "trocken, keine Modelle gefragt, nichts bezahlt"
+            : a === "echt"    ? "echt bezahlt"
+            /* Nicht „echt bezahlt" raten. Wer die Art nicht kennt, sagt das. */
+            : "Art nicht angegeben";
     return wo + t + was + (d.datum ? t + "vom " + d.datum : "");
   }
 
@@ -1681,16 +1694,21 @@
      * ist. Jetzt stehen die beiden Achsen getrennt da, und darunter der Grund,
      * warum nichts Eigenes zu sehen ist.
      */
+    var artM = artVon(daten.konferenz, daten.lauf);
     var kopfWort = "Mitgelieferter Lauf" +
       (daten.konferenz && daten.konferenz.datum ? " vom " + daten.konferenz.datum : "") +
-      " · " + (artWort(daten.konferenz) === "trocken" ? "trocken" : "echt bezahlt") + ".";
+      " · " + (artM === "trocken" ? "trocken"
+             : artM === "echt"    ? "echt bezahlt"
+             : "Art nicht angegeben") + ".";
     z.appendChild(el("b", null, kopfWort));
     z.appendChild(document.createTextNode(
       " Das sind ZWEI Angaben, keine: er kommt nicht von diesem Gerät " +
       "(Herkunft), und er hat " +
-      (artWort(daten.konferenz) === "trocken"
+      (artM === "trocken"
         ? "kein Modell gefragt und nichts gekostet — seine Antworten stammen aus hinterlegten Texten"
-        : "wirklich Modelle gefragt und Geld gekostet") +
+        : artM === "echt"
+        ? "wirklich Modelle gefragt und Geld gekostet"
+        : "nicht dabeistehen, womit er gelaufen ist") +
       " (Art). Er zeigt den Ablauf, nicht ein Ergebnis von dir."));
 
     /*
@@ -3135,7 +3153,7 @@
         /* Die ZWEITE Achse geht mit (1.5): woher ist nicht dasselbe wie womit.
            Ohne sie stand an der Bühne nur „Beispiel" — ein Wort für zwei
            Fragen, und Klaus las die falsche Antwort heraus. */
-        _art: artWort(daten.konferenz || daten.lauf),
+        _art: artVon(daten.konferenz, daten.lauf),
         _datum: (daten.konferenz && daten.konferenz.datum) ||
                 (daten.lauf && daten.lauf.datum) || ""
       });

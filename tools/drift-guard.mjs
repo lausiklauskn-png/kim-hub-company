@@ -46,20 +46,20 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
  * Fingerabdrücke unten nachzieht und das hier vergisst, wird rot.
  */
 export const HERKUNFT = {
-  commit: "16e29d8",
-  datum:  "2026-09-07T00:05:02+02:00",
-  betreff: "Das Tor zwischen Idee und Bau — und „für wen\" wird zur Pflichtfrage",
+  commit: "a5e0b57",
+  datum:  "2026-09-07T00:27:32+02:00",
+  betreff: "Eine Trockenschicht stand als „echt bezahlt\" auf der Bühne (#107)",
 };
 
 export const ERWARTET = [
   { datei: "index.html",                herkunft: "start.html",              sha: "9151b62e14616294b58bde061591513567b08f57e29c5eedbf6fa67209614227" },
   { datei: "company.js",                herkunft: "company.js",              sha: "8021b76bb2ebbdef39a23f2313a9c1897d2f23ea30209bc0efbe0c8fca94908b" },
-  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "b33311e60079971b3bbd58a8c74ea91f26983ee006cfc9791b0867595c199060" },
-  { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "c438ad9d6a57464f7f743889f7c69cec83413e2abcf600c5e034e8fc799cb02b" },
+  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "2aa26e4a5f472ce7fe4340d532c5d6142b61d5312ee5149a08edf24064921db8" },
+  { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "dd5fbdebacf092a1135e36f6dcdc7c8c653f45cb4c368f8d6f0a861fae97671c" },
   { datei: "zeit.js",                   herkunft: "zeit.js",                 sha: "48f940fd937b93d35e2752f6ad542d7ad18ff7bb956fb065197105e373816d98" },
   { datei: "idb.js",                    herkunft: "idb.js",                  sha: "b244ab3f832bb4d4cd5ec87e51de364df5716ee7ca6fc8a2bceeea6b6c9bbd51" },
   { datei: "schluesseltresor.js",       herkunft: "schluesseltresor.js",     sha: "eaed30e8f3921835a3f58b69f89d9b008831f69f164ad1dfec630fa43161f666" },
-  { datei: "schicht/konferenz.mjs",     herkunft: "schicht/konferenz.mjs",   sha: "813249e0a4c88dc5f4972a2149f35b6180547f271d53be056d3ebf99435ebeb7" },
+  { datei: "schicht/konferenz.mjs",     herkunft: "schicht/konferenz.mjs",   sha: "616136428a0e7960cc1ef9455dcfd66b1fed087017e3b512a3f2119e28287920" },
   { datei: "schicht/schicht.mjs",       herkunft: "schicht/schicht.mjs",     sha: "353177c0fa24843bd64647765db12a145063c4b401b07446b96bbe0365214ad0" },
   { datei: "schicht/api.mjs",           herkunft: "schicht/api.mjs",         sha: "4151fb4758eea0331683e57d693961358130b598f430254207ae3fd6416153bd" },
   { datei: "schicht/transport-netz.mjs",herkunft: "schicht/transport-netz.mjs", sha: "d3bd8a6059672d3e816acaba5b68834027d6a4d9fd160e93490c5660edc76413" },

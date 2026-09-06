@@ -141,6 +141,33 @@
      wenn man überall hineingesehen hat.
      `feierabend` bringt alle zurück an den Tisch — die Schicht endet, wie sie
      begann. Das ist der sichtbare Schluss. */
+  /*
+   * WOMIT gelaufen wurde — DREI Antworten, nicht zwei, und an EINER Stelle.
+   *
+   * Bis zum 2026-09-06 stand die Umrechnung in `ansicht.js` und lautete
+   * `art === "trocken" ? "trocken" : "echt"`: alles, was nicht ausdrücklich
+   * „trocken" hieß, galt als BEZAHLT. Ein FEHLENDES Feld sah damit genauso
+   * aus wie eine gemessene Ausgabe — und genau so meldete die Bühne eine
+   * Trockenschicht als „echt bezahlt" (Klaus, mit Bild), weil die Konferenz
+   * im Browser kein `art` herausgab.
+   *
+   * Die Regel steht dreimal im Code der Schicht: im Zweifel trocken, nie
+   * „echt" behaupten. Hier stand sie umgekehrt. Unbekannt heißt jetzt
+   * unbekannt — eine geratene Angabe klingt genau wie eine gemessene.
+   *
+   * Sie steht HIER, weil `zeigeLage` die drei Fälle ohnehin schon
+   * auseinanderhält und diese Datei ohne Browser läuft: eine Umrechnung, die
+   * nur im Browser zu messen wäre, ist eine Behauptung.
+   */
+  function artWort(d) {
+    if (!d) return "";
+    return d.art === "trocken" ? "trocken" : d.art === "echt" ? "echt" : "";
+  }
+  /* Die erste Quelle, die es WEISS. Nicht dasselbe wie „die erste, die da
+     ist": die Konferenz wird zuerst gefragt, aber ihr Schweigen darf den Lauf
+     nicht übertönen — genau daran hing der Fehlbefund. */
+  function artVon(a, b) { return artWort(a) || artWort(b); }
+
   function stellung(phase) {
     if (phase === "build") return WEG;
     /* Vier Phasen sind Gegenprüfung, nicht zwei: Lisa und Malcom sehen sich
@@ -1164,6 +1191,7 @@
   };
 
   welt.KimhubBuehne = { Buehne: Buehne, ROLLEN: ROLLEN, PHASEN: PHASEN,
+                       artWort: artWort, artVon: artVon,
                        _stellung: stellung, _KURZ: KURZ,
                        _textVon: textVon, _stimmeLage: stimmeLage,
                        /* Der Vorlese-Knopf wird auch außerhalb der Bühne
