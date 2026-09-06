@@ -10,6 +10,7 @@
  * man müde wegdrückt.
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { planBlatt } from "./plan-form.mjs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Kasse } from "./kosten.mjs";
@@ -455,7 +456,7 @@ export async function main() {
 
     if (nurPlan) {
       mkdirSync(dirname(PLAN), { recursive: true });
-      writeFileSync(PLAN, planBlatt(konf, kasse, datum, trocken), "utf8");
+      writeFileSync(PLAN, planBlatt(konf, kasse.bericht(), datum, trocken), "utf8");
       const k = kasse.bericht();
       eintragen({ art: "planmodus", echt: !trocken, datum, bericht: k, mitarbeiter,
         titel: konf.auftrag.sieger || konf.auftrag.titel || konf.auftrag.ziel || "",
@@ -597,69 +598,6 @@ function schreibeKonferenz(konf, datum, trocken, kasse) {
   }, null, 2) + "\n", "utf8");
 }
 
-function planBlatt(konf, kasse, datum, trocken) {
-  const k = kasse.bericht();
-  const sieger = konf.tafel[0];
-  const z = [];
-  z.push(`# Offener Plan — ${datum}`);
-  if (trocken) z.push(`\n> **Trockenlauf.** Dieser Plan stammt aus hinterlegten Beispielen,`
-    + ` nicht aus einer echten Konferenz. Nicht bauen.`);
-  z.push(`\n## Auftrag\n\n${konf.auftrag.ziel}`);
-  z.push(`\n## Prüfmerkmal\n\n${konf.auftrag.pruefmerkmal}`);
-  z.push(`\n*Nachprüfbar, nicht „gut gemacht". Wer baut, misst am Ende hiergegen —`
-    + ` und nicht am eigenen Eindruck.*`);
-  z.push(`\n## Woher der Auftrag kommt\n`);
-  z.push(`Vorgeschlagen von **${konf.auftrag.von}**, angenommen mit ${sieger.punkte} Punkten`
-    + ` (eigene Stimmen zählen nicht mit).\n`);
-  z.push(konf.begruendung);
-  if (sieger.einwaende?.length) {
-    z.push(`\n## Einwände gegen diesen Vorschlag\n`);
-    z.push(`Sie sind **nicht** erledigt, nur benannt. Wer baut, nimmt sie mit`
-      + ` oder schreibt hin, warum nicht.\n`);
-    for (const e of sieger.einwaende) z.push(`- ${e}`);
-  }
-  if (konf.verworfen?.length) {
-    z.push(`\n## Was NICHT gebaut wird\n`);
-    for (const v of konf.verworfen) z.push(`- ${v}`);
-  }
-  if (konf.vorgemerkt?.length) {
-    z.push(`\n## Was in die Merklisten gegangen ist\n`);
-    z.push(`Nicht verloren, nur vertagt — beim jeweiligen Einbringer, mit den Einwänden`
-      + ` dagegen. Wer einen davon wieder einbringt, nennt ihn beim Namen.\n`);
-    for (const v of konf.vorgemerkt)
-      z.push(`- **${v.titel}** *(${v.von})* — ${v.male}. Mal`
-        + (v.punkte === null || v.punkte === undefined ? "" : `, ${v.punkte} Punkte`));
-  }
-  if (konf.haenger?.length) {
-    z.push(`\n## Hänger\n`);
-    z.push(`Gezählt, nicht geschätzt: diese Titel stehen zum ${konf.haengerAb ?? "?"}. Mal`
-      + ` oder öfter auf dem Tisch und wurden wieder nicht gewählt. Das ist kein`
-      + ` Gedächtnis mehr, sondern eine Schleife.\n`);
-    for (const h of konf.haenger) z.push(`- **${h.titel}** *(${h.von})* — ${h.male}. Mal`);
-    if (konf.haengerText) z.push(`\n${konf.haengerText}`);
-  }
-  z.push(`\n## Die Punkte\n`);
-  for (const t of konf.tafel) z.push(`- **${t.punkte}** — ${t.titel} *(${t.von})*`);
-  const el = konf.eigenlob.filter((e) => e.differenz !== null);
-  if (el.length) {
-    const m = el.reduce((a, b) => a + b.differenz, 0) / el.length;
-    z.push(`\nSelbstbevorzugung im Schnitt: ${m > 0 ? "+" : ""}${m.toFixed(2)} Punkte`
-      + ` — wie viel höher jeder den eigenen Vorschlag setzt als die der anderen.`);
-  }
-  z.push(`\n## Was diese Konferenz gekostet hat\n`);
-  z.push(`${k.verbrauchtEur.toFixed(2)} € in ${k.aufrufe} Aufrufen.`);
-  z.push(`\n---\n`);
-  z.push(`## Für die Hand, die baut\n`);
-  z.push(`**Ein Durchgang.** Bauen, dann geht es zurück an Vera und Sten zum`
-    + ` Gegenprüfen. Findet Sten etwas Schweres, geht es an Klaus — nicht in`
-    + ` Runde drei.\n`);
-  z.push(`**Der PR bleibt Entwurf.** Nur Klaus setzt ihn auf fertig. Kein Ablauf`
-    + ` darf das selbst tun.\n`);
-  z.push(`**Gemessen wird gegen das Prüfmerkmal oben**, nicht gegen den eigenen`
-    + ` Eindruck. Wer baut und danach berichtet, ist der Beteiligte, der sein`
-    + ` eigenes Zeugnis schreibt — deshalb die Gegenprüfung.`);
-  return z.join("\n") + "\n";
-}
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   try {
