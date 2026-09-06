@@ -363,6 +363,30 @@ footer{padding:18px 16px 40px;color:var(--leise);font-size:.87rem}
   100% { transform: scale(1.85); opacity: 0; }
 }
 
+/* ── WER WELCHE ROLLE HAT ─────────────────────────────────────────────────
+   Klaus 2026-09-06, beim Zusehen: „Die einzelnen Tätigkeiten werden zwar
+   beschrieben … aber es wird nicht geschrieben, WER die einzelnen Rollen hat.
+   Für jemanden, der zuschaut oder prüft, ist das nicht eindeutig."
+
+   Zwei verschiedene Auskünfte: im Bild steht, was gerade GESCHIEHT (und das
+   wechselt), hier steht, WER da ist (und das bleibt). Unter dem Bild, weil im
+   Bild keine dritte Zeile je Knopf Platz hat — acht stehen dort dicht, und was
+   sich überlappt, liest niemand. */
+.b-wer {
+  display: flex; flex-wrap: wrap; gap: 6px 10px;
+  margin: 10px 2px 0; padding: 0;
+}
+.b-wer-eins {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  padding: 3px 9px; border-radius: 999px;
+  border: 1px solid var(--kante); background: var(--karte2);
+  font: 11px var(--mono); white-space: nowrap;
+}
+/* Der Name in der Farbe seiner Rolle — dieselbe wie am Knopf im Bild. So
+   findet das Auge die Zeile zum Knopf, ohne zu suchen. */
+.b-wer-eins b { color: currentColor; font-weight: 700; }
+.b-wer-rolle { color: var(--leise); }
+
 /* ── DIE SCHICHTUHR ───────────────────────────────────────────────────────
    Klaus 2026-09-06: „wenn der Werkstattlauf losgeht, dass man trotzdem einen
    Balken hat oder irgendetwas sieht, dass der Lauf läuft. Und der Text reicht

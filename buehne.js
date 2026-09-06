@@ -104,6 +104,23 @@
                gestalterin: "sieht hin", nutzer: "benutzt es",
                beobachter: "schreibt auf" };
 
+  /* WER JEMAND IST — nicht, was er gerade tut.
+   *
+   * Klaus 2026-09-06, beim Zusehen: „Die einzelnen Tätigkeiten werden zwar
+   * beschrieben — Ben schärft, Emil baut, Vera prüft —, aber es wird nicht
+   * geschrieben, WER die einzelnen Rollen hat. Für jemanden, der zuschaut oder
+   * prüft, ist das nicht eindeutig."
+   *
+   * Er hat recht, und es sind zwei verschiedene Auskünfte: `KURZ` sagt, was
+   * gerade geschieht, und wechselt im Lauf. Das hier sagt, wer da steht, und
+   * bleibt. Eine Bühne, die nur die Tätigkeit zeigt, lässt den Zuschauer die
+   * Besetzung erraten — und wer prüft, braucht genau sie.
+   */
+  var ROLLE_WORT = { ingenieur: "Ingenieur", mitingenieur: "Mit-Ingenieur",
+                     bauer: "Bauer", arzt: "Arzt", negativbauer: "Negativbauer",
+                     gestalterin: "Gestalterin", nutzer: "Nutzer",
+                     beobachter: "Beobachter" };
+
   /* ⚠ IN DER KONFERENZ TUN ALLE DASSELBE — und das ist der Punkt, den Klaus
      gefunden hat: „Im Normalfall bringen alle eine Idee ein am Konferenztisch
      … dann entscheiden alle, welche Idee die beste ist."
@@ -344,6 +361,15 @@
     /* Die Sprechblase liegt ÜBER dem SVG als gewöhnliches HTML — Text in SVG
        bricht nicht um, und ein Satz, der rechts aus dem Bild läuft, ist keine
        Auskunft. */
+    /* DIE BESETZUNG steht UNTER dem Bild, nicht darin. Im Bild ist kein Platz
+       für eine dritte Zeile je Knopf — acht Knöpfe stehen dort dicht, und was
+       sich überlappt, liest niemand. Als eigene Leiste bleibt sie ausserdem
+       vollständig lesbar, während im Bild einzelne Knöpfe hervortreten. */
+    this.wer = document.createElement("div");
+    this.wer.className = "b-wer";
+    this.wer.setAttribute("data-besetzung", "leer");
+    this.wurzel.appendChild(this.wer);
+
     this.blase = document.createElement("div");
     this.blase.className = "b-blase";
     this.blase.hidden = true;
@@ -678,6 +704,56 @@
    *   fertig  ✓ steht still und nennt die Gesamtdauer
    *   nichts  weg — hier ist keine Schicht gelaufen
    */
+  /**
+   * Schreibt die Besetzung unter das Bild: wer welche Rolle hat.
+   *
+   * ⚠ AUS DEM LAUF, NICHT AUS EINER FESTEN LISTE. Ein gefahrener Lauf weiss,
+   * WER wirklich gearbeitet hat; eine Liste im Code sagt nur, wer heute
+   * eingetragen wäre. Bei einem alten Lauf stünden dort Namen von heute unter
+   * den Taten von damals — dieselbe Regel, nach der `ansicht.js` die Besetzung
+   * schon dem Lauf überlässt.
+   *
+   * Im Planmodus gibt es keine `besetzung`; dann tragen die Ereignisse die
+   * Namen (`wer`), und die stehen zu dem Zeitpunkt schon in den Knöpfen.
+   */
+  Buehne.prototype.werZeichnen = function () {
+    if (!this.wer) return;
+    this.wer.textContent = "";
+    var hatte = false;
+    for (var i = 0; i < ROLLEN.length; i++) {
+      var r = ROLLEN[i], k = this.knoten[r];
+      var name = k && k.name.textContent;
+      /* Wer im Lauf nicht vorkam, steht auch nicht in der Besetzung. Ein
+         Eintrag ohne Namen wäre eine Behauptung über eine Rolle, die diese
+         Schicht gar nicht besetzt hat. */
+      if (!name || name === r) continue;
+      hatte = true;
+      var z = document.createElement("span");
+      z.className = "b-wer-eins b-" + r;
+      var nm = document.createElement("b");
+      nm.textContent = name;
+      var ro = document.createElement("span");
+      ro.className = "b-wer-rolle";
+      /* Der Trenner steht im TEXT, nicht nur als Abstand. Ohne ihn ergibt ein
+         Kopieren „NoraIngenieur" und ein Vorlesegerät liest es als ein Wort —
+         der Abstand ist Gestaltung, kein Zeichen. */
+      ro.textContent = "· " + (ROLLE_WORT[r] || r);
+      z.appendChild(nm);
+      z.appendChild(ro);
+      /* Das Modell gehört dazu, wenn man PRÜFT — aber nicht in die Zeile:
+         `claude-haiku-4-5` ist länger als Name und Rolle zusammen. Es steht
+         im Titel, wo es nachschlägt, wer danach fragt. */
+      var m = null;
+      for (var j = 0; j < this.besetzung.length; j++)
+        if (this.besetzung[j] && this.besetzung[j].rolle === r) m = this.besetzung[j].modell;
+      z.title = name + " — " + (ROLLE_WORT[r] || r) +
+        ", " + (KURZ[r] || "") + (m ? " · " + m : "");
+      this.wer.appendChild(z);
+    }
+    this.wer.setAttribute("data-besetzung", hatte ? "da" : "leer");
+    this.wer.hidden = !hatte;
+  };
+
   Buehne.prototype.uhrZeichnen = function () {
     if (!this.uhr) return;
     if (this.uhrTakt) { clearInterval(this.uhrTakt); this.uhrTakt = null; }
@@ -780,6 +856,7 @@
       this.zeigeAkte(r);            /* zu  */
       this.zeigeAkte(r);            /* auf — jetzt aus this.events */
     }
+    this.werZeichnen();
     this.uhrZeichnen();
     this.zeigeStand(-1);
   };
