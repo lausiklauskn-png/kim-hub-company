@@ -33,7 +33,7 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
    der Inhalt ist byte-gleich, nur die Datei heisst dort anders. */
 export const ERWARTET = [
   { datei: "index.html",                herkunft: "start.html",              sha: "17b89b16062ddb5b8c5888d4524ed12dacd5131ce6440f3b48b35d4d34cdc33c" },
-  { datei: "company.js",                herkunft: "company.js",              sha: "7e5e39bff0635a6fb1aa7ac6cf5e050dc96b358a315dcecd651e9d3c322d4f76" },
+  { datei: "company.js",                herkunft: "company.js",              sha: "0e5becb745680461a6ffe615502edb6108c56d0f65e25e1e7b568d1edd79bece" },
   { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "3e1e8b1c5f73a7935239c5c06c05505c77c76c0b2877cda9896b0602638ccd2d" },
   { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "5e00e9bb39ab11ac8179c281c555c9644f7c5c56900cde6e8585a4f5dbb25a66" },
   { datei: "zeit.js",                   herkunft: "zeit.js",                 sha: "1bdb42884e8385e32aa3bc6572c1c8736d928e48bde6847081cc98efcbb85822" },
@@ -46,6 +46,7 @@ export const ERWARTET = [
   { datei: "schicht/kosten.mjs",        herkunft: "schicht/kosten.mjs",      sha: "e901b14a295d6d332e5deb8d6100c6731cff1c3f0909e05ea0477a888c685841" },
   { datei: "schicht/beispiele.mjs",     herkunft: "schicht/beispiele.mjs",   sha: "9ac09d506f2a397b240bfec843b46908da3f29ea375dfc027557e82cf3213fef" },
   { datei: "schicht/grundsaetze.mjs",   herkunft: "schicht/grundsaetze.mjs", sha: "340117e1f311aba0bfce9730fad28b90e3fdddde8aa3d0e103073b0bea883523" },
+  { datei: "schicht/fahrtenbuch-form.mjs",  herkunft: "schicht/fahrtenbuch-form.mjs", sha: "4702d8f4d14d6e604030c9940b9e1015a5e8d03c31bfb2af638c73cb42ea2481" },
   { datei: "schicht/ablage-idb.mjs",    herkunft: "schicht/ablage-idb.mjs",  sha: "4e240592e9eb65e21bad68a3bb1fe8d859b113bb800009406e1254f29c5a1c9b" },
   { datei: "schicht/ablage-speicher.mjs", herkunft: "schicht/ablage-speicher.mjs", sha: "9c67aca234783a39ce2599bd2763393180d56091160b6c87f1f3c6b6bbb48fd3" },
   { datei: "schicht/baum-speicher.mjs", herkunft: "schicht/baum-speicher.mjs", sha: "f854d3a9552d9cb1eba8aabe4a4c15af711cc09364a34087e4cc3cff6528a2a9" },
