@@ -56,9 +56,27 @@ Freibrief zum Selbst-Mergen · frisch von `origin/main` vor jeder Arbeit · Ton 
 kein PII · Ehrlichkeit stehen **einmal** in
 **[`Sage-Protokol/docs/NETZWEIT.md`](https://github.com/lausiklauskn-png/Sage-Protokol/blob/main/docs/NETZWEIT.md)**.
 
-⚠ **Der Selbst-Merge-Freibrief gilt hier NICHT.** Der Bauplan sagt es
-ausdrücklich: *„Kein Merge dort ohne Klaus."* Dieses Depot ist öffentlich und
-neu; was hier hineingeht, entscheidet er.
+**Der Selbst-Merge-Freibrief gilt hier — seit 2026-09-06.** Klaus, wörtlich:
+*„in kim-hub-company darfst du selbst mergen."*
+
+> **Bis dahin stand hier das Gegenteil**, mit Verweis auf den Bauplan (*„Kein
+> Merge dort ohne Klaus"*). Die Regel war richtig, solange das Depot neu war —
+> und sie ist ihm an dem Abend zur Last geworden, an dem sechs Kopien
+> hintereinander fertig waren: *„Du musst die App mergen oder das PR mergen,
+> sonst kann ich das nicht lesen. Es geht nach GitHub, PR 10 und bla bla bla.
+> Und dann weiß ich nicht, wie es weitergeht."* Jede Kopie kostete ihn einen
+> Umweg über GitHub, um eine Änderung zu sehen, die er selbst bestellt hatte.
+>
+> Der Bauplan in Kimhub (`docs/sessions/BAUPLAN_kimhub-company.md`) trägt den
+> alten Satz noch; **diese Datei ist die neuere Erkenntnis und geht vor** —
+> Tafel-Evolutions-Klausel, ausdrücklich benannt statt stillschweigend
+> umfahren.
+
+**Was das NICHT lockert:** die Leitplanken bleiben. Gemergt wird, was geprüft
+ist (`npm test` grün, Drift-Guard sauber), abgegrenzt und nicht architektonisch
+zweifelhaft — **nicht** bei echtem Zweifel und nicht, wenn Klaus vorher
+draufschauen will. Und die Adresse gehört weiter in den Chat: sein
+Browser-Sichttest ist nicht ersetzbar, er kommt jetzt nur ohne Umweg.
 
 ```bash
 git fetch origin --quiet && git checkout -B <branch> origin/main
