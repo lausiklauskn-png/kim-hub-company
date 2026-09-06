@@ -60,6 +60,44 @@ if (!window.__werkstatt || typeof window.__werkstatt.speise !== "function")
    dass beide übereinstimmen, bewacht eine Probe. */
 const idb = IDB.macheIdb({ name: window.__WERKSTATT_DB || "KimHubCompany1" });
 
+/* ══ DER LAUF ÜBERLEBT EIN ZURÜCK ═══════════════════════════════════════════
+ *
+ * ⚠ KLAUS HAT AM 2026-09-06 EINEN BEZAHLTEN LAUF VERLOREN. Er drückte einmal
+ * „zurück", der Reiter war weg, und mit ihm die ganze Schicht — Konferenz,
+ * Beiträge, Ergebnis. Neu starten war der einzige Weg, und das kostete noch
+ * einmal.
+ *
+ * Der Grund stand im Code, nur nicht als Schaden: `speise()` schreibt in die
+ * ANSICHT, nicht in die Datenbank, und `ablage.sichern()` sichert das
+ * Gedächtnis der Agenten — nicht den Lauf. Zwischen Knopf und Feierabend lag
+ * alles im Arbeitsspeicher.
+ *
+ * `ablage-idb.mjs` nennt genau diesen Preis und hält ihn für den richtigen
+ * Schnitt: „Für eine Schicht, die von einem Knopf bis zum Feierabend läuft."
+ * **Das galt für Node.** In einem Browser-Tab auf einem Tablet ist „zurück"
+ * eine Fingerbewegung, und der Satz stimmt nicht mehr — dieselbe Datei sagt
+ * selbst, was dann zu tun ist: „wer später Zwischenstände sichern will, ruft
+ * `sichern()` öfter."
+ *
+ * ⚠ EIN WIEDERHERGESTELLTER LAUF WIRD BENANNT. Ein abgebrochener, der aussieht
+ * wie ein fertiger, ist schlimmer als gar keiner — er behauptet ein Ergebnis,
+ * das niemand hat. Deshalb trägt der Stand `fertig` mit.
+ */
+const LAUF_FACH = "lauf-stand";
+let letzterStand = { konferenz: null, lauf: null, wann: "", fertig: false, echt: false };
+let sicherKette = Promise.resolve();
+
+/** Sichert den Stand — nie im Weg, nie laut. Ein Lauf darf nicht daran
+ *  scheitern, dass das Sichern scheitert; er darf es aber auch nicht
+ *  verschweigen, deshalb geht ein Fehlschlag in die Konsole. */
+function standSichern() {
+  sicherKette = sicherKette
+    .then(() => idb.schreib(LAUF_FACH, JSON.stringify(letzterStand)))
+    .catch((e) => console.warn("Lauf-Stand nicht gesichert:", e));
+  return sicherKette;
+}
+
+
 const $ = (id) => document.getElementById(id);
 const zeigen = (el, ja) => { if (el) el.hidden = !ja; };
 
@@ -285,7 +323,12 @@ async function fahre({ echt }) {
          von einem Drittel. */
       anteil: 1,
     }) : null;
-    if (konf) window.__werkstatt.speise("konferenz", konf);
+    if (konf) {
+      window.__werkstatt.speise("konferenz", konf);
+      letzterStand.konferenz = konf;
+      letzterStand.wann = new Date().toISOString();
+      await standSichern();
+    }
 
     /* ⚠ HIER LÖST SICH DIE NAHT EIN. `schicht.mjs` gibt seinen Zwischenstand in
        DERSELBEN Form heraus wie das Endergebnis — das steht dort im Code, mit
@@ -295,7 +338,12 @@ async function fahre({ echt }) {
        Schicht läuft. */
     const lauf = await schicht({
       api, auftrag, mitarbeiter, kasse, spindAblage: ablage, grundsaetze: g, werkbank,
-      aufZwischenstand: (z) => window.__werkstatt.speise("lauf", z),
+      aufZwischenstand: (z) => {
+        window.__werkstatt.speise("lauf", z);
+        letzterStand.lauf = z;
+        letzterStand.wann = new Date().toISOString();
+        standSichern();
+      },
     });
 
     /* ⚠ GESICHERT WIRD NUR NACH EINEM ECHTEN LAUF — dieselbe Zusicherung wie in
@@ -305,7 +353,18 @@ async function fahre({ echt }) {
 
     stand.letzterLauf = lauf;
     window.__werkstatt.speise("lauf", lauf);
+    letzterStand.lauf = lauf;
+    letzterStand.wann = new Date().toISOString();
+    letzterStand.fertig = true;
+    await standSichern();
   } catch (e) {
+    /* Ein Abbruch ist ein Stand wie jeder andere — er wird gesichert, nur
+       ausdrücklich NICHT als fertig. Ohne diese Zeile wäre der letzte
+       Zwischenstand nach einem Absturz beim nächsten Öffnen als „fertig"
+       zu sehen, und das wäre ein behauptetes Ergebnis. */
+    letzterStand.fertig = false;
+    letzterStand.wann = new Date().toISOString();
+    standSichern();
     /* Was die Kasse WEISS, sagt sie; woran es lag, weiss sie nicht. */
     const p = $("start-sagt");
     p.setAttribute("data-start", "abbruch");
@@ -318,6 +377,44 @@ async function fahre({ echt }) {
 
 $("trocken").onclick = () => fahre({ echt: false });
 $("echt").onclick = () => fahre({ echt: true });
+
+/* ⚠ EIN ZURÜCK IST EINE FINGERBEWEGUNG, EIN BEZAHLTER LAUF NICHT.
+ * Der Browser fragt nur nach, wenn eine Seite es verlangt — und er fragt nur,
+ * WENN etwas läuft: eine Nachfrage, die immer kommt, klickt man weg, ohne sie
+ * zu lesen. Sie hält niemanden auf, der wirklich gehen will; sie macht aus
+ * einem stillen Verlust eine Entscheidung. Den Text bestimmt der Browser,
+ * nicht wir — deshalb steht hier keiner. */
+window.addEventListener("beforeunload", (e) => {
+  if (!stand.laeuft) return;
+  e.preventDefault();
+  e.returnValue = "";
+});
+
+/* ══ WAS BEIM ÖFFNEN WIEDER DA IST ══════════════════════════════════════════
+ * Der letzte Stand kommt zurück in die Räume — und mit ihm die Angabe, WANN er
+ * war und ob er zu Ende lief. Ein abgebrochener Lauf, der aussieht wie ein
+ * fertiger, behauptet ein Ergebnis, das es nicht gibt. */
+(async function laufWiederherstellen() {
+  let roh = null;
+  try { roh = await idb.lies(LAUF_FACH); } catch (e) { roh = null; }
+  if (!roh) return;
+  let g = null;
+  try { g = JSON.parse(roh); } catch (e) { return; }
+  if (!g || (!g.lauf && !g.konferenz)) return;
+
+  letzterStand = g;
+  if (g.konferenz) window.__werkstatt.speise("konferenz", g.konferenz);
+  if (g.lauf) window.__werkstatt.speise("lauf", g.lauf);
+
+  const p = $("start-sagt");
+  if (!p || stand.laeuft) return;
+  const wann = g.wann ? new Date(g.wann).toLocaleString("de-DE") : "unbekannt";
+  p.setAttribute("data-wieder", g.fertig ? "fertig" : "abgebrochen");
+  p.textContent = g.fertig
+    ? `Der letzte Lauf vom ${wann} ist wieder da — er lief zu Ende.`
+    : `Der letzte Lauf vom ${wann} ist wieder da, ABER er lief NICHT zu Ende. ` +
+      `Was du siehst, ist der Stand bis zum Abbruch, kein Ergebnis.`;
+})();
 
 /* ══ WAS DIE SEITE SICH HOLT ═══════════════════════════════════════════════ */
 async function holeMitarbeiter() {

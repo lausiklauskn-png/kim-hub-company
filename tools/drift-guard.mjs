@@ -32,10 +32,10 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
 /* `index.html` steht hier mit dem Namen, den die Datei in Kimhub trägt —
    der Inhalt ist byte-gleich, nur die Datei heisst dort anders. */
 export const ERWARTET = [
-  { datei: "index.html",                herkunft: "start.html",              sha: "d2d654032bdc82784bd68f41d449ec60704ad8182fda3b1552d173432efbc28f" },
-  { datei: "company.js",                herkunft: "company.js",              sha: "10fdd6d1db975e63c1a3287997c442f34d0bb635712384313f225ce12b8e91a9" },
+  { datei: "index.html",                herkunft: "start.html",              sha: "17b89b16062ddb5b8c5888d4524ed12dacd5131ce6440f3b48b35d4d34cdc33c" },
+  { datei: "company.js",                herkunft: "company.js",              sha: "7e5e39bff0635a6fb1aa7ac6cf5e050dc96b358a315dcecd651e9d3c322d4f76" },
   { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "3e1e8b1c5f73a7935239c5c06c05505c77c76c0b2877cda9896b0602638ccd2d" },
-  { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "87d49b370637b611f9585f226c47fc4f0ceb1750ba435c087022fa830d906335" },
+  { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "5e00e9bb39ab11ac8179c281c555c9644f7c5c56900cde6e8585a4f5dbb25a66" },
   { datei: "zeit.js",                   herkunft: "zeit.js",                 sha: "1bdb42884e8385e32aa3bc6572c1c8736d928e48bde6847081cc98efcbb85822" },
   { datei: "idb.js",                    herkunft: "idb.js",                  sha: "b244ab3f832bb4d4cd5ec87e51de364df5716ee7ca6fc8a2bceeea6b6c9bbd51" },
   { datei: "schluesseltresor.js",       herkunft: "schluesseltresor.js",     sha: "eaed30e8f3921835a3f58b69f89d9b008831f69f164ad1dfec630fa43161f666" },
