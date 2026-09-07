@@ -46,9 +46,9 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
  * Fingerabdrücke unten nachzieht und das hier vergisst, wird rot.
  */
 export const HERKUNFT = {
-  commit: "83187cb",
-  datum:  "2026-09-07T19:20:20+00:00",
-  betreff: "Die acht blinden Waechter \u2014 und die falsche Praemisse dahinter",
+  commit: "af010c8",
+  datum:  "2026-09-07T23:03:09+02:00",
+  betreff: "Emil reisst nicht mehr, die Konferenz steht im Buch, das Tor sagt dass es wartet",
 };
 
 export const ERWARTET = [
