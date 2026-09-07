@@ -854,9 +854,27 @@
        Ereignisse gab es keine Schicht, und eine Uhr, die „beendet" sagt, wo
        nichts war, behauptet etwas. */
     if (this.events.length && beginn) {
+      /*
+       * ⚠ „BEENDET" IST NICHT DASSELBE WIE „ABGEBROCHEN" (Klaus 2026-09-07).
+       *
+       * Hier stand für JEDEN Lauf mit Ereignissen „✓ Schicht beendet" — auch
+       * für einen, der nach der Idee gestorben ist. Die Seite sagt es an
+       * anderer Stelle richtig („ABER er lief NICHT zu Ende"), und die Uhr
+       * darüber widersprach ihr. **Zwei Zeilen, zwei Wahrheiten, und die
+       * auffälligere war die falsche.**
+       *
+       * ⚠ IM ZWEIFEL NICHT „BEENDET" BEHAUPTEN. Fehlt die Angabe ganz (ein
+       * alter Lauf, eine Konferenz ohne `ergebnis`), steht die neutrale
+       * Fassung da — geraten wird nicht. Dieselbe Regel wie bei `art`:
+       * „echt bezahlt" wird nie geraten.
+       */
+      var fertig = this.fertig;
       uhr.hidden = false;
-      uhr.setAttribute("data-schichtuhr", "fertig");
-      uhr.textContent = "Schicht beendet · " +
+      uhr.setAttribute("data-schichtuhr",
+        fertig === false ? "abgebrochen" : fertig === true ? "fertig" : "gelaufen");
+      uhr.textContent = (fertig === false ? "Schicht abgebrochen · "
+                        : fertig === true ? "Schicht beendet · "
+                        : "Schicht gelaufen · ") +
         zeit().dauerText(Math.max(0, (this.uhrEnde || beginn) - beginn));
       return;
     }
@@ -878,6 +896,10 @@
     /* Wie weit der Lauf ist. Fehlt es, zeigt die Uhr nur die Dauer — eine
        erfundene Restzeit wäre schlimmer als keine. */
     this.umfang = daten.umfang || null;
+    /* Ob der Lauf ZU ENDE lief — drei Antworten, nicht zwei: ja, nein,
+       unbekannt. Ein alter Lauf ohne die Angabe soll nicht als „beendet"
+       durchgehen, nur weil er Ereignisse hat. */
+    this.fertig = typeof daten.fertig === "boolean" ? daten.fertig : null;
     this.istBeispiel = daten._ausBeispiel === true;
     /* Zwei Achsen, getrennt gehalten (1.5): `istBeispiel` sagt WOHER, `art`
        sagt WOMIT. Bis zum 2026-08-22 stand an der Bühne nur das Wort
@@ -941,6 +963,26 @@
    */
   Buehne.prototype.zeigeStand = function (idx, spielt) {
     var ev = (idx >= 0 && idx < this.events.length) ? this.events[idx] : null;
+    /*
+     * ══ DER PULS LÄUFT NUR, WENN WIRKLICH ETWAS LÄUFT ═══════════════════════
+     *
+     * Klaus 2026-09-07, mit Bild: nach ⟳ pulsierte Nora über einer Schicht,
+     * die längst vorbei war. „Das kann nicht sein nach dem Aktualisieren."
+     *
+     * Die Ursache: `ansicht.js` stellt bei JEDEM Neuaufbau den Abspiel-Stand
+     * ans Ende („Vorgabe: alles zu sehen"). Der letzte Schritt bekommt damit
+     * `dran` — und im Stylesheet hängt daran `animation: b-puls … infinite`.
+     *
+     * Der Kommentar dort sagt sogar, was gemeint war: „Der Puls läuft nur,
+     * wenn jemand dran ist." Gebaut war „wenn ein Schritt AUSGEWÄHLT ist".
+     * **Auf einem Schritt zu stehen heisst lesen, nicht arbeiten.**
+     *
+     * Die Auswahl bleibt sichtbar (Ring, Helligkeit) — nur die Bewegung geht
+     * weg. Ein Bild, das Betrieb behauptet, wo keiner ist, ist dieselbe Sorte
+     * Unwahrheit wie eine Uhr, die über einem toten Lauf weiterzählt.
+     */
+    if (this.wurzel) this.wurzel.setAttribute("data-lebt",
+      (this.laeuft || spielt) ? "ja" : "nein");
     /* Gemerkt, weil das Öffnen und Schließen einer Akte den Volltext-Kasten neu
        stellen muss — und der braucht dafür den Schritt, auf dem wir stehen.
        Ohne das zeigte er nach dem Schließen wieder den Stand von vor dem

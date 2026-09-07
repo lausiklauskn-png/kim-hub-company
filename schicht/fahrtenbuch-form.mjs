@@ -17,6 +17,23 @@
  * Forscher, der beide vergleicht, verglich Äpfel mit Birnen.
  */
 
+import "../zeit.js";
+
+/*
+ * DER TAG KOMMT AUS DER ORTSZEIT, NICHT AUS UTC (Klaus 2026-09-07, mit Bild).
+ *
+ * Sein Verlauf nannte „7.9.2026, 01:20:32", das Fahrtenbuch daneben
+ * „2026-09-06" — dieselbe Fahrt, zwei Tage. `toISOString()` ist UTC; um 01:20
+ * in Mitteleuropa ist es 23:20 des Vortags in Greenwich. Jede Fahrt zwischen
+ * Mitternacht und zwei Uhr wurde auf den Vortag gebucht — und daran hängt das
+ * TAGESKONTINGENT, also Geld.
+ *
+ * `zeit.js` ist ein klassisches Skript und setzt ein Global; das ist derselbe
+ * Weg, den `buehne.js` und `ansicht.js` nehmen. Die Rechnung steht dort an
+ * EINER Stelle, damit Browser und Kommandozeile nicht zwei Tage kennen.
+ */
+const tagOrt = (d) => globalThis.WERKSTATT_ZEIT.tagOrt(d);
+
 
 export const KOPF = {
   quelle: "schicht/lauf.mjs — jede Fahrt haengt sich selbst an, keine Nacherfassung",
@@ -80,7 +97,12 @@ export function eintrag({ art, echt, datum, bericht, besetzung = [],
        NICHT dasselbe wie `minuten`: das ist die Kassen-Laufzeit aus der
        Prüf-Uhr. Zwei Zahlen, zwei Uhren, zwei Fragen. */
     sekunden: Number(spanneSek.toFixed(3)),
-    tag: datum || beendet.slice(0, 10),
+    /* ⚠ NICHT `beendet.slice(0, 10)` — das waere UTC. Siehe den Kopf.
+       ⚠ UND NICHT `tagOrt()` OHNE ARGUMENT: das waere HEUTE, nicht der Tag
+       dieser Fahrt. Beim Schreiben fallen die beiden fast immer zusammen —
+       fast immer ist bei einem Buchungsdatum zu wenig. Gemessen: mit `beendet`
+       auf 23:20 UTC ergibt der Weg ohne Argument den falschen Tag. */
+    tag: datum || tagOrt(new Date(beendet)),
     art,
     artText: ARTEN[art],
     echt: !!echt,

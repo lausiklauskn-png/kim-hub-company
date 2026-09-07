@@ -352,10 +352,20 @@ footer{padding:18px 16px 40px;color:var(--leise);font-size:.87rem}
 /* Der Puls läuft nur, wenn jemand dran ist — als eigener Ring hinter dem
    Knopf, damit er die Plastik nicht überstrahlt. */
 .b-agent.dran .b-scheibe { animation: none; }
+/* ⚠ NUR SOLANGE WIRKLICH ETWAS LÄUFT (Klaus 2026-09-07, mit Bild): nach ⟳
+   pulsierte eine Rolle über einer Schicht, die längst vorbei war. `ansicht.js`
+   stellt bei jedem Neuaufbau den Abspiel-Stand ans Ende, der letzte Schritt
+   bekommt `dran` — und die Bewegung behauptete Betrieb, wo keiner ist.
+   `data-lebt` setzt die Bühne aus `laeuft || spielt`. Der Ring bleibt: WO man
+   steht, soll man weiter sehen. Nur die Bewegung geht weg. */
 .b-agent.dran::before {
   content: ""; position: absolute; top: 29px; left: 50%; width: 58px; height: 58px;
   margin: -29px 0 0 -29px; border-radius: 50%;
   border: 2px solid currentColor; pointer-events: none;
+  opacity: .45;
+}
+#buehne[data-lebt="ja"] .b-agent.dran::before {
+  opacity: 1;
   animation: b-puls 1.8s ease-out infinite;
 }
 @keyframes b-puls {
