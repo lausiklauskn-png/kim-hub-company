@@ -55,9 +55,26 @@ function schaerfungsTeil(z, schaerfung) {
   z.push(String(schaerfung));
 }
 
-function kostenTeil(z, k) {
+/*
+ * ⚠ EINE GERECHNETE ZAHL KLINGT GENAU WIE EINE BEZAHLTE.
+ *
+ * Bis zum 2026-09-07 stand hier „0.15 € in 17 Aufrufen." — ohne ein Wort
+ * darüber, ob das Geld je geflossen ist. Der Trockenlauf-Hinweis steht zwar
+ * oben im Blatt, aber die Kostenzeile wird für sich gelesen und zitiert; sie
+ * ist die eine Zeile, aus der jemand eine Zahl abschreibt. Die Bühne
+ * unterscheidet seit dem 2026-09-07 „trocken · nichts bezahlt" von „echt
+ * bezahlt", das mitgenommene Blatt tat es nicht.
+ *
+ * Gemessen an einer Trockenschicht im Browser, aus der die Datei wirklich
+ * heruntergeladen wurde — nicht am Bildschirmtext.
+ */
+function kostenTeil(z, k, trocken) {
   z.push(`\n## Was diese Konferenz gekostet hat\n`);
-  z.push(`${k.verbrauchtEur.toFixed(2)} € in ${k.aufrufe} Aufrufen.`);
+  const betrag = `${k.verbrauchtEur.toFixed(2)} € in ${k.aufrufe} Aufrufen`;
+  z.push(trocken
+    ? `${betrag} — **gerechnet, nicht bezahlt.** Ein Trockenlauf ruft kein`
+      + ` Modell; die Zahl zeigt, was er gekostet hätte.`
+    : `${betrag}.`);
 }
 
 function handTeil(z) {
@@ -93,7 +110,7 @@ export function auftragsBlatt({ auftrag, schaerfung = "", bericht, datum, trocke
     + ` keine Einwände und nichts Verworfenes; die acht Rollen haben über`
     + ` diesen Auftrag nicht abgestimmt.`);
   schaerfungsTeil(z, schaerfung);
-  kostenTeil(z, bericht);
+  kostenTeil(z, bericht, trocken);
   handTeil(z);
   return z.join("\n") + "\n";
 }
@@ -143,7 +160,7 @@ export function planBlatt(konf, bericht, datum, trocken, schaerfung = "") {
       + ` — wie viel höher jeder den eigenen Vorschlag setzt als die der anderen.`);
   }
   schaerfungsTeil(z, schaerfung);
-  kostenTeil(z, k);
+  kostenTeil(z, k, trocken);
   handTeil(z);
   return z.join("\n") + "\n";
 }

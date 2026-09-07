@@ -14,7 +14,7 @@
  * Depot hat davon nichts — es hat die Dateien. Eine abgewandelte Kopie hier
  * wäre also nicht nur eine zweite Generation, sondern eine UNGEPRÜFTE.
  *
- * ⚠ WAS BEWUSST NICHT GEPINNT IST: `company-sw.js` und `company.webmanifest`.
+ * ⚠ WAS BEWUSST NICHT GEPINNT IST: `sw.js` und `company.webmanifest`.
  * Sie nennen den Dateinamen der Startseite, und der ist hier ein anderer
  * (`index.html` statt `start.html`) — app-eigener Klebstoff. Der Unterschied
  * steht im Kopf des Workers, damit ihn niemand für einen Fehler hält.
@@ -46,9 +46,9 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
  * Fingerabdrücke unten nachzieht und das hier vergisst, wird rot.
  */
 export const HERKUNFT = {
-  commit: "7363d7a",
-  datum:  "2026-09-07T16:45:29+02:00",
-  betreff: "Die Prüfung, die gefehlt hat: baut die Schicht wirklich, was gewählt wurde? (#126)",
+  commit: "f390ab2",
+  datum:  "2026-09-07T19:04:25+02:00",
+  betreff: "Die Kostenzeile im mitgenommenen Blatt sagt, ob gezahlt wurde (#130)",
 };
 
 export const ERWARTET = [
@@ -60,7 +60,7 @@ export const ERWARTET = [
   { datei: "idb.js",                    herkunft: "idb.js",                  sha: "b244ab3f832bb4d4cd5ec87e51de364df5716ee7ca6fc8a2bceeea6b6c9bbd51" },
   { datei: "schluesseltresor.js",       herkunft: "schluesseltresor.js",     sha: "eaed30e8f3921835a3f58b69f89d9b008831f69f164ad1dfec630fa43161f666" },
   { datei: "schicht/konferenz.mjs",     herkunft: "schicht/konferenz.mjs",   sha: "63a192bc9aa3d9d59d0514210a69c7f5a87f324657da916eb64c547eedec9871" },
-  { datei: "schicht/plan-form.mjs",  herkunft: "schicht/plan-form.mjs", sha: "3e94b0840f7e55b345ff9f5310a1bba3009208b1af8c06c6866b4600f88a7bad" },
+  { datei: "schicht/plan-form.mjs",  herkunft: "schicht/plan-form.mjs", sha: "6dcefbc19383235d1f0bf0ea16b12994d1dcb2af6db2acd943664a09c0a0f6a0" },
   { datei: "schicht/umfang.mjs",     herkunft: "schicht/umfang.mjs",    sha: "f0497c620434c0bc9c24268f23616174ca6ed658e4a56da0b47edf3340f35990" },
   { datei: "schicht/schicht.mjs",       herkunft: "schicht/schicht.mjs",     sha: "0bba4e8cd0050235fdf866d861356547f0f3bdeb1632cf3491212ba0e6cbd702" },
   { datei: "schicht/api.mjs",           herkunft: "schicht/api.mjs",         sha: "36852cc8a82ac0bd6153de16b8fce7d3b3c1652159cd9d4f592cb4a14917c4b1" },
