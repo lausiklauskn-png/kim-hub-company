@@ -2337,10 +2337,36 @@
       var k = zeitkostenCent(gesamt, c);
       /* Zwei Zustände, beide ehrlich: mit Satz die Rechnung, ohne Satz die
          Auskunft, dass keiner hinterlegt ist. Nie eine Null. */
-      $("#k-klaus-sub").textContent = c
+      /*
+       * ⚠ DIE KACHEL SAGT, WORAUS SIE BESTEHT (Klaus 2026-09-07, mit Bild).
+       *
+       * Sie hiess „Klaus' Zeit (Stechuhr) — alles" und zeigte 1:01:41 samt
+       * 46,27 €. Gestempelt hatte er davon NICHTS: jede Zeile im Verlauf
+       * darunter sagte selbst „aus dem Fahrtenbuch". Das sind die Fahrten der
+       * Agenten — Zeit, in der die Werkstatt lief, nicht unbedingt Zeit, in
+       * der er davorsass.
+       *
+       * ⚠ DIE FAHRTEN BLEIBEN DRIN, und das ist Absicht: vor Termux gibt es
+       * keinen Knopf, und ein Stundennachweis mit Löchern an genau den Tagen,
+       * an denen gearbeitet wurde, ist schlimmer als keiner. Was fehlte, war
+       * die AUFTEILUNG — nicht die Summe.
+       *
+       * **Eine Zahl, die zwei Herkünfte mischt, ohne sie zu nennen, ist keine
+       * Messung, sondern eine Behauptung.** Ein Betrag darauf ist eine Zahl,
+       * die niemand belegen kann. Die Aufteilung steht deshalb IMMER da, auch
+       * ohne Stundensatz.
+       */
+      var gestempeltSek = vereinigt(uhrAbschnitte()).sekunden;
+      var gefahrenSek = vereinigt(fahrtAbschnitte()).sekunden;
+      var teile = "davon " + uhrzeit(gestempeltSek) + " gestempelt · " +
+        uhrzeit(gefahrenSek) + " gefahren";
+      $("#k-klaus-sub").textContent = (c
         ? minuten(gesamt).toFixed(1).replace(".", ",") + " min × " +
           eur(c / 100) + "/h = " + eur(k / 100)
-        : "kein Stundensatz hinterlegt — die Stunden sind gemessen, der Betrag nicht";
+        : "kein Stundensatz hinterlegt — die Stunden sind gemessen, der Betrag nicht")
+        + " · " + teile;
+      $("#k-klaus-sub").setAttribute("data-gestempelt", String(Math.round(gestempeltSek)));
+      $("#k-klaus-sub").setAttribute("data-gefahren", String(Math.round(gefahrenSek)));
       $("#k-klaus-sub").setAttribute("data-satz", c ? String(c) : "keiner");
       /* Das ERGEBNIS als eigene Angabe. Der Satz daneben nennt beide Zahlen —
          den Stundensatz UND den Betrag —, und eine Prüfung, die im Text nach
@@ -3173,6 +3199,25 @@
     zeichneErgebnis();
     zeichneMitnehmen();
     zeichneBuchhaltung();
+    /*
+     * ⚠ UHR UND PROTOKOLL GEHÖREN HIERHER (Klaus 2026-09-07, mit Bild).
+     *
+     * Seine Seite zeigte oben „Klaus' Zeit — 1:01:41" und unten „Noch nichts
+     * zu übergeben — keine gestempelten Abschnitte und keine Fahrt im Buch".
+     * Beide über dieselbe Sache, und sie widersprachen sich.
+     *
+     * Die Ursache war kein Rechenfehler, sondern eine fehlende Zeile: das
+     * Fahrtenbuch kommt NACHTRÄGLICH (aus IndexedDB, asynchron). `neuAufbauen`
+     * zeichnete danach die Räume neu — Uhr und Protokoll aber nicht. Das
+     * Protokoll blieb auf dem Stand von vor dem Laden und sagte „nichts da",
+     * während die Kachel daneben schon die Fahrten kannte.
+     *
+     * **Eine Anzeige, die nur halb erneuert wird, widerspricht sich selbst** —
+     * und der Leser glaubt der falschen Hälfte. Beide hängen an
+     * `daten.fahrten`, also werden beide hier gezeichnet, an EINER Stelle.
+     */
+    uhrZeichnen();
+    zeichneProtokoll();
     tresorZeichnen();
     zeichneStand();
 
