@@ -1162,6 +1162,15 @@ async function holeGrundsaetze() {
     laeuft: () => stand.laeuft,
     dateien: () => Object.keys(stand.dateien).slice(),
     letzterLauf: () => (stand.letzterLauf ? JSON.parse(JSON.stringify(stand.letzterLauf)) : null),
+    /* ⚠ FÜR DIE EINE PRÜFUNG, DIE GEFEHLT HAT (2026-09-07): kam der Sieger der
+       Konferenz wirklich bei der Schicht an? Die Browser-Probe fuhr den Weg mit
+       Konferenz und prüfte nur, DASS etwas herauskam — nicht, dass es dasselbe
+       ist. Genau dadurch blieb ein Lauf grün, in dem die Abstimmung ins Leere
+       lief. Hier ist kein Geheimnis drin: es ist der Auftragstext, den der
+       Nutzer selbst sieht. */
+    letzterSieger: () => (letzterStand.konferenz && letzterStand.konferenz.auftrag
+      ? { ziel: letzterStand.konferenz.auftrag.ziel,
+          sieger: letzterStand.konferenz.auftrag.sieger || null } : null),
     idbName: idb.name,
   };
 })();
