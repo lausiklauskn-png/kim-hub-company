@@ -211,7 +211,12 @@ export async function konferenz({
    */
   const melde = () => {
     if (!aufZwischenstand) return;
-    try { aufZwischenstand({ art, events: events.slice(), laeuft: true,
+    /* ⚠ DAS DATUM GEHÖRT MIT (2026-09-07). Ohne es stand auf Klaus' Seite
+       „Konferenz vom undefined (echt)" — die Zeile darunter nannte für die
+       Schicht ein Datum und für die Konferenz ein Wort, das nach einem Fehler
+       aussieht. Der fertige Stand trägt es seit jeher; nur der Zwischenstand
+       nicht, und der ist genau das, was während des Laufs zu sehen ist. */
+    try { aufZwischenstand({ art, datum, events: events.slice(), laeuft: true,
                              beginn: new Date(beginn).toISOString() }); }
     catch { /* nie den Lauf umwerfen */ }
   };

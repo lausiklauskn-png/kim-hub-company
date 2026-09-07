@@ -36,7 +36,7 @@ import { EchteApi, TrockenApi, MAX_RUNDEN } from "./schicht/api.mjs";
 import { netzTransport, macheNotaus, FRIST_MS } from "./schicht/transport-netz.mjs";
 import { planBlatt, auftragsBlatt } from "./schicht/plan-form.mjs";
 import { erwarteteAufrufe, stillstandAbMs } from "./schicht/umfang.mjs";
-import { Kasse } from "./schicht/kosten.mjs";
+import { Kasse, zusammen } from "./schicht/kosten.mjs";
 import { BEISPIELE } from "./schicht/beispiele.mjs";
 import { deuteGrundsaetze, KEINE } from "./schicht/grundsaetze.mjs";
 import { idbAblage } from "./schicht/ablage-idb.mjs";
@@ -547,6 +547,33 @@ function zeigtLauf() {
  * an `#wieder-sagt`, 2026-09-06 an `#abbruch-sagt`). Sie steht jetzt an der
  * Stelle, an der sie gilt.
  */
+/**
+ * DIE ANZEIGE HÖRT AUF ZU LAUFEN — an einer Stelle, für beide Hälften.
+ *
+ * Klaus 2026-09-07, mit Bild: die Schicht war abgebrochen (die Meldung stand
+ * darunter im Klartext), und die Bühne zählte weiter — „Schicht läuft ·
+ * 58:41", Nora leuchtete, und im Fuß stand „LÄUFT GERADE".
+ *
+ * Der Grund: `zwischenstand()` trägt fest `laeuft: true`, und der Abbruch-Pfad
+ * hat die Anzeige nie geradegerückt. Das ist derselbe Befund wie bei der
+ * Geister-Schicht vom selben Tag, nur ohne Neuladen — er trat schon im
+ * laufenden Fenster auf.
+ *
+ * ⚠ BEIDE HÄLFTEN. Die Konferenz meldet seit dem 2026-09-07 ebenfalls einen
+ * Zwischenstand mit `laeuft: true`; wer nur die Schicht geraderückt, lässt im
+ * Fuß „Konferenz — LÄUFT GERADE" stehen. Eine Anzeige, die zur Hälfte die
+ * Unwahrheit sagt, ist von einer ganzen nicht zu unterscheiden.
+ */
+function anzeigeAnhalten() {
+  window.__werkstatt.speise("schichtlaeuft", null);
+  for (const fach of ["lauf", "konferenz"]) {
+    const alt = letzterStand && letzterStand[fach];
+    if (!alt || !alt.laeuft) continue;
+    letzterStand[fach] = { ...alt, laeuft: false };
+    window.__werkstatt.speise(fach, letzterStand[fach]);
+  }
+}
+
 function sageNotaus(lage, text) {
   const p = $("abbruch-sagt");
   p.hidden = false;
@@ -591,12 +618,8 @@ $("anhalten").onclick = () => {
    * eine gemessene. Deshalb sagt die Meldung ausdrücklich, dass die Kosten
    * dieses Laufs hier NICHT stehen.
    */
-  window.__werkstatt.speise("schichtlaeuft", null);
-  if (letzterStand.lauf) {
-    letzterStand.lauf = { ...letzterStand.lauf, laeuft: false };
-    window.__werkstatt.speise("lauf", letzterStand.lauf);
-    standSichern();
-  }
+  anzeigeAnhalten();
+  if (letzterStand.lauf || letzterStand.konferenz) standSichern();
   stand.laeuft = false;
   sageNotaus("beendet", gezogen
     ? "Beendet. Seit dem Anhalten ging kein Aufruf mehr hinaus — von hier an " +
@@ -653,7 +676,12 @@ async function fahre({ echt }) {
      try-Block ist im finally nicht sichtbar — dieselbe Falle wie beim
      Fahrtenbuch am 2026-09-06, dort mit Kasse und Besetzung. */
   let umfangTakt = null;
-  let kasse = null, mitarbeiter = [];
+  /* ⚠ BEIDE KASSEN STEHEN VOR DEM `try`. `kasseKonf` war bis zum 2026-09-07
+     ein `const` mitten im Block — im `catch` also nicht sichtbar, und die
+     abgebrochene Fahrt konnte die Konferenz gar nicht mitbuchen. Dieselbe
+     Falle wie beim Fahrtenbuch am 2026-09-06: was der `catch` braucht,
+     wird VOR dem `try` angelegt. */
+  let kasse = null, kasseKonf = null, mitarbeiter = [];
 
   try {
     mitarbeiter = await holeMitarbeiter();
@@ -709,7 +737,10 @@ async function fahre({ echt }) {
       : null;
     const ablage = await idbAblage(idb);
 
-    const auftrag = {
+    /* ⚠ `let`, NICHT `const` — nach einer Konferenz wird er ERSETZT. Siehe die
+       Zeile nach `konferenz(…)` weiter unten; ohne sie lief die Abstimmung ins
+       Leere. */
+    let auftrag = {
       ziel: ($("ziel").value || "").trim() ||
         "Ein kleines, eigenständiges Werkzeug, das jemand sofort benutzen kann.",
       pruefmerkmal: ($("merkmal").value || "").trim() || null,
@@ -743,7 +774,7 @@ async function fahre({ echt }) {
      * **Eine Zeile, die aus einer Bedingung herauswandert, läuft in Fällen,
      * für die sie nie gedacht war.** Gefunden hat es die Browser-Probe, weil
      * sie den Weg OHNE Konferenz wirklich fährt. */
-    const kasseKonf = mitKonferenz ? macheKasse(deckelKonferenz) : null;
+    kasseKonf = mitKonferenz ? macheKasse(deckelKonferenz) : null;
 
     /*
      * ══ WIE WEIT UND WIE LANGE NOCH ═════════════════════════════════════
@@ -852,6 +883,28 @@ async function fahre({ echt }) {
        * es genau in dem Fall weg, in dem man es am nötigsten braucht.
        */
       if (konf.ok && konf.auftrag) blattSchreiben("");
+      /*
+       * ══ DER SIEGER WIRD DER AUFTRAG ═══════════════════════════════════
+       *
+       * ⚠ DIESE ZEILE HAT GEFEHLT — und sie ist der teuerste Befund aus Klaus'
+       * erstem echten Lauf mit der Vorlage (2026-09-07).
+       *
+       * Die Konferenz kostete 0,47 € in siebzehn Aufrufen und wählte mit
+       * 33 Punkten den „Spannungsfall-Rechner für Leitungen". Danach bekam die
+       * Schicht weiterhin den URSPRÜNGLICHEN Text aus dem Feld — sie hatte vom
+       * Sieger nie gehört. Nora schlug daraufhin etwas ganz anderes vor
+       * („Werkstatt-Nachricht: Stilles Schwarzes Brett"), Ben schärfte das
+       * Neue, und das Übergabe-Blatt trug oben den einen und unten den anderen
+       * Auftrag. **Ein Blatt mit zwei verschiedenen Aufträgen darin.**
+       *
+       * `lauf.mjs` macht es seit jeher richtig (`auftrag = konf.auftrag`). Im
+       * Browser fehlte die Zeile schlicht — und keine Probe fragte danach, weil
+       * die Browser-Probe den Weg mit Konferenz nicht bis hierher fährt.
+       *
+       * Der Sieger trägt `ausKonferenz: true`; `rollen.mjs` sagt Nora daraufhin
+       * ausdrücklich, dass das WAS entschieden ist und sie es nicht wechselt.
+       */
+      if (konf.ok && konf.auftrag) auftrag = konf.auftrag;
       letzterStand.konferenz = konf;
       letzterStand.wann = new Date().toISOString();
       await standSichern();
@@ -901,7 +954,11 @@ async function fahre({ echt }) {
        Reihenfolge wie in `lauf.mjs`. */
     await fahrtEintragen({
       art: mitKonferenz ? "planmodus" : "schicht", echt,
-      bericht: lauf && lauf.kasse, mitarbeiter,
+      /* ⚠ BEIDE KASSEN. Bis zum 2026-09-07 stand hier nur die Schicht-Kasse,
+         und die Konferenz — bei acht Rollen SIEBZEHN von rund dreissig
+         Aufrufen — fehlte im Buch. Gemessen an Klaus' Lauf: 0,47 € + 0,01 €
+         ausgegeben, 0,01 € gebucht. */
+      bericht: zusammen(kasseKonf && kasseKonf.bericht(), lauf && lauf.kasse), mitarbeiter,
       titel: (auftrag && auftrag.ziel) || "",
       ergebnis: (lauf && lauf.ergebnis && lauf.ergebnis.urteil) || "",
     });
@@ -912,6 +969,11 @@ async function fahre({ echt }) {
        zu sehen, und das wäre ein behauptetes Ergebnis. */
     letzterStand.fertig = false;
     letzterStand.wann = new Date().toISOString();
+    /* ⚠ UND DIE ANZEIGE HÖRT AUF ZU LAUFEN. Ohne diese Zeile zählte die Uhr
+       nach dem Abbruch weiter, während die Meldung daneben sagte, dass er
+       stattgefunden hat. Von zwei Auskünften, die einander widersprechen,
+       glaubt man der lauteren — und das ist die laufende Uhr. */
+    anzeigeAnhalten();
     standSichern();
 
     /* ⚠ UND DIE ABGEBROCHENE FAHRT GEHÖRT INS BUCH, WEIL sie abgebrochen ist:
@@ -921,7 +983,11 @@ async function fahre({ echt }) {
        man sehen kann, für die Forschung, was schiefgelaufen ist." */
     try {
       await fahrtEintragen({
-        art: "abbruch", echt, bericht: kasse && kasse.bericht(),
+        art: "abbruch", echt,
+        /* Auch hier BEIDE — eine Schicht, die nach der Konferenz stirbt, hat
+           deren Aufrufe bezahlt. Das ist der Fall, in dem die Lücke am
+           teuersten war: sie trifft genau die Läufe ohne Ergebnis. */
+        bericht: zusammen(kasseKonf && kasseKonf.bericht(), kasse && kasse.bericht()),
         mitarbeiter,
         titel: (($("ziel").value || "").trim()) || "",
         /* Der GRUND steht im Buch, nicht nur „abgebrochen". Ein Eintrag, der
@@ -993,7 +1059,12 @@ window.addEventListener("beforeunload", (e) => {
   if (!g || (!g.lauf && !g.konferenz)) return;
 
   letzterStand = g;
-  if (g.konferenz) window.__werkstatt.speise("konferenz", g.konferenz);
+  /* `laeuft: false` aus demselben Grund wie bei `g.lauf` unten: was aus der
+     Ablage kommt, läuft nicht. Seit die Konferenz einen Zwischenstand meldet,
+     trägt auch sie das Feld — und ohne diese Zeile hätte die wiederhergestellte
+     Konferenz eine Geister-Meldung ergeben, genau die, die unten beschrieben
+     ist, nur an der anderen Hälfte. */
+  if (g.konferenz) window.__werkstatt.speise("konferenz", { ...g.konferenz, laeuft: false });
   /*
    * ⚠ WAS AUS DER ABLAGE KOMMT, LÄUFT NICHT — und daran hing Klaus' Geister-
    * Schicht (2026-09-07): seine Seite zeigte „Schicht läuft · 7:09:36", und

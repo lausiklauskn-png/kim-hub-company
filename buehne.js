@@ -181,7 +181,7 @@
         phase === "gestaltung" || phase === "nutzung") return PRUEFUNG;
     /* `schaerfung` gehört an den TISCH: Ben spricht mit dem Ingenieur, bevor
        irgendjemand losgeht. */
-    return TISCH;   /* idee · schaerfung · vorschlag · bewertung · schluss · feierabend */
+    return TISCH;   /* idee · schaerfung · tor · vorschlag · bewertung · schluss · feierabend */
   }
 
   /* Jede Phase MUSS hier stehen. Eine unbekannte fiele sonst still durch und
@@ -192,8 +192,9 @@
      mit acht Rollen NEU AUFGEZEICHNET wurde. Dieselbe Lehre, die zwei Absätze
      weiter oben schon steht: „nicht gefunden" ist erst dann eine Aussage, wenn
      man überall hineingesehen hat — und ein Beispiel ist nicht überall. */
-  var PHASEN = ["idee", "schaerfung", "vorschlag", "bewertung", "merkliste", "schluss",
-                "build", "urteil", "befund", "gestaltung", "nutzung", "feierabend"];
+  var PHASEN = ["idee", "schaerfung", "tor", "vorschlag", "bewertung", "merkliste",
+                "schluss", "build", "urteil", "befund", "gestaltung", "nutzung",
+                "feierabend"];
 
   var STAND_WORT = {
     entwurf: "Entwurf", build: "im Bau", nachbessern: "nachbessern",
@@ -1109,6 +1110,18 @@
       kopf = ev.durchgekommen ? "benutzt es — kommt durch" : "benutzt es — bleibt stecken";
       var h = (ev.haengengeblieben || [])[0];
       inhalt = h ? "wollte " + h.wollte + " — " + h.passierte : (ev.ablauf || "");
+    } else if (ph === "tor") {
+      /* ⚠ ZUM DRITTEN MAL DIESELBE LEHRE (2026-09-07). „tor" schreibt
+         `schicht.mjs` seit es das Tor gibt — auf Klaus' Bühne stand dafür
+         „unbekannte Phase „tor"", und zwar am LETZTEN Schritt eines bezahlten
+         Laufs. Der Wächter darüber mass gegen `werkstatt/beispiel/*.json`, und
+         dort steht die Phase nicht: der mitgelieferte Lauf hat nie ein Tor
+         gefahren. Genau der Satz, der über der Liste steht — „ein Beispiel ist
+         nicht überall" — und er hat trotzdem nicht gereicht, weil die Prüfung
+         daneben ihn nicht befolgte. Seit heute misst sie gegen den QUELLTEXT,
+         der die Phasen schreibt. */
+      kopf = ev.freigegeben ? "gibt den Bau frei" : "hält den Bau an";
+      inhalt = ev.grund || (ev.freigegeben ? "" : "Vor dem Bauen verworfen.");
     } else if (ph === "merkliste") {
       var eintr = ev.eintraege || [];
       kopf = eintr.length ? "merkt sich " + eintr.length + " Idee(n)" : "merkt sich nichts";
