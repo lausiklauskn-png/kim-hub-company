@@ -797,6 +797,43 @@ async function fahre({ echt }) {
        */
       aufZwischenstand: (z) => window.__werkstatt.speise("konferenz", z),
     }) : null;
+    /*
+     * ⚠ SIE STEHT HIER, WEIL SIE GLEICH DARUNTER GERUFEN WIRD (Klaus
+     * 2026-09-07, mit Bild): „Die Schicht ist abgebrochen: Cannot access
+     * 'blattSchreiben' before initialization."
+     *
+     * Ein `const` ist in seiner toten Zone nicht nur undefiniert — der Zugriff
+     * WIRFT. Die Definition stand unter dem `if (konf) { … }`, das sie
+     * benutzt; damit starb JEDE Schicht mit Konferenz genau an der teuersten
+     * Stelle: siebzehn Aufrufe bezahlt, und dann nichts.
+     *
+     * ⚠ UND KEINE PROBE HAT ES GESEHEN. Sie lasen den Quelltext; die
+     * Browser-Probe fuhr den Weg OHNE Konferenz. Dieselbe Lehre wie am
+     * 2026-08-23 („ein Wächter, der eine Datei LIEST, misst nicht, ob sie
+     * LÄUFT") — nur an einem Zweig, den keine Probe je betreten hat.
+     */
+    /*
+     * ══ EINE STELLE, DIE DAS BLATT BAUT ═════════════════════════════════
+     *
+     * Sie wird zweimal gerufen: nach der Konferenz (ohne Schärfung, als
+     * Versicherung) und noch einmal, sobald Ben geschärft hat. Der zweite
+     * Aufruf überschreibt den ersten — das frühe Blatt ist die Rückfalllinie
+     * für eine Schicht, die danach stirbt, das späte das vollständige.
+     *
+     * ⚠ UND ES ENTSTEHT AUCH OHNE KONFERENZ (Klaus 2026-09-07). Sein
+     * Mindestmaß gilt auch dann, wenn er den Haken wegnimmt; bis dahin bekam
+     * er in dem Fall wieder nichts.
+     */
+    const blattSchreiben = (schaerfung) => {
+      const heute = new Date().toISOString().slice(0, 10);
+      const text = (konf && konf.ok && konf.auftrag)
+        ? planBlatt(konf, kasseKonf.bericht(), heute, !echt, schaerfung)
+        : auftragsBlatt({ auftrag, schaerfung, bericht: kasse.bericht(),
+                          datum: heute, trocken: !echt });
+      letzterStand.blatt = { text, ausBeispiel: false };
+      window.__werkstatt.speise("blatt", letzterStand.blatt);
+    };
+
     if (konf) {
       window.__werkstatt.speise("konferenz", konf);
       /*
@@ -820,27 +857,6 @@ async function fahre({ echt }) {
       await standSichern();
     }
 
-    /*
-     * ══ EINE STELLE, DIE DAS BLATT BAUT ═════════════════════════════════
-     *
-     * Sie wird zweimal gerufen: nach der Konferenz (ohne Schärfung, als
-     * Versicherung) und noch einmal, sobald Ben geschärft hat. Der zweite
-     * Aufruf überschreibt den ersten — das frühe Blatt ist die Rückfalllinie
-     * für eine Schicht, die danach stirbt, das späte das vollständige.
-     *
-     * ⚠ UND ES ENTSTEHT AUCH OHNE KONFERENZ (Klaus 2026-09-07). Sein
-     * Mindestmaß gilt auch dann, wenn er den Haken wegnimmt; bis dahin bekam
-     * er in dem Fall wieder nichts.
-     */
-    const blattSchreiben = (schaerfung) => {
-      const heute = new Date().toISOString().slice(0, 10);
-      const text = (konf && konf.ok && konf.auftrag)
-        ? planBlatt(konf, kasseKonf.bericht(), heute, !echt, schaerfung)
-        : auftragsBlatt({ auftrag, schaerfung, bericht: kasse.bericht(),
-                          datum: heute, trocken: !echt });
-      letzterStand.blatt = { text, ausBeispiel: false };
-      window.__werkstatt.speise("blatt", letzterStand.blatt);
-    };
 
     /* ⚠ HIER LÖST SICH DIE NAHT EIN. `schicht.mjs` gibt seinen Zwischenstand in
        DERSELBEN Form heraus wie das Endergebnis — das steht dort im Code, mit

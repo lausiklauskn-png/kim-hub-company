@@ -71,10 +71,33 @@ export const FRIST_MS = 10 * 60 * 1000;
  * schiefgeht, ist STILLE — es kommt nichts mehr. Darauf wird gewartet, und der
  * Wecker geht bei jedem Häppchen von vorn los.
  *
- * Zwei Minuten, weil zwischen zwei Häppchen einer laufenden Antwort keine zwei
- * Minuten liegen. Als Nagel benannt, nicht gemessen.
+ * ⚠ ZWEI MINUTEN WAREN ZU KURZ — widerlegt am 2026-09-07 in einem echten,
+ * bezahlten Lauf. Hier stand: „zwischen zwei Häppchen einer laufenden Antwort
+ * liegen keine zwei Minuten. Als Nagel benannt, nicht gemessen." Klaus hat den
+ * Nagel getroffen: „Der Aufruf hat 2 Minuten lang nichts mehr geschickt und
+ * wurde abgebrochen." **Eine Annahme, die eine echte Messung widerlegt, wird
+ * ausgetauscht — das ist die Tafel-Evolutions-Klausel, nicht ein Nachgeben.**
+ *
+ * FÜNF MINUTEN, und der Grund ist der Unterschied zwischen den zwei Fällen,
+ * die hier zusammenlaufen:
+ *
+ *   · Das MODELL denkt lange. Dagegen hilft die Frist ohnehin nicht gut: die
+ *     API schickt während einer laufenden Antwort Lebenszeichen, und JEDES
+ *     Byte stellt den Wecker neu — auch ein `ping`. Wer trotzdem zwei Minuten
+ *     Stille sieht, sieht kein langsames Modell.
+ *   · Die LEITUNG ist weg. Das ist der wahrscheinlichere Fall (Klaus fährt am
+ *     Tablet, mit unterbrechendem Netz), und dagegen hilft nur Warten — oder
+ *     Aufgeben.
+ *
+ * Fünf Minuten überstehen eine kurze Funklücke und geben eine wirklich tote
+ * Leitung trotzdem in überschaubarer Zeit frei. **Weiterhin ein Nagel, kein
+ * Messwert** — was sich gegenüber vorher geändert hat, ist nicht die Sorte der
+ * Zahl, sondern dass die alte an einem echten Lauf gescheitert ist.
+ *
+ * Zu kurz ist teuer: eine Antwort, die nach dem Abbruch eintrifft, ist bezahlt
+ * und weg. Deshalb im Zweifel eher grosszügig.
  */
-export const STILLE_MS = 2 * 60 * 1000;
+export const STILLE_MS = 5 * 60 * 1000;
 
 /**
  * Ein Bote für `EchteApi`.
