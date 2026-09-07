@@ -72,8 +72,10 @@ umgekehrt. Eine abgewandelte Kopie hier wäre nicht nur eine zweite Generation,
 sondern eine **ungeprüfte**.
 
 Genau zwei Dateien weichen ab, und der Grund steht in ihnen:
-`company-sw.js` und `company.webmanifest` nennen den Namen der Startseite, und
-der ist hier `index.html` statt `start.html`.
+`sw.js` und `company.webmanifest` nennen den Namen der Startseite, und
+der ist hier `index.html` statt `start.html`. (Der Worker heisst hier `sw.js`,
+nicht `company-sw.js` wie in Kimhub — `ansicht.js` registriert genau diesen
+Namen.)
 
 ## Stand — ehrlich
 

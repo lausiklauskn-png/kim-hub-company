@@ -24,13 +24,20 @@ Fingerabdruck nachgezogen.
 davon nichts — es hat die Dateien. Eine abgewandelte Kopie wäre also nicht nur
 eine zweite Generation, sondern eine **ungeprüfte**.
 
-Frei ist genau zweierlei: `company-sw.js` und `company.webmanifest`. Sie nennen
+Frei ist genau zweierlei: `sw.js` und `company.webmanifest`. Sie nennen
 den Namen der Startseite (`index.html` statt `start.html`), und der Grund steht
 im Kopf des Workers.
 
+> **Bis zum 2026-09-07 stand hier `company-sw.js`** — an drei Stellen, und die
+> Datei gibt es hier nicht. Sie heisst `sw.js`, weil `ansicht.js` genau diesen
+> Namen registriert. `tests/smoke_kopie.mjs` misst das seit langem und besteht
+> ausdrücklich darauf, dass der alte Name **nicht** danebenliegt — die Probe
+> hatte also recht, und drei Doku-Stellen widersprachen ihr. Wer sie las,
+> suchte eine Datei, die es nicht gibt.
+
 ## Was hier leicht kaputtgeht
 
-- **Cache-Bump:** wer eine Datei aus `SCHALE` in `company-sw.js` ändert, erhöht
+- **Cache-Bump:** wer eine Datei aus `SCHALE` in `sw.js` ändert, erhöht
   `CACHE_VERSION`. Sonst liefert der Service-Worker die alte Fassung weiter —
   und die App sähe aus, als wäre nichts passiert.
 - **DB-Name `KimHubCompany1` nie ändern.** `github.io` ist eine **geteilte**
