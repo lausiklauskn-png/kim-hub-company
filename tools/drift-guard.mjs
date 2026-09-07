@@ -46,14 +46,14 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
  * Fingerabdrücke unten nachzieht und das hier vergisst, wird rot.
  */
 export const HERKUNFT = {
-  commit: "07546d2",
-  datum:  "2026-09-07T16:38:54+02:00",
-  betreff: "Klaus' erster echter Lauf: sieben Befunde, der teuerste kostete die ganze Konferenz (#125)",
+  commit: "7363d7a",
+  datum:  "2026-09-07T16:45:29+02:00",
+  betreff: "Die Prüfung, die gefehlt hat: baut die Schicht wirklich, was gewählt wurde? (#126)",
 };
 
 export const ERWARTET = [
   { datei: "index.html",                herkunft: "start.html",              sha: "3df66e6764cb723293c42732e52c919e23bd1ee9da11f130d5125e346fdf12a1" },
-  { datei: "company.js",                herkunft: "company.js",              sha: "8d51e8f228f9e96d95e9f203bf10c09d82ab339249169a20d84ba9dd91d44141" },
+  { datei: "company.js",                herkunft: "company.js",              sha: "497a023a665b97c2de5d0c9ae7f02d0f33d706f0ba7a26184ef566213214ed1d" },
   { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "6e5ca487d1a529ca91cc568dd975b50c8af381ecfeb436ebd7ce86426e76d913" },
   { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "a8b1c87b69e2d9d127e912339bd6dd557c6053917c5b4568a124f3f5673471c8" },
   { datei: "zeit.js",                   herkunft: "zeit.js",                 sha: "ed5a241adc9098eb17cb66974f9fdf9b94ef26c642581989ec99239ec11db47b" },
