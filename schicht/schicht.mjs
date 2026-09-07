@@ -49,6 +49,12 @@ export const LAUF_VERSION = "1.0";
 export const ROLLEN_REIHE = ["ingenieur", "mitingenieur", "bauer", "arzt",
                              "negativbauer", "gestalterin", "nutzer", "beobachter"];
 
+/* WER IN EINER RUNDE WIRKLICH DRANKOMMT — die Grundlage, auf der die Kasse
+   entscheidet, ob eine weitere Runde bezahlbar ist. Ingenieur und Mitingenieur
+   laufen EINMAL vor den Runden, der Beobachter EINMAL danach; sie gehören
+   deshalb nicht hinein. */
+export const RUNDEN_ROLLEN = ["bauer", "arzt", "negativbauer", "gestalterin", "nutzer"];
+
 const kurz = (t, n = 400) => (t || "").length > n ? t.slice(0, n) + " …" : (t || "");
 
 export async function schicht({
@@ -222,12 +228,22 @@ export async function schicht({
 
   // ── Runden: bauen, prüfen, angreifen ─────────────────────────────────────
   for (runde = 1; runde <= maxRunden && !fertig; runde++) {
-    // Eine ganze Runde sind FUENF Aufrufe (Bauer, Arzt, Negativbauer,
-    // Gestalterin, Nutzer). Wer nur einen prüft, beginnt Runden, die er nicht
-    // zu Ende bringen kann — und bricht dann doch mittendrin ab. Die Zahl
-    // steht hier und in keiner zweiten Zeile: sie ist die Laenge der Schleife
-    // unten, und zwei Stellen liefen auseinander.
-    const genug = kasse.darfNoch(5 * Math.max(kasse.teuersterAufrufUsd, 0.25));
+    /*
+     * ⚠ GERECHNET WIRD MIT DER BESETZUNG, NICHT MIT EINER ZAHL (2026-09-07).
+     *
+     * Hier stand `5 * Math.max(kasse.teuersterAufrufUsd, 0.25)` — fünf Aufrufe
+     * zum Preis des teuersten. Das war eine Zahl an zwei Stellen (hier und als
+     * Laenge der Schleife unten) UND ein falscher Preis: der Bauer darf seit
+     * heute 48 000 Token schreiben und kostet damit allein bis zu 1,20 $,
+     * während die Untergrenze bei 0,25 $ stand. Die Werkstatt begann Runden,
+     * die sie nicht bezahlen konnte, und schnitt Emil dann mittendrin ab.
+     *
+     * `RUNDEN_ROLLEN` ist jetzt die eine Stelle: die Schätzung liest sie, und
+     * `smoke_schicht.mjs` misst sie gegen die Rollen, die eine Runde WIRKLICH
+     * aufruft — nicht mehr gegen eine Ziffer im Quelltext.
+     */
+    const genug = kasse.darfNoch(
+      kasse.rundenSchaetzungUsd(RUNDEN_ROLLEN.map((r) => wer[r])));
     if (!genug.ok) { stopp = genug; break; }
 
     const b = await ruf("bauer", { spec, befunde, urteil, runde });

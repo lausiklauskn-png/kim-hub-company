@@ -19,7 +19,7 @@
  * (`index.html` statt `start.html`) — app-eigener Klebstoff. Der Unterschied
  * steht im Kopf des Workers, damit ihn niemand für einen Fehler hält.
  *
- * Quelle: github.com/lausiklauskn-png/Kimhub (Stand 2026-09-05)
+ * Quelle: github.com/lausiklauskn-png/Kimhub (Stand 2026-09-07)
  * Lauf:   node tools/drift-guard.mjs
  */
 import { readFileSync } from "node:fs";
@@ -46,26 +46,31 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
  * Fingerabdrücke unten nachzieht und das hier vergisst, wird rot.
  */
 export const HERKUNFT = {
-  commit: "7363d7a",
-  datum:  "2026-09-07T16:45:29+02:00",
-  betreff: "Die Prüfung, die gefehlt hat: baut die Schicht wirklich, was gewählt wurde? (#126)",
+  commit: "96f0b72",
+  datum:  "2026-09-07T17:16:58+00:00",
+  betreff: "\u201eNichts\u201c heisst nicht ueberall dasselbe \u2014 als eigener Punkt",
 };
 
 export const ERWARTET = [
-  { datei: "index.html",                herkunft: "start.html",              sha: "3df66e6764cb723293c42732e52c919e23bd1ee9da11f130d5125e346fdf12a1" },
-  { datei: "company.js",                herkunft: "company.js",              sha: "497a023a665b97c2de5d0c9ae7f02d0f33d706f0ba7a26184ef566213214ed1d" },
-  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "6e5ca487d1a529ca91cc568dd975b50c8af381ecfeb436ebd7ce86426e76d913" },
-  { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "a8b1c87b69e2d9d127e912339bd6dd557c6053917c5b4568a124f3f5673471c8" },
-  { datei: "zeit.js",                   herkunft: "zeit.js",                 sha: "ed5a241adc9098eb17cb66974f9fdf9b94ef26c642581989ec99239ec11db47b" },
+  { datei: "index.html",                herkunft: "start.html",              sha: "c7064cdbf85b9dc9780c1278ddc25d42dd1f59a3537595aff66aab06afe7a5ce" },
+  { datei: "company.js",                herkunft: "company.js",              sha: "8225958ef89441c83cceb7265c4f17423017f24fb8bc61c2f9e218e587629870" },
+  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "a0b9deaaadc63fc57088fc7a66adcf3ca0c5a757cee6e5749a837a06d5f2a6ed" },
+  { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "2b55844be02df209c8f18d7f8434b4a39bebe2621b7720a3e2b725bfdecaee9c" },
+  { datei: "zeit.js",                   herkunft: "zeit.js",                 sha: "be43df30dd1a47045094f2a623d2089583c0354c8b58a640370f251d0b600a1a" },
+  /* ⚠ NEU AM 2026-09-07. `zusammen()` ist aus `schicht/kosten.mjs` hierher
+     umgezogen, weil die Ansicht ein klassisches Skript ist und es nicht
+     importieren kann. Dieselbe Bauart wie `zeit.js` — und derselbe Grund:
+     was sich nachrechnen laesst, gehoert dorthin, wo es ueberall laeuft. */
+  { datei: "kassen.js",                 herkunft: "kassen.js",               sha: "ca6430ad31457ad901a63fd96950e1c888f0e6ca9608583117139929aeca8af6" },
   { datei: "idb.js",                    herkunft: "idb.js",                  sha: "b244ab3f832bb4d4cd5ec87e51de364df5716ee7ca6fc8a2bceeea6b6c9bbd51" },
   { datei: "schluesseltresor.js",       herkunft: "schluesseltresor.js",     sha: "eaed30e8f3921835a3f58b69f89d9b008831f69f164ad1dfec630fa43161f666" },
-  { datei: "schicht/konferenz.mjs",     herkunft: "schicht/konferenz.mjs",   sha: "63a192bc9aa3d9d59d0514210a69c7f5a87f324657da916eb64c547eedec9871" },
+  { datei: "schicht/konferenz.mjs",     herkunft: "schicht/konferenz.mjs",   sha: "41e2e4f38bc68f380da7e590955715a4b93c431572bfec451b3f7813b0dcaf39" },
   { datei: "schicht/plan-form.mjs",  herkunft: "schicht/plan-form.mjs", sha: "3e94b0840f7e55b345ff9f5310a1bba3009208b1af8c06c6866b4600f88a7bad" },
   { datei: "schicht/umfang.mjs",     herkunft: "schicht/umfang.mjs",    sha: "f0497c620434c0bc9c24268f23616174ca6ed658e4a56da0b47edf3340f35990" },
-  { datei: "schicht/schicht.mjs",       herkunft: "schicht/schicht.mjs",     sha: "0bba4e8cd0050235fdf866d861356547f0f3bdeb1632cf3491212ba0e6cbd702" },
-  { datei: "schicht/api.mjs",           herkunft: "schicht/api.mjs",         sha: "36852cc8a82ac0bd6153de16b8fce7d3b3c1652159cd9d4f592cb4a14917c4b1" },
+  { datei: "schicht/schicht.mjs",       herkunft: "schicht/schicht.mjs",     sha: "d2fde3cb48c2dcbda9312bc1eed8413c4d1dabef6105e89b09d6b46e8ee7dbec" },
+  { datei: "schicht/api.mjs",           herkunft: "schicht/api.mjs",         sha: "7474a117b640f6c1f4a722c44b51025f93e6ba365e0fffe92e2888322009bb94" },
   { datei: "schicht/transport-netz.mjs",herkunft: "schicht/transport-netz.mjs", sha: "6c149df086ff0ea820060385132b7513352a796f2b7c64883732acb1f1078797" },
-  { datei: "schicht/kosten.mjs",        herkunft: "schicht/kosten.mjs",      sha: "7a946f2c641d8ea883a879a463f0ff400729c2226306e694886bb19229a7cdf4" },
+  { datei: "schicht/kosten.mjs",        herkunft: "schicht/kosten.mjs",      sha: "eefa1fa5e1e48693df90b68e08f3bf051fb04c3052eb6a38f6584158293df96e" },
   { datei: "schicht/beispiele.mjs",     herkunft: "schicht/beispiele.mjs",   sha: "8529582d68441b87b14bc70e35cc32e355b173bd2c1b1f4103d5b9ac24fddb5f" },
   { datei: "schicht/grundsaetze.mjs",   herkunft: "schicht/grundsaetze.mjs", sha: "340117e1f311aba0bfce9730fad28b90e3fdddde8aa3d0e103073b0bea883523" },
   { datei: "schicht/fahrtenbuch-form.mjs",  herkunft: "schicht/fahrtenbuch-form.mjs", sha: "85c99d330b36f95ef601a90903a74af42567a3d68e7ddfb13d055ed0e91f5553" },
@@ -77,7 +82,7 @@ export const ERWARTET = [
   { datei: "schicht/ruf.mjs",           herkunft: "schicht/ruf.mjs",         sha: "a58adfbe1e5b3cf241f63a29f70d7e1ae0c1530013ef775d037c712d5499ab3b" },
   { datei: "schicht/rollen.mjs",        herkunft: "schicht/rollen.mjs",      sha: "00faa686ccb8f73d83dc8aff4c630942c894c4f58a6a3c6ce61b5ec9eb01fd4f" },
   { datei: "schicht/grundsaetze.md",    herkunft: "schicht/grundsaetze.md",  sha: "422a3c7b3cb35fea6dade1409340907621ca6a6615c9a9622cfb999d369c0bfd" },
-  { datei: "schicht/mitarbeiter.json",  herkunft: "schicht/mitarbeiter.json", sha: "1460ea68d562bbb2fa6e6af70d3b6a188ec83a21a3106714dfa425d97774ef8f" },
+  { datei: "schicht/mitarbeiter.json",  herkunft: "schicht/mitarbeiter.json", sha: "c5329371b437e58ad40d67c4d9c3f00d0bf300be2fda17f016bb3db1ce8c110a" },
 ];
 
 export function abdruck(datei) {

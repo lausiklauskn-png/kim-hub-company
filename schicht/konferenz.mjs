@@ -65,7 +65,41 @@ export function auszaehlen(vorschlaege, stimmzettel) {
     punkte: 0, eigenPunkte: null, einwaende: [],
   }));
 
-  for (const { rolle, stimmen } of stimmzettel) {
+  /*
+   * ⚠ EINE NUMMER ZAEHLT JE STIMMZETTEL EINMAL (Klaus 2026-09-07, beim Lesen
+   * des gemergten Codes gefunden — keine Probe hat danach gefragt).
+   *
+   * Steht dieselbe Vorschlags-Nummer zweimal auf einem Zettel, lief die
+   * Schleife zweimal und addierte beide Male. In Klaus' Lauf ohne Schaden: es
+   * traf Lisas eigenen Vorschlag, und eigene Punkte werden ohnehin nicht
+   * gezaehlt (33 Punkte nachgerechnet, sie stimmen). Eine doppelte FREMD-Stimme
+   * haette den Sieger verschoben — und **ein Punktestand, der zweimal dieselbe
+   * Stimme zaehlt, ist keine Abstimmung.**
+   *
+   * Die ERSTE Nennung gilt. Nicht die letzte, nicht die hoechste: derselbe
+   * Grundsatz wie beim Gleichstand — eine Konferenz, die zweimal anders
+   * ausgeht, ist keine Entscheidung.
+   *
+   * ⚠ UND ES WIRD NICHT VERSCHWIEGEN. Was uebersprungen wurde, steht im
+   * Ergebnis; eine stille Korrektur ist von einem Fehler nicht zu
+   * unterscheiden.
+   *
+   * Bereinigt wird EINMAL, vor beiden Schleifen. Die Selbstbevorzugung unten
+   * rechnet aus denselben Zetteln — zwei Stellen, die dasselbe bereinigen,
+   * liefen auseinander.
+   */
+  const doppelte = [];
+  const bereinigt = stimmzettel.map(({ rolle, stimmen }) => {
+    const gesehen = new Set(), einmal = [];
+    for (const st of stimmen || []) {
+      if (gesehen.has(st.nummer)) { doppelte.push({ rolle, nummer: st.nummer }); continue; }
+      gesehen.add(st.nummer);
+      einmal.push(st);
+    }
+    return { rolle, stimmen: einmal };
+  });
+
+  for (const { rolle, stimmen } of bereinigt) {
     for (const st of stimmen || []) {
       const z = tafel.find((x) => x.nummer === st.nummer);
       if (!z) continue;                       // eine Nummer, die es nicht gibt
@@ -82,7 +116,7 @@ export function auszaehlen(vorschlaege, stimmzettel) {
   // Selbstbevorzugung: wie viel höher setzt jemand sich selbst als den
   // Durchschnitt, den er den anderen gibt. Hoch bei allen heißt: die Runde hat
   // sich nicht auf die Sache eingelassen.
-  const eigenlob = stimmzettel.map(({ rolle, stimmen }) => {
+  const eigenlob = bereinigt.map(({ rolle, stimmen }) => {
     const meins = tafel.find((x) => x.rolle === rolle);
     const eigen = (stimmen || []).find((st) => st.nummer === meins?.nummer);
     const fremd = (stimmen || []).filter((st) => st.nummer !== meins?.nummer)
@@ -97,7 +131,7 @@ export function auszaehlen(vorschlaege, stimmzettel) {
   const sortiert = [...tafel].sort((a, b) => b.punkte - a.punkte || a.nummer - b.nummer);
   const gleichstand = sortiert.length > 1 && sortiert[0].punkte === sortiert[1].punkte;
 
-  return { tafel, sortiert, sieger: sortiert[0] || null, eigenlob, gleichstand };
+  return { tafel, sortiert, sieger: sortiert[0] || null, eigenlob, gleichstand, doppelte };
 }
 
 /**
@@ -234,7 +268,7 @@ export async function konferenz({
             begruendung: a.inhalt.begruendung || "", dauerMs: a.dauerMs || 0 });
   }
   if (vorschlaege.length < 2)
-    return { ok: false, art, grund: "zu wenige Vorschläge", vorschlaege, protokoll, events,
+    return { ok: false, art, datum, grund: "zu wenige Vorschläge", vorschlaege, protokoll, events,
              auftrag: null, tafel: [], eigenlob: [], vorgemerkt: [], haenger: [] };
 
   // ── Runde 2: jeder bewertet alle ─────────────────────────────────────────
@@ -248,10 +282,16 @@ export async function konferenz({
             stimmen: a.inhalt.stimmen || [], dauerMs: a.dauerMs || 0 });
   }
   if (!stimmzettel.length)
-    return { ok: false, art, grund: "niemand hat abgestimmt", vorschlaege, protokoll, events,
+    return { ok: false, art, datum, grund: "niemand hat abgestimmt", vorschlaege, protokoll, events,
              auftrag: null, tafel: [], eigenlob: [], vorgemerkt: [], haenger: [] };
 
-  const { tafel, sortiert, sieger, eigenlob, gleichstand } = auszaehlen(vorschlaege, stimmzettel);
+  const { tafel, sortiert, sieger, eigenlob, gleichstand, doppelte } =
+    auszaehlen(vorschlaege, stimmzettel);
+  /* Eine uebergangene Doppelstimme gehoert ins Protokoll — sonst waere die
+     Korrektur still, und still ist von falsch nicht zu unterscheiden. */
+  for (const d of doppelte)
+    protokoll.push(`Auf ${d.rolle}s Zettel stand Vorschlag ${d.nummer} zweimal — ` +
+      `gezaehlt wurde die erste Nennung.`);
   protokoll.push(`Abgestimmt haben ${stimmzettel.length} von ${mitarbeiter.length}. ` +
     `Vorn liegt „${sieger.titel}" mit ${sieger.punkte} Punkten` +
     (gleichstand ? " (Gleichstand, nach Vorschlags-Nummer entschieden)." : "."));
@@ -277,7 +317,7 @@ export async function konferenz({
     tafel: sortiert, einwaende: sieger.einwaende, haenger,
   });
   if (schluss.abbruch)
-    return { ok: false, art, grund: schluss.abbruch.text, vorschlaege, protokoll, events,
+    return { ok: false, art, datum, grund: schluss.abbruch.text, vorschlaege, protokoll, events,
              auftrag: null, tafel: sortiert, eigenlob, vorgemerkt, haenger };
 
   merke({ phase: "schluss", rolle: "beobachter", wer: wer.beobachter?.name || "",
@@ -288,6 +328,13 @@ export async function konferenz({
 
   return {
     ok: true, art,
+    /* ⚠ DER ENDSTAND TRUG KEIN DATUM (Klaus 2026-09-07). Nur der
+       Zwischenstand hatte eines — und deshalb stand an der fertigen
+       Konferenz „Konferenz ohne Datum", obwohl der Tag die ganze Zeit
+       bekannt war. Er steht in JEDEM Ausgang, auch in den drei
+       gescheiterten: eine Konferenz ohne Ergebnis hat trotzdem
+       stattgefunden, und wann, gehoert zur Auskunft. */
+    datum,
     events, dauerMs: Date.now() - beginn,
     auftrag: { ziel: schluss.inhalt.ziel, pruefmerkmal: schluss.inhalt.pruefmerkmal,
                ausKonferenz: true, sieger: voll.titel, von: voll.von },

@@ -21,6 +21,17 @@
   // Die Namen der drei Geldbeutel. Sie stehen auch im Fließtext darüber —
   // deshalb hier EINE Karte und nicht zweimal getippt: sonst nennt die Tabelle
   // etwas anders als der Absatz, der sie erklärt.
+  /* WIE DER FEIERABEND HEISST. Die Kennworte kommen aus `schicht.mjs`; hier
+     bekommen sie ihr Wort, an EINER Stelle. Ein unbekanntes Kennwort wird
+     nicht verschwiegen — dann steht es selbst da, statt „Grund: " ohne Grund. */
+  var GRUND_WORT = {
+    geld:      "Das Geld war alle: ",
+    zeit:      "Die Zeit war um: ",
+    runden:    "Der Runden-Deckel war erreicht: ",
+    verworfen: "Am Tor verworfen: ",
+    fertig:    "Fertig: ",
+  };
+
   var GELD = {
     abo:           "Abo (Max plan)",
     mehrverbrauch: "Mehrverbrauch (auto recharge)",
@@ -1420,6 +1431,28 @@
     p.appendChild(document.createTextNode(
       "Urteil: " + e.urteil + " · " + e.runden + " Runden · offene Befunde: " + e.offeneBefunde + "."));
     ziel.appendChild(p);
+    /*
+     * ⚠ UND WORAN ES LAG (Klaus 2026-09-07). Hier stand „Nicht fertig ·
+     * 0 Runden · Nichts benannt" — und kein Wort dazu, warum. Der Grund lag
+     * die ganze Zeit daneben: `feierabendGrund` und `feierabendText` stehen
+     * in JEDEM Ergebnis, sie wurden nur nie gezeigt.
+     *
+     * Null Runden hat drei ganz verschiedene Ursachen — das Geld reichte nicht,
+     * die Zeit war um, die Idee wurde am Tor verworfen. Ohne den Grund sieht
+     * alles drei gleich aus, und der Nutzer sucht den Fehler an der falschen
+     * Stelle. **Eine Auskunft, die in die falsche Richtung zeigt, ist teurer
+     * als gar keine.**
+     */
+    if (!e.fertig && (e.feierabendText || e.feierabendGrund)) {
+      var warum = el("p", "leise");
+      warum.setAttribute("data-feierabend", e.feierabendGrund || "");
+      warum.appendChild(el("b", null, GRUND_WORT[e.feierabendGrund] || "Grund: "));
+      /* Der Text der Kasse, wenn es einen gibt — er nennt Beträge und Fristen.
+         Sonst das Kennwort, damit wenigstens die Richtung dasteht. */
+      warum.appendChild(document.createTextNode(
+        e.feierabendText || ("Kennwort: " + e.feierabendGrund)));
+      ziel.appendChild(warum);
+    }
     if (l.artefakt) {
       /* Klaus: „nicht so viel Text … ein erster Entwurf dessen, was gebaut
          wurde, direkt als Link oder Button." Das Ergebnis liegt vollständig in
@@ -1961,9 +1994,32 @@
     var k = el("tbody"); leer(t);
     var z = daten.zapf, tage = (z && z.tage) || null;
     if (!tage || !Object.keys(tage).length) {
-      var r0 = el("tr"); r0.appendChild(el("td", "fehlt leise",
-        "Noch keine ECHTE Schicht auf dieser Maschine — die Zapfsäule wird erst " +
-        "dabei angelegt. Trockenläufe bucht sie nicht."));
+      /*
+       * ⚠ ZWEI GRÜNDE, WARUM SIE LEER IST — und nur einer war benannt
+       * (Klaus 2026-09-07).
+       *
+       * Hier stand ausnahmslos „Noch keine ECHTE Schicht auf dieser
+       * Maschine". In der Werkstatt stimmt das. In Company ist es **falsch**:
+       * `schicht/kontingent.json` ist eine Node-Datei, die dort NIE entsteht —
+       * die Schicht läuft im Browser und bucht ins Fahrtenbuch. Wer dort
+       * bezahlte Fahrten im Buch stehen sieht und daneben „noch keine echte
+       * Schicht" liest, bekommt zwei Auskünfte, die einander widersprechen.
+       *
+       * Geraten wird nicht, welche App das ist — GEFRAGT wird das Buch. Stehen
+       * dort echte Fahrten, kann der erste Satz nicht stimmen, und die Seite
+       * sagt stattdessen, was wirklich los ist.
+       */
+      var echteImBuch = ((daten.fahrten && daten.fahrten.fahrten) || [])
+        .filter(function (x) { return x.echt; }).length;
+      var r0 = el("tr"); r0.appendChild(el("td", "fehlt leise", echteImBuch
+        ? "Die Zapfsäule (schicht/kontingent.json) liegt hier nicht — sie entsteht "
+          + "nur dort, wo eine Schicht auf der Kommandozeile läuft. Im Browser bucht "
+          + "die Schicht ins Fahrtenbuch, und dort stehen " + echteImBuch
+          + " bezahlte Fahrt(en). Ein Abgleich ist hier deshalb nicht möglich — "
+          + "das ist keine Abweichung."
+        : "Noch keine ECHTE Schicht auf dieser Maschine — die Zapfsäule wird erst "
+          + "dabei angelegt. Trockenläufe bucht sie nicht."));
+      r0.firstChild.setAttribute("data-zapf-leer", echteImBuch ? "gibt-es-hier-nicht" : "noch-keine");
       k.appendChild(r0); t.appendChild(k);
       $("#zapf-hinweis").textContent = "";
       return;
@@ -2001,7 +2057,30 @@
   function zeichneBuchhaltung() {
     zeichneFahrtenbuch();
     zeichneZapf();
-    var kasse = (daten.lauf && daten.lauf.kasse) || (daten.konferenz && daten.konferenz.kasse);
+    /*
+     * ⚠ BEIDE KASSEN, NICHT EINE VON BEIDEN (Klaus 2026-09-07).
+     *
+     * Hier stand `lauf.kasse || konferenz.kasse` — das ODER nahm die erste,
+     * die dastand. Bei einem Lauf MIT Konferenz sind das zwei getrennte
+     * Kassen (der Deckel wird geteilt), und die Kachel meldete **0,02 €** für
+     * einen Lauf, der **0,50 €** gekostet hat. Die Zahl stimmte für die
+     * Schicht-Kasse und war als Auskunft über den Lauf falsch — eine zu
+     * niedrige Zahl sieht genauso aus wie eine gemessene.
+     *
+     * Gerechnet wird mit derselben Funktion, die auch das Fahrtenbuch
+     * summiert; sie liegt seit heute in `kassen.js` an der Wurzel, damit ein
+     * klassisches Skript sie erreicht. Ein zweiter Rechenweg hier wäre eine
+     * Drift-Quelle mit Ansage.
+     *
+     * ⚠ FEHLT DIE DATEI, WIRD NICHT GERATEN. Dann steht die Schicht-Kasse da
+     * wie bisher — falsch wäre erst, es zu verschweigen, und deshalb sagt der
+     * Untertitel unten, woraus die Zahl besteht.
+     */
+    var kassen = [daten.lauf && daten.lauf.kasse,
+                  daten.konferenz && daten.konferenz.kasse].filter(Boolean);
+    var kasse = (window.WERKSTATT_KASSEN && kassen.length > 1)
+      ? window.WERKSTATT_KASSEN.zusammen.apply(null, kassen)
+      : kassen[0] || null;
     if (kasse) {
       $("#k-schicht").textContent = eur(kasse.verbrauchtEur);
       /* Die Herkunft als ANGABE, nicht nur im Satz — dieselbe Lehre wie am
@@ -2013,6 +2092,11 @@
         (daten.lauf && daten.lauf._ausBeispiel) || (daten.konferenz && daten.konferenz._ausBeispiel)
           ? "mitgeliefert" : "geraet");
       $("#k-schicht-sub").textContent = kasse.aufrufe + " Aufrufe · Deckel " + eur(kasse.deckelEur) +
+        /* WORAUS die Zahl besteht. Eine zusammengezählte Fahrt ist sonst von
+           einer einzelnen nicht zu unterscheiden — derselbe Grund, aus dem
+           `zusammen()` das Feld `teile` mitgibt. */
+        (kasse.teile && kasse.teile.length > 1
+          ? " · Konferenz + Schicht zusammen" : "") +
         ((daten.konferenz && daten.konferenz.art === "trocken") ||
          (daten.lauf && daten.lauf.art === "trocken") ? " · TROCKEN, nichts bezahlt" : "") +
         // Ohne diesen Zusatz sieht die Kachel bei fehlendem Lauf aus wie eine
@@ -2263,12 +2347,31 @@
   function vereinigt(a) { return zeitApi().vereinigt(a); }
 
   /** Gestempeltes und Gefahrenes in einer Liste, nach Beginn geordnet. */
-  function alleAbschnitte() {
-    var a = uhrAbschnitte().concat(fahrtAbschnitte());
+  /*
+   * ⚠ WAS GESTEMPELT IST — EINSCHLIESSLICH DER LAUFENDEN UHR (Klaus
+   * 2026-09-07, mit Bild: 0:00:00 gestempelt + 1:25:14 gefahren, und die
+   * grosse Zahl sagte 4:58).
+   *
+   * Der laufende Abschnitt steckte in der SUMME, aber in keiner der beiden
+   * Haelften — `alleAbschnitte()` haengte ihn an, die Aufteilung darunter las
+   * `uhrAbschnitte()`, also nur das schon Abgelegte. Die Kachel rechnete
+   * damit sichtbar nicht auf, und **eine Aufteilung, die nicht aufgeht, macht
+   * die Summe daneben unglaubwuerdig — auch wenn die Summe stimmt.**
+   *
+   * Beide lesen jetzt DIESELBE Liste. Zwei Stellen, die dasselbe
+   * zusammenstellen, liefen auseinander.
+   */
+  function gestempelteAbschnitte() {
+    var a = uhrAbschnitte();
     if (uhrLaeuft) a = a.concat([{ von: uhrLaeuft.von,
       sekunden: (Date.now() - uhrLaeuft.von) / 1000,
       was: uhrLaeuft.was, laeuft: true }]);
-    return a.sort(function (x, y) { return (x.von || 0) - (y.von || 0); });
+    return a;
+  }
+
+  function alleAbschnitte() {
+    return gestempelteAbschnitte().concat(fahrtAbschnitte())
+      .sort(function (x, y) { return (x.von || 0) - (y.von || 0); });
   }
 
   /* Alles, was je gearbeitet wurde — die Kachel in der Buchhaltung. Eine
@@ -2368,10 +2471,31 @@
        * die niemand belegen kann. Die Aufteilung steht deshalb IMMER da, auch
        * ohne Stundensatz.
        */
-      var gestempeltSek = vereinigt(uhrAbschnitte()).sekunden;
+      var gestempeltSek = vereinigt(gestempelteAbschnitte()).sekunden;
       var gefahrenSek = vereinigt(fahrtAbschnitte()).sekunden;
+      /*
+       * ⚠ UND WAS DOPPELT DALIEGT, STEHT DABEI. Die beiden Haelften werden
+       * jede fuer sich vereinigt; ueberschneiden sie sich — die Stechuhr
+       * laeuft, waehrend eine Schicht faehrt —, ist ihre Summe groesser als
+       * die Gesamtzeit. Beide Zeilen stimmen fuer sich, nur ihre Summe nicht;
+       * genau der Fall, den die Verfassung „dieselbe Stunde zaehlt EINMAL"
+       * nennt.
+       *
+       * Gerechnet aus den DREI Zahlen, die schon dastehen — kein zweiter
+       * Rechenweg. Und nur genannt, wenn es wirklich etwas zu nennen gibt:
+       * eine Zeile „0:00:00 doppelt" waere Zierde.
+       */
+      var auf = zeitApi().aufteilung(gestempeltSek, gefahrenSek, gesamt);
+      var doppeltSek = auf.doppeltSek;
       var teile = "davon " + uhrzeit(gestempeltSek) + " gestempelt · " +
-        uhrzeit(gefahrenSek) + " gefahren";
+        uhrzeit(gefahrenSek) + " gefahren" +
+        (doppeltSek >= 1 ? " · " + uhrzeit(doppeltSek) + " doppelt, zählt einmal" : "") +
+        /* ⚠ UND WENN SIE TROTZDEM NICHT AUFGEHT, STEHT DAS DA. Der Fall soll
+           nicht mehr vorkommen — aber ihn stillschweigend hinzunehmen hiesse,
+           genau die Zahlen wieder nebeneinanderzustellen, an denen Klaus sich
+           gestossen hat. Eine benannte Lücke ist Arbeit, eine verschwiegene
+           ist Schaden. */
+        (auf.gehtAuf ? "" : " · ⚠ die Aufteilung geht nicht auf");
       $("#k-klaus-sub").textContent = (c
         ? minuten(gesamt).toFixed(1).replace(".", ",") + " min × " +
           eur(c / 100) + "/h = " + eur(k / 100)
@@ -2379,6 +2503,7 @@
         + " · " + teile;
       $("#k-klaus-sub").setAttribute("data-gestempelt", String(Math.round(gestempeltSek)));
       $("#k-klaus-sub").setAttribute("data-gefahren", String(Math.round(gefahrenSek)));
+      $("#k-klaus-sub").setAttribute("data-doppelt", String(Math.round(doppeltSek)));
       $("#k-klaus-sub").setAttribute("data-satz", c ? String(c) : "keiner");
       /* Das ERGEBNIS als eigene Angabe. Der Satz daneben nennt beide Zahlen —
          den Stundensatz UND den Betrag —, und eine Prüfung, die im Text nach
@@ -3266,6 +3391,14 @@
            den Knopf ein und nimmt es am Ende wieder weg; nur sie weiß von der
            Konferenz-Strecke, die vor dem ersten Zwischenstand liegt. */
         laeuft: !!daten.schichtlaeuft || !!(daten.lauf && daten.lauf.laeuft),
+        /* ⚠ „WARTET AUF DICH" IST KEIN UNTERFALL VON „LÄUFT" (Klaus
+           2026-09-07). Am offenen Tor sagten drei Anzeigen gleichzeitig „es
+           arbeitet" — die Bühne pulste, die Uhr rechnete eine Restzeit hoch,
+           und die Regung-Anzeige meldete einen Hänger, der keiner war.
+           `laeuft` bleibt trotzdem wahr: die Schicht LÄUFT, sie wartet nur,
+           und die Zeit am Tor zählt als Arbeitszeit. Zwei Angaben, zwei
+           Fragen. */
+        wartet: !!daten.torwartet,
         /* DIE WANDUHR, NICHT DIE EINSPRITZBARE. `kasse.beginnIso`/`endeIso`
            stehen in JEDEM Zwischenstand — dadurch laeuft die Schichtuhr nach
            einem Neuladen mitten in der Schicht richtig weiter, statt wieder
