@@ -226,19 +226,29 @@ export class EchteApi {
      * ⚠ DER TOKEN-DECKEL GEHÖRT ZUR ROLLE, NICHT ZUR API (2026-09-07).
      *
      * Eine Zahl für alle acht ist für die eine falsch, die wirklich etwas
-     * baut. Gemessen an Klaus' Lauf: Emil (opus-5, Aufwand `high`) wurde bei
-     * 16 000 abgeschnitten — bei adaptivem Denken zählt das Denken mit, und
-     * eine ganze HTML-Datei passte daneben nicht mehr hinein. Die Schicht starb
+     * baut. Gemessen an Klaus' Läufen: Emil (opus-5, Aufwand `high`) wurde
+     * erst bei 16 000 abgeschnitten, nach der Erhöhung DREIMAL auch bei
+     * 32 000 — bei adaptivem Denken zählt das Denken mit, und eine ganze
+     * HTML-Datei passte daneben nicht mehr hinein. Die Schicht starb jedes Mal
      * nach der bezahlten Konferenz, ohne eine Zeile zu liefern.
      *
      * Ein höherer Deckel kostet NICHTS von sich aus — bezahlt wird, was
      * erzeugt wird. Er erlaubt nur, dass die Antwort zu Ende geschrieben wird.
      *
-     * ⚠ 32 000 für den Bauer ist BEGRÜNDET, NICHT GEMESSEN. Wie viel Emils
-     * Denken bei `high` wirklich frisst, weiss auf diesem Gerät niemand; die
-     * Zahl gibt Denken und Werkstück zusammen Platz und bleibt weit unter dem,
-     * was das Modell kann. Sie steht in `mitarbeiter.json` je Rolle — eine
-     * Stelle, damit die nächste Messung eine Zeile ändert und nicht acht.
+     * ⚠ ABER ER KOSTET ETWAS AN DER KASSE, und das ist die Hälfte, die beim
+     * ersten Mal fehlte: die Anlaufprüfung rechnet mit dem, was ein Aufruf
+     * kosten KANN. 48 000 Token auf Opus sind 1,20 $, die alte Pauschale stand
+     * bei 0,25 $. Wer nur diese Zahl erhöht und `kosten.mjs` nicht mitnimmt,
+     * lässt die Werkstatt Runden beginnen, die sie nicht bezahlen kann.
+     *
+     * ⚠ 48 000 für den Bauer ist BEGRÜNDET, NICHT GEMESSEN. Wie viel Emils
+     * Denken frisst, weiss auf diesem Gerät niemand; die Zahl liegt deutlich
+     * über den 32 000, an denen er dreimal riss, und hält eine Runde mit acht
+     * Rollen unter 1,60 $ — also in Reichweite eines Zwei-Euro-Deckels. Sein
+     * Aufwand steht dabei auf `medium` statt `high`: er soll ausführen, was
+     * die Konferenz beschlossen hat, nicht noch einmal darüber nachdenken.
+     * Beides steht in `mitarbeiter.json` je Rolle — eine Stelle, damit die
+     * nächste Messung eine Zeile ändert und nicht acht.
      */
     const deckel = Number(maxTokens) > 0 ? Number(maxTokens) : this.maxTokens;
 

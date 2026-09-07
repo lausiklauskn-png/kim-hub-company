@@ -33,17 +33,51 @@ export const PREISE = {
 const CACHE_SCHREIBEN = 1.25;   // 5-Minuten-Frist; bei "1h" wären es 2,0
 const CACHE_LESEN = 0.10;
 
+/* Die Meldung steht an EINER Stelle. Zwei Fassungen desselben Satzes laufen
+   auseinander, und die zweite ist dann die, die niemand liest. */
+const ohnePreis = (modell, dazu) =>
+  `Kein Preis hinterlegt für Modell "${modell}". ${dazu}. ` +
+  `Bekannt: ${Object.keys(PREISE).join(", ")}. Lieber abbrechen als raten — ` +
+  `ein geratener Preis sieht genauso aus wie ein hinterlegter.`;
+
 /** Was ein einzelner Aufruf gekostet hat, in Dollar. */
 export function kostenUsd(modell, usage = {}) {
   const p = PREISE[modell];
-  if (!p) throw new Error(`Kein Preis hinterlegt für Modell "${modell}". ` +
-    `Bekannt: ${Object.keys(PREISE).join(", ")}. Lieber abbrechen als raten.`);
+  if (!p) throw new Error(ohnePreis(modell, "Die Fahrt ist damit nicht abzurechnen"));
   const ein  = Number(usage.input_tokens || 0);
   const neu  = Number(usage.cache_creation_input_tokens || 0);
   const alt  = Number(usage.cache_read_input_tokens || 0);
   const aus  = Number(usage.output_tokens || 0);
   return ((ein + neu * CACHE_SCHREIBEN + alt * CACHE_LESEN) * p.ein
           + aus * p.aus) / 1_000_000;
+}
+
+/** Der Token-Deckel, den `api.mjs` nimmt, wenn eine Rolle keinen eigenen hat. */
+export const STANDARD_MAX_TOKENS = 16000;
+
+/**
+ * WAS EIN AUFRUF DIESER ROLLE HÖCHSTENS KOSTEN KANN, in Dollar — die
+ * Untergrenze der Schätzung, solange nichts gemessen ist.
+ *
+ * ⚠ WARUM NICHT EINE ZAHL FÜR ALLE (Klaus 2026-09-07, nach drei abgeschnittenen
+ * Emil-Aufrufen). Bis dahin rechnete die Anlaufprüfung mit `0,25 $` je Aufruf,
+ * gleich für alle acht. Für die sieben auf Haiku ist das reichlich; für den
+ * Bauer auf Opus ist es **um ein Vielfaches zu wenig** — er darf allein bis zu
+ * 48 000 Token schreiben, und die kosten dort 1,20 $. Die Werkstatt begann
+ * damit Runden, die sie nicht bezahlen konnte.
+ *
+ * Gerechnet wird aus dem Token-Deckel der Rolle und dem AUSGANGS-Preis ihres
+ * Modells. Das ist keine geratene Zahl, sondern eine nachrechenbare Obergrenze
+ * für den grossen Posten. Die Eingabe fehlt darin bewusst: sie ist bei allen
+ * Rollen um zwei Grössenordnungen kleiner (Emil ≈ 0,03 $), und sobald EIN
+ * Aufruf gelaufen ist, tritt der gemessene Wert an die Stelle dieser Grenze,
+ * wenn er höher liegt.
+ */
+export function grundpreisUsd({ modell, maxTokens } = {}) {
+  const p = PREISE[modell];
+  if (!p) throw new Error(ohnePreis(modell, "Die Runde ist damit nicht zu schätzen"));
+  const tok = Number(maxTokens) > 0 ? Number(maxTokens) : STANDARD_MAX_TOKENS;
+  return tok * p.aus / 1_000_000;
 }
 
 /**
@@ -84,6 +118,12 @@ export class Kasse {
     this.ausgegebenUsd = 0;
     this.aufrufe = [];
     this.teuersterAufrufUsd = 0;
+    /* Der teuerste Aufruf JE ROLLE. Ein einziger Höchstwert über alle taugt für
+       die Schätzung einer Runde nicht: er zöge die vier billigen Rollen auf den
+       Preis der einen teuren hoch und überschätzte die Runde um ein Mehrfaches
+       — ein Riegel, der zu früh schliesst, ist genauso falsch wie einer, der zu
+       spät schliesst. */
+    this.teuersterJeRolleUsd = {};
   }
 
   /** Nach jedem Aufruf: eintragen, was er gekostet hat. */
@@ -91,6 +131,8 @@ export class Kasse {
     const usd = kostenUsd(modell, usage);
     this.ausgegebenUsd += usd;
     this.teuersterAufrufUsd = Math.max(this.teuersterAufrufUsd, usd);
+    this.teuersterJeRolleUsd[rolle] =
+      Math.max(this.teuersterJeRolleUsd[rolle] || 0, usd);
     this.aufrufe.push({ rolle, modell, usd, usage, begonnen, dauerMs, kontextEin });
     return usd;
   }
@@ -101,6 +143,24 @@ export class Kasse {
   restEur() { return this.restUsd() / this.usdJeEuro; }
   verbrauchtEur() { return this.ausgegebenUsd / this.usdJeEuro; }
   verstricheneMs() { return this.jetzt() - this.beginn; }
+
+  /**
+   * WAS EINE RUNDE MIT DIESER BESETZUNG KOSTEN KANN, in Dollar.
+   *
+   * Summiert wird JE ROLLE — der teuerste Aufruf, den diese Rolle bisher
+   * gemacht hat, mindestens aber ihre nachrechenbare Obergrenze aus
+   * `grundpreisUsd`. Vorher stand hier `5 × der teuerste Aufruf überhaupt`,
+   * und das war in beide Richtungen falsch: es unterschätzte den Bauer
+   * (dessen Grenze lag bei 0,25 $, obwohl er das Fünffache darf) und
+   * überschätzte die vier billigen Rollen, sobald er einmal gelaufen war.
+   *
+   * @param {Array<{rolle:string,modell:string,maxTokens?:number}>} besetzung
+   *        die Rollen, die in EINER Runde wirklich aufgerufen werden
+   */
+  rundenSchaetzungUsd(besetzung) {
+    return besetzung.reduce((summe, m) =>
+      summe + Math.max(this.teuersterJeRolleUsd[m.rolle] || 0, grundpreisUsd(m)), 0);
+  }
 
   /**
    * Darf noch eine Runde? Gefragt wird VOR dem Aufruf, nicht danach.
@@ -238,80 +298,19 @@ export class Kasse {
   }
 }
 
-/**
- * ZWEI KASSEN, EINE FAHRT — und warum es diese Funktion überhaupt gibt.
+/*
+ * ZWEI KASSEN, EINE FAHRT — die Rechnung steht seit dem 2026-09-07 in
+ * `kassen.js` an der Wurzel, als klassisches Skript.
  *
- * Im Browser laufen Konferenz und Schicht mit GETRENNTEN Kassen (der Deckel
- * wird geteilt). Das Fahrtenbuch bekam bis zum 2026-09-07 aber nur die
- * SCHICHT-Kasse zu sehen. Gemessen an Klaus' Lauf: 0,47 € in 17 Aufrufen für
- * die Konferenz, 0,01 € in 2 für die Schicht — im Buch stand 0,01 €.
+ * Grund: die Ansicht ist ein klassisches Skript und konnte sie nicht
+ * importieren. Sie nahm deshalb EINE der beiden Kassen, und Klaus' Kachel
+ * meldete 0,02 € fuer einen Lauf, der 0,50 € gekostet hat. Ein zweiter
+ * Rechenweg dort waere eine Drift-Quelle mit Ansage — dieselbe Abhilfe wie bei
+ * `zeit.js`: was sich nachrechnen laesst, gehoert dorthin, wo es ueberall
+ * laeuft.
  *
- * Das ist derselbe Befund wie am 2026-08-22 („als hätten sie nie gearbeitet
- * und kein Geld gekostet"), nur an der Vorstufe: **eine zu niedrige Zahl sieht
- * genauso aus wie eine gemessene.**
- *
- * Drei Dinge werden hier NICHT addiert, und jedes hat seinen Grund:
- *
- *   minuten            Die Läufe folgen AUFEINANDER. Gerechnet wird die
- *                      Spanne vom frühesten Beginn bis zum spätesten Ende —
- *                      eine Summe zweier Dauern verlöre die Zeit dazwischen
- *                      (Überlegen, Nachladen) und wäre für einen
- *                      Stundennachweis zu klein.
- *   kontext            Ein MAXIMUM, keine Summe. Kontexte zu addieren ergäbe
- *                      eine Zahl, die es in keinem Aufruf gab.
- *   laufzeitMinuten    Ein DECKEL, keine Dauer. Beide Kassen tragen denselben;
- *                      addiert stünde dort eine Erlaubnis, die nie galt.
+ * Importiert wird fuer die WIRKUNG (das Skript haengt sich an `globalThis`),
+ * gelesen wird danach von dort — genau wie `schicht.mjs` es mit `zeit.js` tut.
  */
-export function zusammen(...berichte) {
-  const teile = berichte.filter(Boolean);
-  if (teile.length === 0) return null;
-  if (teile.length === 1) return teile[0];
-
-  const summe = (feld) => Number(teile.reduce((n, b) => n + (Number(b[feld]) || 0), 0).toFixed(4));
-  const frueh = teile.map((b) => b.beginnIso).filter(Boolean).sort()[0] || null;
-  const spaet = teile.map((b) => b.endeIso).filter(Boolean).sort().slice(-1)[0] || null;
-
-  /* Die Spanne, wenn beide Enden dastehen — sonst die Summe der Dauern, und
-     dann steht in `spanneGemessen` ausdrücklich, dass sie geraten ist. Eine
-     Null wäre hier die schlechteste Antwort: sie sähe aus wie „ging schnell". */
-  const spanneMin = (frueh && spaet)
-    ? Math.max(0, Math.round((Date.parse(spaet) - Date.parse(frueh)) / 60000))
-    : teile.reduce((n, b) => n + (Number(b.minuten) || 0), 0);
-
-  const jeRolle = {};
-  const tokenJeRolle = {};
-  const msJeRolle = {};
-  for (const b of teile) {
-    for (const [r, v] of Object.entries(b.jeRolle || {}))
-      jeRolle[r] = Number(((jeRolle[r] || 0) + (Number(v) || 0)).toFixed(4));
-    for (const [r, v] of Object.entries(b.msJeRolle || {}))
-      msJeRolle[r] = (msJeRolle[r] || 0) + (Number(v) || 0);
-    for (const [r, v] of Object.entries(b.tokenJeRolle || {})) {
-      const e = tokenJeRolle[r] || (tokenJeRolle[r] = { ein: 0, aus: 0, kontext: 0, aufrufe: 0 });
-      e.ein += Number(v.ein || 0);
-      e.aus += Number(v.aus || 0);
-      e.kontext = Math.max(e.kontext, Number(v.kontext || 0));
-      e.aufrufe += Number(v.aufrufe || 0);
-    }
-  }
-
-  return {
-    aufrufe: teile.reduce((n, b) => n + (Number(b.aufrufe) || 0), 0),
-    beginnIso: frueh,
-    endeIso: spaet,
-    verbrauchtEur: summe("verbrauchtEur"),
-    deckelEur: summe("deckelEur"),
-    restEur: summe("restEur"),
-    reserveEur: summe("reserveEur"),
-    minuten: spanneMin,
-    spanneGemessen: !!(frueh && spaet),
-    laufzeitMinuten: Math.max(...teile.map((b) => Number(b.laufzeitMinuten) || 0)),
-    /* WORAUS die Zahl besteht — sonst ist eine zusammengezählte Fahrt von einer
-       einzelnen nicht zu unterscheiden, und genau das war der Fehler. */
-    teile: teile.map((b) => ({ aufrufe: b.aufrufe, verbrauchtEur: b.verbrauchtEur })),
-    jeRolle,
-    tokenJeRolle,
-    msJeRolle,
-    msGesamt: teile.reduce((n, b) => n + (Number(b.msGesamt) || 0), 0),
-  };
-}
+import "../kassen.js";
+export const zusammen = globalThis.WERKSTATT_KASSEN.zusammen;

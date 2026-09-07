@@ -146,9 +146,41 @@
     return t.getFullYear() + "-" + zz(t.getMonth() + 1) + "-" + zz(t.getDate());
   }
 
+  /**
+   * GEHT DIE AUFTEILUNG AUF? — wie viel der beiden Haelften doppelt daliegt.
+   *
+   * ⚠ WARUM DAS HIER STEHT UND NICHT IN DER ANSICHT (Klaus 2026-09-07, mit
+   * Bild: „0:00:00 gestempelt · 1:25:14 gefahren", und die grosse Zahl sagte
+   * 4:58). Die Kachel nennt drei Zahlen; **eine Aufteilung, die nicht aufgeht,
+   * macht die Summe daneben unglaubwuerdig — auch wenn die Summe stimmt.**
+   *
+   * Gestempeltes und Gefahrenes werden jedes fuer sich vereinigt. Ueberschneiden
+   * sie sich — die Stechuhr laeuft, waehrend eine Schicht faehrt —, ist ihre
+   * Summe groesser als die Gesamtzeit. Beide Zeilen stimmen fuer sich, nur ihre
+   * Summe nicht: genau der Fall, den „dieselbe Stunde zaehlt EINMAL" meint.
+   *
+   * In `ansicht.js` waere diese Rechnung nur im Browser pruefbar, und die
+   * Gegenprobe faehrt ohne. Dieselbe Abhilfe wie beim Rest dieser Datei am
+   * 2026-08-25: was sich nachrechnen laesst, gehoert dorthin, wo es ueberall
+   * laeuft.
+   *
+   * ⚠ NIE NEGATIV. Waere `gesamt` groesser als beide Haelften zusammen, laege
+   * ein Fehler eine Ebene tiefer — eine negative „Doppelzeit" waere davon die
+   * unbrauchbarste Auskunft.
+   */
+  function aufteilung(gestempeltSek, gefahrenSek, gesamtSek) {
+    var a = Number(gestempeltSek) || 0, b = Number(gefahrenSek) || 0;
+    var g = Number(gesamtSek) || 0;
+    return { gestempeltSek: a, gefahrenSek: b, gesamtSek: g,
+             doppeltSek: Math.max(0, a + b - g),
+             /* Geht sie auf? Eine Toleranz von einer Sekunde, weil angezeigt
+                wird, was gerundet ist — nicht, um einen Fehler zuzudecken. */
+             gehtAuf: Math.abs((a + b - Math.max(0, a + b - g)) - g) < 1 };
+  }
+
   if (welt) welt.WERKSTATT_ZEIT = {
     fahrtAbschnitte: fahrtAbschnitte, vereinigt: vereinigt, dauerText: dauerText,
-    tagOrt: tagOrt
+    tagOrt: tagOrt, aufteilung: aufteilung
   };
 })(typeof window !== "undefined" ? window
    : (typeof globalThis !== "undefined" ? globalThis : null));

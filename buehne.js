@@ -799,6 +799,29 @@
        laufende. Gesteuert ueber `data-schichtuhr`, damit eine Probe den
        Zustand messen kann, ohne am Wortlaut zu haengen. */
 
+    /*
+     * ══ WARTET AUF DICH — VOR „LÄUFT", WEIL ES DER ENGERE FALL IST ════════
+     *
+     * Klaus 2026-09-07, am offenen Tor: „Wie soll ein Fremder auf die Idee
+     * kommen, dass man nach unten scrollen muss?"
+     *
+     * Hier standen sonst drei Zahlen — verstrichene Zeit, „Aufruf n von ~m",
+     * „noch ~X" — und dazu „seit 43:52 nichts fertig". Alle vier stimmten und
+     * alle vier waren irreführend: es geschieht nichts, WEIL gewartet wird,
+     * und die Regung-Anzeige schickte damit zum ANHALTEN-Knopf. Der richtige
+     * Knopf heisst „Bauen".
+     *
+     * ⚠ EINE RESTZEIT WIRD HIER NICHT GENANNT. Wie lange ein Mensch überlegt,
+     * ist nicht hochzurechnen — eine Zahl dafür sähe aus wie eine gemessene.
+     */
+    if (this.wartet) {
+      uhr.hidden = false;
+      uhr.setAttribute("data-schichtuhr", "wartet");
+      uhr.textContent = "\u23f8 Wartet auf deine Entscheidung \u2014 in der Werkstatt, "
+        + "unter \u201eBevor gebaut wird\u201c.";
+      return;
+    }
+
     if (this.laeuft) {
       var selbst = this;
       var zeigen = function () {
@@ -890,6 +913,10 @@
     this.events = Array.isArray(daten.events) ? daten.events : [];
     this.besetzung = Array.isArray(daten.besetzung) ? daten.besetzung : [];
     this.laeuft = daten.laeuft === true;
+    /* Wartet die Schicht auf eine Entscheidung des Menschen? Dann läuft sie —
+       aber sie arbeitet nicht. Ohne diese Unterscheidung behauptet jede
+       Anzeige darüber Betrieb, wo Stillstand mit Absicht ist. */
+    this.wartet = daten.wartet === true;
     /* Die WANDUHR-Startzeit des Laufs. Fehlt sie, zeigt die Uhr keine Dauer an
        statt einer erfundenen — eine geratene Zahl klingt wie eine gemessene. */
     this.uhrBeginn = Date.parse(daten.beginn || "") || 0;
@@ -982,8 +1009,12 @@
      * weg. Ein Bild, das Betrieb behauptet, wo keiner ist, ist dieselbe Sorte
      * Unwahrheit wie eine Uhr, die über einem toten Lauf weiterzählt.
      */
+    /* ⚠ UND `wartet` NIMMT DEN PULS WEG. Er ist die Hälfte der Auskunft, die
+       man ohne Lesen bekommt; am offenen Tor behauptete er Betrieb, wo mit
+       Absicht Stillstand ist. Dieselbe Lehre wie beim ausgewählten Schritt:
+       „auf einem Schritt zu stehen heisst lesen, nicht arbeiten." */
     if (this.wurzel) this.wurzel.setAttribute("data-lebt",
-      (this.laeuft || spielt) ? "ja" : "nein");
+      ((this.laeuft && !this.wartet) || spielt) ? "ja" : "nein");
     /* Gemerkt, weil das Öffnen und Schließen einer Akte den Volltext-Kasten neu
        stellen muss — und der braucht dafür den Schritt, auf dem wir stehen.
        Ohne das zeigte er nach dem Schließen wieder den Stand von vor dem

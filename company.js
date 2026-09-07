@@ -136,7 +136,7 @@ async function buchLesen() {
  *  ändert ein voller Speicher nichts — aber es wird gesagt, still wäre dasselbe
  *  Verschweigen noch einmal. */
 async function fahrtEintragen({ art, echt, bericht, titel = "", ergebnis = "",
-                                mitarbeiter = [] }) {
+                                mitarbeiter = [], beginn = "" }) {
   if (!bericht) return null;
   let e;
   try {
@@ -144,6 +144,12 @@ async function fahrtEintragen({ art, echt, bericht, titel = "", ergebnis = "",
       art, echt, bericht,
       datum: new Date().toISOString().slice(0, 10),
       titel, ergebnis,
+      /* WANN die Fahrt begann — ausdruecklich, wo die Kasse es nicht weiss.
+         Seit die Konferenz getrennt gebucht wird, faengt die Schicht-Kasse
+         VOR ihr an zu laufen (beide Kassen entstehen vor dem ersten Aufruf).
+         Ohne diese Angabe truege der Schicht-Eintrag die Konferenz-Zeit noch
+         einmal, und zwei Eintraege meldeten dieselbe Stunde. */
+      beginn,
       /* `wer` bleibt LEER. In dieser App bringt jeder seinen eigenen Zugang mit;
          einen Namen zu erfinden wäre eine Angabe, die niemand gemacht hat. */
       wer: "",
@@ -383,8 +389,11 @@ function torText(idee) {
   }
   if (idee.ausBauSicht && idee.ausBauSicht.length)
     z.push("Aus Bau-Sicht: " + idee.ausBauSicht.join(" · "));
+  /* Derselbe Wortlaut wie im Tor, und aus demselben Grund: was in die Sitzung
+     kopiert wird, darf nicht mehr behaupten als das, was auf dem Schirm steht. */
   if (!idee.pruefmerkmalTraegt)
-    z.push("⚠ Ben hält das Prüfmerkmal für NICHT nachprüfbar.");
+    z.push("⚠ Ben hält das Prüfmerkmal für nicht durchgehend nachprüfbar — "
+      + "was daran nicht nachprüfbar ist, kann die Gegenprüfung nicht messen.");
   return z.join("\n");
 }
 
@@ -410,12 +419,59 @@ function torOeffnen(idee) {
        später gegen etwas, das sich nicht messen lässt. */
     var w = $("tor-warnung");
     w.hidden = !!idee.pruefmerkmalTraegt;
+    /*
+     * ⚠ DER ZWEITE SATZ WAR ABSOLUTER ALS BENS BEFUND (Klaus 2026-09-07).
+     *
+     * Hier stand „Dann kann auch die Gegenprüfung am Ende nichts messen." Ben
+     * beanstandet aber nicht das ganze Prüfmerkmal, sondern einzelne Zeilen
+     * darin — in Klaus' Lauf zwei von fünf; die anderen drei waren sehr wohl
+     * messbar. **Eine Warnung, die mehr behauptet als der Befund, den sie
+     * weitergibt, ist keine Warnung, sondern eine zweite Behauptung.**
+     *
+     * Und sie ist die teurere Sorte Fehler: wer liest, dass gar nichts messbar
+     * sei, verwirft eine Idee, die zu drei Vierteln getragen hätte.
+     */
     w.textContent = idee.pruefmerkmalTraegt ? ""
-      : "⚠ Ben hält das Prüfmerkmal für NICHT nachprüfbar. Dann kann auch die " +
-        "Gegenprüfung am Ende nichts messen.";
+      : "⚠ Ben hält das Prüfmerkmal für nicht durchgehend nachprüfbar. " +
+        "Was daran nicht nachprüfbar ist, kann die Gegenprüfung am Ende nicht " +
+        "messen — der Rest schon. Was er beanstandet, steht oben unter " +
+        "\u201eWas Ben dazu sagt\u201c.";
     sagt.textContent = "";
     kasten.hidden = false;
     kasten.setAttribute("data-tor", "offen");
+
+    /*
+     * ══ „WARTET AUF DICH" IST KEIN UNTERFALL VON „LÄUFT" ══════════════════
+     *
+     * Klaus 2026-09-07: „Wie soll ein Fremder auf die Idee kommen, dass man
+     * nach unten scrollen muss? Das ist nicht intuitiv handhabbar."
+     *
+     * Am offenen Tor sagten DREI Dinge gleichzeitig „es arbeitet": die Bühne
+     * pulste, die Uhr rechnete eine Restzeit hoch, und „seit 43:52 nichts
+     * fertig" schickte zum ANHALTEN-Knopf. Der dritte war der schlimmste — er
+     * soll einen Hänger melden und meldete am Tor einen, der keiner ist. Der
+     * richtige Knopf heisst „Bauen" und stand ausserhalb des Sichtfelds.
+     *
+     * `torwartet` ist deshalb ein EIGENER Kanal, nicht ein Abschalten von
+     * `schichtlaeuft`: die Schicht läuft ja, sie wartet nur. Wer den einen
+     * durch den anderen ersetzte, bekäme eine Uhr, die stehen bleibt — und
+     * die Zeit am Tor IST Arbeitszeit, so steht es in `schicht.mjs`.
+     */
+    window.__werkstatt.speise("torwartet", { seit: new Date().toISOString() });
+
+    /*
+     * ⚠ UND DIE SEITE FÜHRT HIN, statt es zu erwähnen. Das Tor steht in der
+     * Werkstatt (Raum 0); wer beim Warten die Bühne ansieht, ist in einem
+     * anderen Reiter, und ein geschlossener Reiter zeigt seine Knöpfe nicht.
+     * Ein Hinweis „scroll nach unten" wäre genau der Rat, den Klaus nicht
+     * ausführen konnte — die Stelle war gar nicht sichtbar.
+     *
+     * Kein eigener Weg: es wird der Reiter-Knopf gedrückt, den ein Mensch auch
+     * drücken würde. Zwei Wege in denselben Raum liefen auseinander.
+     */
+    var reiter = document.querySelector('.reiter button[data-raum="raum0"]');
+    if (reiter) reiter.click();
+    if (kasten.scrollIntoView) kasten.scrollIntoView({ block: "center" });
     $("tor-bauen").focus();
 
     function schliesse(antwort) {
@@ -423,6 +479,10 @@ function torOeffnen(idee) {
       kasten.setAttribute("data-tor", "zu");
       $("tor-bauen").onclick = null;
       $("tor-verwerfen").onclick = null;
+      /* ⚠ AUF JEDEM WEG HINAUS. Bliebe die Marke stehen, sagte die Bühne
+         „wartet auf dich", während längst gebaut wird — dieselbe Sorte
+         Unwahrheit wie eine Uhr über einem toten Lauf, nur andersherum. */
+      window.__werkstatt.speise("torwartet", null);
       fertig(antwort);
     }
     $("tor-bauen").onclick = function () { schliesse({ weiter: true }); };
@@ -681,7 +741,12 @@ async function fahre({ echt }) {
      abgebrochene Fahrt konnte die Konferenz gar nicht mitbuchen. Dieselbe
      Falle wie beim Fahrtenbuch am 2026-09-06: was der `catch` braucht,
      wird VOR dem `try` angelegt. */
-  let kasse = null, kasseKonf = null, mitarbeiter = [];
+  let kasse = null, kasseKonf = null, mitarbeiter = [], konfGebucht = null;
+  /* ⚠ VOR DEM `try`, WIE DIE BEIDEN KASSEN — und aus demselben Grund. Ein
+     `const` im try-Block ist im `catch` nicht sichtbar, und `typeof` wirft
+     dort ebenfalls (tote Zone). Der Abbruch-Eintrag unten braucht diesen Wert.
+     Dieselbe Lehre wie beim Fahrtenbuch am 2026-09-06, an derselben Stelle. */
+  let schichtBeginn = "";
 
   try {
     mitarbeiter = await holeMitarbeiter();
@@ -866,6 +931,11 @@ async function fahre({ echt }) {
     };
 
     if (konf) {
+      /* ⚠ MIT IHRER KASSE (Klaus 2026-09-07). Der Node-Weg legt sie seit jeher
+         in `konferenz.json` ab (`schreibeKonferenz`); im Browser fehlte sie —
+         und die Kachel „Diese Schicht" konnte deshalb gar nicht summieren.
+         Sie meldete 0,02 € fuer einen Lauf, der 0,50 € gekostet hat. */
+      konf.kasse = kasseKonf.bericht();
       window.__werkstatt.speise("konferenz", konf);
       /*
        * ══ DAS ÜBERGABE-BLATT — DER AUSGANG, DER GEFEHLT HAT ═══════════════
@@ -908,7 +978,42 @@ async function fahre({ echt }) {
       letzterStand.konferenz = konf;
       letzterStand.wann = new Date().toISOString();
       await standSichern();
+
+      /*
+       * ══ DIE KONFERENZ WIRD HIER GEBUCHT, NICHT AM SCHICHTENDE ═══════════
+       *
+       * ⚠ ZUM DRITTEN MAL DERSELBE BEFUND, nur eine Ebene weiter. Am
+       * 2026-08-22 hiess er „als hätten sie nie gearbeitet und kein Geld
+       * gekostet", am 2026-09-06 „ein bezahlter Lauf, den man nicht anhalten
+       * kann". Hier: die Konferenz ist bezahlt und durch — und dahinter
+       * wartet das TOR, unbegrenzt lange, auf Klaus' Entscheidung. Lädt er in
+       * dieser Zeit die Seite neu, läuft KEIN Abbruch-Pfad: das `catch` unten
+       * bekommt nichts mit, wenn die Seite selbst verschwindet. Siebzehn von
+       * rund dreissig Aufrufen standen danach in keinem Buch.
+       *
+       * Gebucht wird deshalb, sobald sie durch ist — mit `planmodus`, dem Namen,
+       * den eine Konferenz ohne Bau auch an der Kommandozeile trägt.
+       *
+       * ⚠ UND SIE WIRD DANACH NICHT NOCH EINMAL GEBUCHT. Der Eintrag am Ende
+       * trägt seither NUR die Schicht-Kasse; sonst stünde dieselbe Ausgabe
+       * zweimal im Buch, und eine zu hohe Zahl ist derselbe Fehler wie eine zu
+       * niedrige, nur andersherum.
+       */
+      konfGebucht = await fahrtEintragen({
+        art: "planmodus", echt, bericht: kasseKonf.bericht(), mitarbeiter,
+        titel: (konf.auftrag && konf.auftrag.ziel) || (($("ziel").value || "").trim()),
+        ergebnis: konf.ok
+          ? `Sieger: ${(konf.auftrag && konf.auftrag.ziel) || "—"}`
+          : "Konferenz ohne Ergebnis",
+      });
     }
+
+    /* Ab HIER läuft die Schicht. Der Zeitpunkt geht als `beginn` in ihren
+       Eintrag: die Schicht-Kasse steht schon seit vor der Konferenz, und ihr
+       `beginnIso` würde deren Zeit ein zweites Mal mitzählen. Das Warten am
+       Tor gehört dagegen hinein — es IST Arbeitszeit, so steht es in
+       `schicht.mjs` an der Stelle, an der das Tor wartet. */
+    schichtBeginn = new Date().toISOString();
 
 
     /* ⚠ HIER LÖST SICH DIE NAHT EIN. `schicht.mjs` gibt seinen Zwischenstand in
@@ -953,12 +1058,22 @@ async function fahre({ echt }) {
        das nirgends steht, und genau diese Lücke war der Befund. Dieselbe
        Reihenfolge wie in `lauf.mjs`. */
     await fahrtEintragen({
-      art: mitKonferenz ? "planmodus" : "schicht", echt,
-      /* ⚠ BEIDE KASSEN. Bis zum 2026-09-07 stand hier nur die Schicht-Kasse,
-         und die Konferenz — bei acht Rollen SIEBZEHN von rund dreissig
-         Aufrufen — fehlte im Buch. Gemessen an Klaus' Lauf: 0,47 € + 0,01 €
-         ausgegeben, 0,01 € gebucht. */
-      bericht: zusammen(kasseKonf && kasseKonf.bericht(), lauf && lauf.kasse), mitarbeiter,
+      art: "schicht", echt,
+      /* ⚠ NUR NOCH DIE KONFERENZ, DIE NICHT SCHON GEBUCHT IST.
+         Bis zum 2026-09-07 stand hier nur die Schicht-Kasse, und die Konferenz
+         — bei acht Rollen SIEBZEHN von rund dreissig Aufrufen — fehlte im Buch
+         (gemessen: 0,47 € + 0,01 € ausgegeben, 0,01 € gebucht). Dann standen
+         beide hier, und die Konferenz war bis zum Schichtende ungebucht — ein
+         Neuladen am offenen Tor liess sie spurlos verschwinden. Jetzt bucht
+         sie sich selbst, sobald sie durch ist, und `konfGebucht` hält fest,
+         dass es geschehen ist. `zusammen` bleibt für den Fall stehen, dass es
+         NICHT geschah (Konferenz ohne verwertbaren Sieger) — dann ist ihr Geld
+         hier immer noch besser aufgehoben als nirgends. */
+      bericht: konfGebucht
+        ? (lauf && lauf.kasse)
+        : zusammen(kasseKonf && kasseKonf.bericht(), lauf && lauf.kasse),
+      beginn: konfGebucht ? schichtBeginn : "",
+      mitarbeiter,
       titel: (auftrag && auftrag.ziel) || "",
       ergebnis: (lauf && lauf.ergebnis && lauf.ergebnis.urteil) || "",
     });
@@ -984,10 +1099,15 @@ async function fahre({ echt }) {
     try {
       await fahrtEintragen({
         art: "abbruch", echt,
-        /* Auch hier BEIDE — eine Schicht, die nach der Konferenz stirbt, hat
-           deren Aufrufe bezahlt. Das ist der Fall, in dem die Lücke am
-           teuersten war: sie trifft genau die Läufe ohne Ergebnis. */
-        bericht: zusammen(kasseKonf && kasseKonf.bericht(), kasse && kasse.bericht()),
+        /* Auch hier: die Konferenz nur, wenn sie nicht schon ihren eigenen
+           Eintrag hat. Eine Schicht, die nach der Konferenz stirbt, hat deren
+           Aufrufe bezahlt — das ist der Fall, in dem die Lücke am teuersten
+           war, denn er trifft genau die Läufe ohne Ergebnis. Seit die Konferenz
+           sich selbst bucht, stünde sie hier ein zweites Mal. */
+        bericht: konfGebucht
+          ? (kasse && kasse.bericht())
+          : zusammen(kasseKonf && kasseKonf.bericht(), kasse && kasse.bericht()),
+        beginn: konfGebucht ? schichtBeginn : "",
         mitarbeiter,
         titel: (($("ziel").value || "").trim()) || "",
         /* Der GRUND steht im Buch, nicht nur „abgebrochen". Ein Eintrag, der
@@ -1020,6 +1140,14 @@ async function fahre({ echt }) {
     /* Und weg damit — sonst tickte sie weiter, während nichts mehr läuft.
        Der fertige Lauf trägt seine eigene Zeit; ab hier gilt wieder seine. */
     window.__werkstatt.speise("schichtlaeuft", null);
+    /* ⚠ AUCH HIER, UND ZWAR IM `finally`. Stirbt der Lauf, WÄHREND das Tor
+       offen steht (ein Fehler im Tor selbst, ein Abbruch von aussen), käme
+       `schliesse` nie dazu, die Marke wegzunehmen — und die Bühne sagte
+       danach „wartet auf deine Entscheidung" über einem Lauf, den es nicht
+       mehr gibt. Ein Zustand, aus dem die Seite keinen Weg zeigt, ist ein
+       toter Knopf ohne Knopf. Zweimal wegnehmen schadet nicht; einmal
+       vergessen schon. */
+    window.__werkstatt.speise("torwartet", null);
     startLageZeichnen();
   }
 }
@@ -1171,6 +1299,19 @@ async function holeGrundsaetze() {
     letzterSieger: () => (letzterStand.konferenz && letzterStand.konferenz.auftrag
       ? { ziel: letzterStand.konferenz.auftrag.ziel,
           sieger: letzterStand.konferenz.auftrag.sieger || null } : null),
+    /* ⚠ EINE WHITELIST, KEIN DURCHREICHEN DES BUCHES (2026-09-07). Gebraucht
+       wird die FORM der Buchung — dass eine Konferenz ihre eigene Fahrt bekommt
+       und die Schicht danach ihre, ohne dieselbe Stunde zweimal zu nennen.
+       Dafür reichen vier Felder. Was hier nicht steht, kann nicht heraus, auch
+       wenn das Fahrtenbuch morgen ein Feld mehr trägt — dieselbe Bauart wie
+       PROTOKOLL_FELDER im Übergabe-Block. */
+    fahrten: async () => {
+      const b = await buchLesen();
+      return (b.fahrten || []).map((f) => ({
+        art: f.art, echt: f.echt, beginn: f.beginn, beendet: f.beendet,
+        eur: f.eur, aufrufe: f.aufrufe,
+      }));
+    },
     idbName: idb.name,
   };
 })();

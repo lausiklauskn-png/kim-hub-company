@@ -904,18 +904,26 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
         <input id="deckel" type="number" min="0.20" max="20" step="0.10" value="2.00"
                style="width:92px"> €</label>
       <p class="leise" style="margin:2px 0 8px">
-        Unter <b>1,50 €</b> beginnt keine Runde, unter <b>2,00 €</b> wird sie
-        meist nicht fertig — eine Runde sind fünf Aufrufe, und die Werkstatt
-        beginnt keine, die sie nicht zu Ende bringen kann.
+        Unter <b>2,00 €</b> beginnt keine Runde — eine Runde sind fünf Aufrufe,
+        darunter der eine auf dem grossen Modell, und die Werkstatt beginnt
+        keine, die sie nicht zu Ende bringen kann.
         <span data-deckel-gemessen>Diese drei Zahlen stammen aus einem
-        <b>Trockenlauf</b> (2026-09-05, acht Rollen): 1,00 € → 0 Runden ·
-        1,50 € → 1 Runde · 2,00 € → fertig in 2 Runden.</span>
+        <b>Trockenlauf</b> (2026-09-07, acht Rollen): 1,00 € → 0 Runden ·
+        1,50 € → 0 Runden · 2,00 € → fertig in 2 Runden.</span>
       </p>
       <!-- ⚠ DASS ES TROCKENLAUF-ZAHLEN SIND, GEHÖRT DAZU (Klaus 2026-09-07).
            Ein Trockenlauf rechnet mit einem festen Stub von 2 000 Eingabe- und
            800 Ausgabe-Token je Aufruf, gleich für jede Rolle. Das ist ein
            GERECHNETER Preis, der wie ein bezahlter aussieht — und Klaus hat
            sein echtes Geld danach eingestellt. -->
+      <!-- ⚠ DIE 1,50-ZEILE HAT SICH AM 2026-09-07 GEDREHT, und der Grund ist
+           kein Schreibfehler: der Bauer darf seit diesem Tag 48 000 statt
+           32 000 Token schreiben, und die Anlaufprüfung rechnet seither mit
+           dem, was eine Rolle wirklich kosten KANN (1,20 $ statt der alten
+           Pauschale 0,25 $). Eine Runde ist damit ehrlich teurer geworden —
+           sie war es vorher auch, es stand nur nicht in der Rechnung. Wer die
+           alte 1,50-€-Zeile wiedersehen will, muss den Token-Deckel senken,
+           nicht diese Zahl. Neu gemessen mit demselben Trockenlauf. -->
       <p class="leise" style="margin:2px 0 8px" data-deckel-echt>
         <b>Ein Trockenlauf rechnet, er bezahlt nicht.</b> Er setzt je Aufruf
         eine feste Token-Menge an; ein echter Lauf hängt daran, wie lang die
@@ -1617,6 +1625,7 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
 <script src="idb.js" defer></script>
 <script src="schluesseltresor.js" defer></script>
 <script src="zeit.js" defer></script>
+<script src="kassen.js" defer></script>
 <script src="ansicht.js" defer></script>
 <!-- Der app-eigene Klebstoff. Er kommt NACH `ansicht.js`, weil er dessen
      Nähte benutzt (`__werkstatt.speise`) — und als Modul, weil er die
