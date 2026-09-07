@@ -46,21 +46,22 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
  * Fingerabdrücke unten nachzieht und das hier vergisst, wird rot.
  */
 export const HERKUNFT = {
-  commit: "5363b2d",
-  datum:  "2026-09-07T01:57:49+02:00",
-  betreff: "Der Ausgang, der drei Tage lang gefehlt hat (#110)",
+  commit: "3785995",
+  datum:  "2026-09-07T02:19:18+02:00",
+  betreff: "Wen interessiert das — ein toter Knopf und eine Zahl, die nicht ist, was sie scheint (#113)",
 };
 
 export const ERWARTET = [
-  { datei: "index.html",                herkunft: "start.html",              sha: "a0883c6f2073ebec97a60a1264f72568644be42b16b3ddf4dca7f25865166e56" },
-  { datei: "company.js",                herkunft: "company.js",              sha: "98ba50fb55085c35cd7d214e1b6dff54ce79e56da6c764b2f92502cb8429a362" },
-  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "2aa26e4a5f472ce7fe4340d532c5d6142b61d5312ee5149a08edf24064921db8" },
-  { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "dd5fbdebacf092a1135e36f6dcdc7c8c653f45cb4c368f8d6f0a861fae97671c" },
+  { datei: "index.html",                herkunft: "start.html",              sha: "08ccb7ffb88057c35927eb4f2d6b09445068088b512fe6c6646cbd202473cea2" },
+  { datei: "company.js",                herkunft: "company.js",              sha: "d4fb4cedea7d348440fd522e1bb8e923b7e6a7d42c487a43c27e4496756e05b9" },
+  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "f00f27a86d88d4138d6e9f81fe8834d56a60c57e4b8cf89e86b47643f98a8f98" },
+  { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "f00c812cf3048a0276b51f71f49bbd0ef1fdf0185e11b4bda776c69d06359277" },
   { datei: "zeit.js",                   herkunft: "zeit.js",                 sha: "48f940fd937b93d35e2752f6ad542d7ad18ff7bb956fb065197105e373816d98" },
   { datei: "idb.js",                    herkunft: "idb.js",                  sha: "b244ab3f832bb4d4cd5ec87e51de364df5716ee7ca6fc8a2bceeea6b6c9bbd51" },
   { datei: "schluesseltresor.js",       herkunft: "schluesseltresor.js",     sha: "eaed30e8f3921835a3f58b69f89d9b008831f69f164ad1dfec630fa43161f666" },
   { datei: "schicht/konferenz.mjs",     herkunft: "schicht/konferenz.mjs",   sha: "616136428a0e7960cc1ef9455dcfd66b1fed087017e3b512a3f2119e28287920" },
   { datei: "schicht/plan-form.mjs",  herkunft: "schicht/plan-form.mjs", sha: "243704c1469db0d310b3cacc2f8dda3ccc9f22ae88401c7f851f88a87e5fe4ff" },
+  { datei: "schicht/umfang.mjs",     herkunft: "schicht/umfang.mjs",    sha: "719105190efa71dd1fa24551be586a71b8508746e2c70818c1e2e702d60ccc83" },
   { datei: "schicht/schicht.mjs",       herkunft: "schicht/schicht.mjs",     sha: "353177c0fa24843bd64647765db12a145063c4b401b07446b96bbe0365214ad0" },
   { datei: "schicht/api.mjs",           herkunft: "schicht/api.mjs",         sha: "4151fb4758eea0331683e57d693961358130b598f430254207ae3fd6416153bd" },
   { datei: "schicht/transport-netz.mjs",herkunft: "schicht/transport-netz.mjs", sha: "5d722b8461501c1cba830782e4dd154f2b9277e320bd79ae268e8eb2e9a9edf3" },
