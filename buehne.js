@@ -814,7 +814,7 @@
          * Aus einem Messpunkt eine Dauer zu rechnen ergibt eine Zahl, die
          * genauso aussieht wie eine begründete.
          */
-        var u = selbst.umfang, zusatz = "";
+        var u = selbst.umfang, zusatz = "", steht = false;
         if (u && u.gesamt > 0) {
           zusatz = " · Aufruf " + (u.getan || 0) + " von ~" + u.gesamt;
           var rest = beginn && umfang() ? umfang().restSchaetzung({
@@ -822,7 +822,26 @@
           zusatz += rest ? " · noch ~" + zeit().dauerText(rest.restMs)
                          : " · Restzeit noch nicht messbar";
         }
+        /*
+         * ⚠ UND SEIT WANN NICHTS MEHR FERTIG WURDE — die Zahl, an der Klaus
+         * am 2026-09-07 sieben Stunden lang gefehlt hat. Die Uhr oben zählt
+         * seit dem Start; sie läuft auch dann weiter, wenn längst nichts mehr
+         * geschieht, und sieht dabei aus wie Fortschritt.
+         *
+         * Sie steht ab der ersten Sekunde da, nicht erst ab einer Schwelle:
+         * eine Auskunft, die erst bei Verdacht erscheint, kommt zu spät. Die
+         * SCHWELLE entscheidet nur über das Wort — ab ihr heißt es „steht",
+         * und sie ist gerechnet (Runden × Frist), nicht geraten.
+         */
+        var reg = u && umfang() && umfang().regung ? umfang().regung(u) : null;
+        if (reg) {
+          steht = reg.steht;
+          zusatz += (steht ? " · STEHT SEIT " : " · seit ")
+            + zeit().dauerText(reg.seitMs) + " nichts fertig";
+        }
         uhr.textContent = (t ? "Schicht läuft · " + t : "Schicht läuft") + zusatz;
+        uhr.setAttribute("data-schichtuhr", steht ? "steht"
+          : (beginn ? "laeuft" : "laeuft-ohne-zeit"));
       };
       uhr.hidden = false;
       uhr.setAttribute("data-schichtuhr", beginn ? "laeuft" : "laeuft-ohne-zeit");
