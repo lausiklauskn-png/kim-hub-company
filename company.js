@@ -35,6 +35,7 @@ import { konferenz, KONFERENZ_ANTEIL } from "./schicht/konferenz.mjs";
 import { EchteApi, TrockenApi } from "./schicht/api.mjs";
 import { netzTransport, macheNotaus } from "./schicht/transport-netz.mjs";
 import { planBlatt } from "./schicht/plan-form.mjs";
+import { erwarteteAufrufe } from "./schicht/umfang.mjs";
 import { Kasse } from "./schicht/kosten.mjs";
 import { BEISPIELE } from "./schicht/beispiele.mjs";
 import { deuteGrundsaetze, KEINE } from "./schicht/grundsaetze.mjs";
@@ -526,6 +527,10 @@ async function fahre({ echt }) {
    * sogar `typeof`, der übliche Ausweg wäre also selbst der nächste Fehler.
    * Der Abbruch-Eintrag ins Fahrtenbuch braucht die Kasse und die Besetzung;
    * ohne diese zwei Zeilen wäre er genau dort kaputt, wo er gebraucht wird. */
+  /* ⚠ VOR dem `try`, weil das `finally` ihn abräumen muss. Ein `const` im
+     try-Block ist im finally nicht sichtbar — dieselbe Falle wie beim
+     Fahrtenbuch am 2026-09-06, dort mit Kasse und Besetzung. */
+  let umfangTakt = null;
   let kasse = null, mitarbeiter = [];
 
   try {
@@ -617,6 +622,24 @@ async function fahre({ echt }) {
      * für die sie nie gedacht war.** Gefunden hat es die Browser-Probe, weil
      * sie den Weg OHNE Konferenz wirklich fährt. */
     const kasseKonf = mitKonferenz ? macheKasse(deckelKonferenz) : null;
+
+    /*
+     * ══ WIE WEIT UND WIE LANGE NOCH ═════════════════════════════════════
+     *
+     * Klaus 2026-09-07, aus der Bestandsaufnahme: Geld war nicht die Grenze,
+     * ZEIT war es — und die Zahl stand nirgends. Er hat vierzig Minuten
+     * gewartet, ohne zu wissen, worauf.
+     *
+     * ⚠ GEZÄHLT WIRD AN DER KASSE, nicht am Zwischenstand. Der kommt erst,
+     * wenn die Schicht beginnt — die Konferenz davor sind bei acht Rollen
+     * SIEBZEHN Aufrufe, also genau die Strecke, auf der er gewartet hat.
+     * Beide Kassen zusammen sind der ganze Weg.
+     */
+    const erwartet = erwarteteAufrufe({ rollen: mitarbeiter.length, mitKonferenz }).gesamt;
+    umfangTakt = setInterval(() => {
+      const getan = (kasseKonf ? kasseKonf.aufrufe.length : 0) + kasse.aufrufe.length;
+      window.__werkstatt.speise("umfang", { getan, gesamt: erwartet, mitKonferenz });
+    }, 1000);
     const konf = mitKonferenz ? await konferenz({
       api, mitarbeiter, kasse: kasseKonf, spindAblage: ablage,
       unterlagen: stand.unterlagen.length ? stand.unterlagen : null,
@@ -741,6 +764,10 @@ async function fahre({ echt }) {
   } finally {
     stand.laeuft = false;
     laufendesNotaus = null;
+    /* Der Zähler geht mit dem Lauf — sonst tickte er weiter und die Uhr
+       schätzte eine Restzeit für etwas, das längst vorbei ist. */
+    if (umfangTakt) clearInterval(umfangTakt);
+    window.__werkstatt.speise("umfang", null);
     /* Und weg damit — sonst tickte sie weiter, während nichts mehr läuft.
        Der fertige Lauf trägt seine eigene Zeit; ab hier gilt wieder seine. */
     window.__werkstatt.speise("schichtlaeuft", null);

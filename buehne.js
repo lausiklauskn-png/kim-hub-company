@@ -168,6 +168,11 @@
      nicht übertönen — genau daran hing der Fehlbefund. */
   function artVon(a, b) { return artWort(a) || artWort(b); }
 
+  /* Lazy wie `zeit()`: `schicht/umfang.mjs` ist ein ES-Modul und hängt sein
+     Global erst an, wenn `company.js` es geladen hat. Ein Zugriff beim
+     Definieren wäre `undefined` und die Restzeit stumm weg. */
+  function umfang() { return welt.WERKSTATT_UMFANG || null; }
+
   function stellung(phase) {
     if (phase === "build") return WEG;
     /* Vier Phasen sind Gegenprüfung, nicht zwei: Lisa und Malcom sehen sich
@@ -794,10 +799,30 @@
        Zustand messen kann, ohne am Wortlaut zu haengen. */
 
     if (this.laeuft) {
+      var selbst = this;
       var zeigen = function () {
-        uhr.textContent = beginn
-          ? "Schicht läuft · " + zeit().dauerText(Date.now() - beginn)
-          : "Schicht läuft";
+        var t = beginn ? zeit().dauerText(Date.now() - beginn) : "";
+        /*
+         * ⚠ WIE WEIT UND WIE LANGE NOCH — die Zahl, die Klaus gefehlt hat.
+         *
+         * Bestandsaufnahme vom 2026-09-07: nicht das Geld war die Grenze,
+         * sondern die Zeit — und niemand hat sie genannt. Er hat vierzig
+         * Minuten gewartet, ohne zu wissen, worauf.
+         *
+         * Die Restzeit ist HOCHGERECHNET aus dem, was auf diesem Gerät
+         * bisher gedauert hat, und sie steht erst ab dem zweiten Aufruf da.
+         * Aus einem Messpunkt eine Dauer zu rechnen ergibt eine Zahl, die
+         * genauso aussieht wie eine begründete.
+         */
+        var u = selbst.umfang, zusatz = "";
+        if (u && u.gesamt > 0) {
+          zusatz = " · Aufruf " + (u.getan || 0) + " von ~" + u.gesamt;
+          var rest = beginn && umfang() ? umfang().restSchaetzung({
+            getan: u.getan, gesamt: u.gesamt, verstricheneMs: Date.now() - beginn }) : null;
+          zusatz += rest ? " · noch ~" + zeit().dauerText(rest.restMs)
+                         : " · Restzeit noch nicht messbar";
+        }
+        uhr.textContent = (t ? "Schicht läuft · " + t : "Schicht läuft") + zusatz;
       };
       uhr.hidden = false;
       uhr.setAttribute("data-schichtuhr", beginn ? "laeuft" : "laeuft-ohne-zeit");
@@ -831,6 +856,9 @@
        statt einer erfundenen — eine geratene Zahl klingt wie eine gemessene. */
     this.uhrBeginn = Date.parse(daten.beginn || "") || 0;
     this.uhrEnde = Date.parse(daten.ende || "") || 0;
+    /* Wie weit der Lauf ist. Fehlt es, zeigt die Uhr nur die Dauer — eine
+       erfundene Restzeit wäre schlimmer als keine. */
+    this.umfang = daten.umfang || null;
     this.istBeispiel = daten._ausBeispiel === true;
     /* Zwei Achsen, getrennt gehalten (1.5): `istBeispiel` sagt WOHER, `art`
        sagt WOMIT. Bis zum 2026-08-22 stand an der Bühne nur das Wort

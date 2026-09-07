@@ -3153,6 +3153,11 @@
         /* Die ZWEITE Achse geht mit (1.5): woher ist nicht dasselbe wie womit.
            Ohne sie stand an der Bühne nur „Beispiel" — ein Wort für zwei
            Fragen, und Klaus las die falsche Antwort heraus. */
+        /* Wie weit der laufende Lauf ist — nur solange einer läuft. Er kommt
+           aus den Kassen, nicht aus dem Zwischenstand: die Konferenz davor
+           sind bei acht Rollen siebzehn Aufrufe, und genau dort hat Klaus
+           gewartet. */
+        umfang: daten.umfang || null,
         _art: artVon(daten.konferenz, daten.lauf),
         _datum: (daten.konferenz && daten.konferenz.datum) ||
                 (daten.lauf && daten.lauf.datum) || ""
@@ -3284,9 +3289,29 @@
       return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2) +
              ":" + ("0" + d.getSeconds()).slice(-2);
     }
-    $("#live").addEventListener("click", function () {
-      var an = $("#live").getAttribute("aria-pressed") === "true";
-      $("#live").setAttribute("aria-pressed", an ? "false" : "true");
+    /*
+     * ⚠ NICHT JEDE SCHALE HAT DIESEN KNOPF (2026-09-07). In Kim Hub Company
+     * gibt es ihn nicht mehr: er sieht alle zwei Sekunden nach `konferenz.json`
+     * und `lauf.json`, und die gibt es im Browser NIE. An Klaus' Gerät stand
+     * um 01:21 „338× nachgesehen" — während direkt darüber eine Schicht lief,
+     * deren Daten über einen ganz anderen Weg hereinkommen.
+     *
+     * Diese Datei ist geteilt. Sie darf nicht voraussetzen, dass jede Schale
+     * jedes Bedienelement mitbringt — sonst reisst ein weggelassener Knopf die
+     * ganze Ansicht ab, und der Nutzer sieht eine leere Seite statt einer App.
+     */
+    /* ⚠ KEIN `return` HIER. Der erste Versuch stieg an dieser Stelle aus, wenn
+       der Knopf fehlt — und riss damit alles mit, was danach gebunden wird:
+       „⭱ Lauf laden", der Themen-Wechsler und der ⟳-Knopf. Ein weggelassenes
+       Bedienelement hätte die halbe App stillgelegt. Es wird ein Platzhalter
+       gereicht, kein Ausstieg. */
+    var livKnopf = $("#live") || {
+      addEventListener: function () {}, setAttribute: function () {},
+      getAttribute: function () { return "false"; },
+    };
+    livKnopf.addEventListener("click", function () {
+      var an = livKnopf.getAttribute("aria-pressed") === "true";
+      livKnopf.setAttribute("aria-pressed", an ? "false" : "true");
       if (livHandle) { clearInterval(livHandle); livHandle = null; }
       if (an) {
         livLage("Nachsehen beendet — " + livZahl + "× nachgesehen. " +
