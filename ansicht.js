@@ -331,6 +331,18 @@
                         (x.geschrieben ? "in den Spind geschrieben" : "nur gezählt — Trockenlauf") + ")";
                }).join("\n") };
     }
+    /* ⚠ DAS TOR — die Phase, die auf Klaus' Bühne als „unbekannt" stand
+       (2026-09-07), und zwar am letzten Schritt eines bezahlten Laufs. Sie ist
+       die Freigabe vor dem Bau; ohne diese Zeilen fiele sie in den Auffang
+       unten und zeigte rohes JSON. Dass sie fehlte, konnte keine Probe sehen:
+       der mitgelieferte Beispiel-Lauf hat nie ein Tor gefahren. */
+    if (e.phase === "tor")
+      return { marke: e.freigegeben ? "Freigegeben" : "Angehalten",
+               knopf: e.freigegeben ? "gibt den Bau frei" : "hält den Bau an",
+               text: e.grund || (e.freigegeben
+                 ? "Freigegeben, ohne dass ein Grund genannt wurde."
+                 : "Vor dem Bauen verworfen — ohne genannten Grund."),
+               mehr: "" };
     /* Die drei Phasen der Rollen, die Klaus am 2026-09-05 dazugestellt hat.
        OHNE diese Zeilen fällt jede in den Auffang unten und zeigt rohes JSON —
        genau der Fehler, an dem Stens Arbeit einmal unsichtbar war. */
@@ -3296,9 +3308,18 @@
     var ausBeispiel = Object.keys(NAMEN)
       .filter(function (k) { return daten[k] && daten[k]._ausBeispiel; })
       .map(function (k) { return NAMEN[k]; });
-    if (daten.konferenz) teile.push("Konferenz vom " + daten.konferenz.datum +
-      " (" + daten.konferenz.art + ")");
-    if (daten.lauf) teile.push("Schicht vom " + daten.lauf.datum + " (" + daten.lauf.art + ")" +
+    /* ⚠ EIN FEHLENDES DATUM HEISST „ohne Datum", NICHT „undefined"
+       (2026-09-07). Auf Klaus' Seite stand „Konferenz vom undefined (echt)".
+       Die Ursache lag anderswo (der Zwischenstand trug es nicht mit, behoben
+       in `konferenz.mjs`) — aber eine Anzeige, die eine Lücke als
+       JavaScript-Wort ausgibt, macht aus einer fehlenden Angabe einen
+       vermeintlichen Programmfehler. Das ist dieselbe Regel wie „wo nichts
+       gemessen wurde, steht nicht 0". */
+    var wann = function (d) { return d && d.datum ? "vom " + d.datum : "ohne Datum"; };
+    if (daten.konferenz) teile.push("Konferenz " + wann(daten.konferenz) +
+      " (" + daten.konferenz.art + ")" +
+      (daten.konferenz.laeuft ? " — LÄUFT GERADE" : ""));
+    if (daten.lauf) teile.push("Schicht " + wann(daten.lauf) + " (" + daten.lauf.art + ")" +
       (daten.lauf.laeuft ? " — LÄUFT GERADE" : ""));
     /* Die Aufzählung als ANGABE, nicht nur im Satz — dieselbe Lehre wie am
        Herkunfts-Band: ein Wächter, der am Wortlaut hängt, prüft die

@@ -217,14 +217,34 @@ export class EchteApi {
   }
 
   async frage({ modell, aufwand, system, nachrichten, schema, werkbank = null,
-                unterlagen = null, weiter = null }) {
+                unterlagen = null, weiter = null, maxTokens = null }) {
     const kann = KANN[modell];
     if (!kann) throw new Error(`Unbekanntes Modell "${modell}" — lieber abbrechen als raten.`);
     const bote = await this._hol();
 
+    /*
+     * ⚠ DER TOKEN-DECKEL GEHÖRT ZUR ROLLE, NICHT ZUR API (2026-09-07).
+     *
+     * Eine Zahl für alle acht ist für die eine falsch, die wirklich etwas
+     * baut. Gemessen an Klaus' Lauf: Emil (opus-5, Aufwand `high`) wurde bei
+     * 16 000 abgeschnitten — bei adaptivem Denken zählt das Denken mit, und
+     * eine ganze HTML-Datei passte daneben nicht mehr hinein. Die Schicht starb
+     * nach der bezahlten Konferenz, ohne eine Zeile zu liefern.
+     *
+     * Ein höherer Deckel kostet NICHTS von sich aus — bezahlt wird, was
+     * erzeugt wird. Er erlaubt nur, dass die Antwort zu Ende geschrieben wird.
+     *
+     * ⚠ 32 000 für den Bauer ist BEGRÜNDET, NICHT GEMESSEN. Wie viel Emils
+     * Denken bei `high` wirklich frisst, weiss auf diesem Gerät niemand; die
+     * Zahl gibt Denken und Werkstück zusammen Platz und bleibt weit unter dem,
+     * was das Modell kann. Sie steht in `mitarbeiter.json` je Rolle — eine
+     * Stelle, damit die nächste Messung eine Zeile ändert und nicht acht.
+     */
+    const deckel = Number(maxTokens) > 0 ? Number(maxTokens) : this.maxTokens;
+
     const bitte = {
       model: modell,
-      max_tokens: this.maxTokens,
+      max_tokens: deckel,
       system,
       output_config: { format: { type: "json_schema", schema } },
     };
@@ -307,9 +327,14 @@ export class EchteApi {
       kontextEin = antwort.usage?.input_tokens || 0;
 
       if (antwort.stop_reason === "max_tokens")
-        throw new Error(`${modell} wurde bei ${this.maxTokens} Token abgeschnitten — ` +
+        /* Die Meldung nennt den WIRKLICH benutzten Deckel. Stünde hier weiter
+           `this.maxTokens`, schickte sie jemanden an die falsche Stelle —
+           eine Auskunft, die in die falsche Richtung zeigt, ist teurer als
+           gar keine. */
+        throw new Error(`${modell} wurde bei ${deckel} Token abgeschnitten — ` +
           `die Antwort ist unvollständig. Bei Opus 5 zählt das Denken mit. ` +
-          `Abhilfe: maxTokens erhöhen oder den Aufwand der Rolle senken. ` +
+          `Abhilfe: "maxTokens" der Rolle in schicht/mitarbeiter.json erhöhen ` +
+          `oder ihren Aufwand senken. ` +
           `Der Aufruf ist bezahlt, das Ergebnis unbrauchbar; deshalb steht das hier ` +
           `im Klartext statt als „konnte nicht gelesen werden".`);
 

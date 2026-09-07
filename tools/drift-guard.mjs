@@ -46,26 +46,26 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
  * Fingerabdrücke unten nachzieht und das hier vergisst, wird rot.
  */
 export const HERKUNFT = {
-  commit: "56eb5ea",
-  datum:  "2026-09-07T14:49:09+02:00",
-  betreff: "Die Stechuhr-Kachel sagt, woraus sie besteht (#124)",
+  commit: "07546d2",
+  datum:  "2026-09-07T16:38:54+02:00",
+  betreff: "Klaus' erster echter Lauf: sieben Befunde, der teuerste kostete die ganze Konferenz (#125)",
 };
 
 export const ERWARTET = [
   { datei: "index.html",                herkunft: "start.html",              sha: "3df66e6764cb723293c42732e52c919e23bd1ee9da11f130d5125e346fdf12a1" },
-  { datei: "company.js",                herkunft: "company.js",              sha: "8fdae5a6d29f76f66ae89df9e71977beee22c4a0ad35f57aca6bce89838985bc" },
-  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "36a3efdb87972542ddbd449a907ce18332fb38227e70bd83cc3fb48e232c6a47" },
-  { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "14826f36d56887377bddc697d41950988edfc3493da36c9eed55c78b4f92ff9e" },
+  { datei: "company.js",                herkunft: "company.js",              sha: "8d51e8f228f9e96d95e9f203bf10c09d82ab339249169a20d84ba9dd91d44141" },
+  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "6e5ca487d1a529ca91cc568dd975b50c8af381ecfeb436ebd7ce86426e76d913" },
+  { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "a8b1c87b69e2d9d127e912339bd6dd557c6053917c5b4568a124f3f5673471c8" },
   { datei: "zeit.js",                   herkunft: "zeit.js",                 sha: "ed5a241adc9098eb17cb66974f9fdf9b94ef26c642581989ec99239ec11db47b" },
   { datei: "idb.js",                    herkunft: "idb.js",                  sha: "b244ab3f832bb4d4cd5ec87e51de364df5716ee7ca6fc8a2bceeea6b6c9bbd51" },
   { datei: "schluesseltresor.js",       herkunft: "schluesseltresor.js",     sha: "eaed30e8f3921835a3f58b69f89d9b008831f69f164ad1dfec630fa43161f666" },
-  { datei: "schicht/konferenz.mjs",     herkunft: "schicht/konferenz.mjs",   sha: "a172c2adaf38703c4864120aecbccb86ea7c59ad74fa18d026f64c063799d2de" },
+  { datei: "schicht/konferenz.mjs",     herkunft: "schicht/konferenz.mjs",   sha: "63a192bc9aa3d9d59d0514210a69c7f5a87f324657da916eb64c547eedec9871" },
   { datei: "schicht/plan-form.mjs",  herkunft: "schicht/plan-form.mjs", sha: "3e94b0840f7e55b345ff9f5310a1bba3009208b1af8c06c6866b4600f88a7bad" },
   { datei: "schicht/umfang.mjs",     herkunft: "schicht/umfang.mjs",    sha: "f0497c620434c0bc9c24268f23616174ca6ed658e4a56da0b47edf3340f35990" },
   { datei: "schicht/schicht.mjs",       herkunft: "schicht/schicht.mjs",     sha: "0bba4e8cd0050235fdf866d861356547f0f3bdeb1632cf3491212ba0e6cbd702" },
-  { datei: "schicht/api.mjs",           herkunft: "schicht/api.mjs",         sha: "8c4408345485064e5c0bd4ec4769cd7aa3e7d914c5e36b24f11f9b860b5b3e00" },
+  { datei: "schicht/api.mjs",           herkunft: "schicht/api.mjs",         sha: "36852cc8a82ac0bd6153de16b8fce7d3b3c1652159cd9d4f592cb4a14917c4b1" },
   { datei: "schicht/transport-netz.mjs",herkunft: "schicht/transport-netz.mjs", sha: "6c149df086ff0ea820060385132b7513352a796f2b7c64883732acb1f1078797" },
-  { datei: "schicht/kosten.mjs",        herkunft: "schicht/kosten.mjs",      sha: "a6e6c2bed9a67ca4961971527fa4fb26283d0687ce994cc7416859e399115c0e" },
+  { datei: "schicht/kosten.mjs",        herkunft: "schicht/kosten.mjs",      sha: "7a946f2c641d8ea883a879a463f0ff400729c2226306e694886bb19229a7cdf4" },
   { datei: "schicht/beispiele.mjs",     herkunft: "schicht/beispiele.mjs",   sha: "8529582d68441b87b14bc70e35cc32e355b173bd2c1b1f4103d5b9ac24fddb5f" },
   { datei: "schicht/grundsaetze.mjs",   herkunft: "schicht/grundsaetze.mjs", sha: "340117e1f311aba0bfce9730fad28b90e3fdddde8aa3d0e103073b0bea883523" },
   { datei: "schicht/fahrtenbuch-form.mjs",  herkunft: "schicht/fahrtenbuch-form.mjs", sha: "85c99d330b36f95ef601a90903a74af42567a3d68e7ddfb13d055ed0e91f5553" },
@@ -74,10 +74,10 @@ export const ERWARTET = [
   { datei: "schicht/baum-speicher.mjs", herkunft: "schicht/baum-speicher.mjs", sha: "f854d3a9552d9cb1eba8aabe4a4c15af711cc09364a34087e4cc3cff6528a2a9" },
   { datei: "schicht/werkzeuge.mjs",     herkunft: "schicht/werkzeuge.mjs",   sha: "4e81dfbe5588104e776e2cb5e8be5b2a2cf02042563d8bbca7acce8f80761cef" },
   { datei: "schicht/spind.mjs",         herkunft: "schicht/spind.mjs",       sha: "6b5d0d6601139cf9c5555625e501ab7e1695c917d4f2a24463deb36d08e34c56" },
-  { datei: "schicht/ruf.mjs",           herkunft: "schicht/ruf.mjs",         sha: "2e5b8e1d0dff1fcbb2ba8098c9fba43f69ab7ee3e363163f4ea8a1442f92f07e" },
-  { datei: "schicht/rollen.mjs",        herkunft: "schicht/rollen.mjs",      sha: "e75438066ff26e59dd3586f7e7332842bd87ed1a3e0dccfb80083eeb95ead72c" },
+  { datei: "schicht/ruf.mjs",           herkunft: "schicht/ruf.mjs",         sha: "a58adfbe1e5b3cf241f63a29f70d7e1ae0c1530013ef775d037c712d5499ab3b" },
+  { datei: "schicht/rollen.mjs",        herkunft: "schicht/rollen.mjs",      sha: "00faa686ccb8f73d83dc8aff4c630942c894c4f58a6a3c6ce61b5ec9eb01fd4f" },
   { datei: "schicht/grundsaetze.md",    herkunft: "schicht/grundsaetze.md",  sha: "422a3c7b3cb35fea6dade1409340907621ca6a6615c9a9622cfb999d369c0bfd" },
-  { datei: "schicht/mitarbeiter.json",  herkunft: "schicht/mitarbeiter.json", sha: "1b38836c9cb5dde6804cb61169ba1bed60aa85ae0cab68774b287414bcfca8dc" },
+  { datei: "schicht/mitarbeiter.json",  herkunft: "schicht/mitarbeiter.json", sha: "1460ea68d562bbb2fa6e6af70d3b6a188ec83a21a3106714dfa425d97774ef8f" },
 ];
 
 export function abdruck(datei) {

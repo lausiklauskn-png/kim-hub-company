@@ -102,10 +102,39 @@ export const ROLLEN = {
         pruefmerkmal: s("Woran man am Ende SIEHT, dass es erfüllt ist. Nachprüfbar, nicht 'gut gemacht'."),
       },
     },
+    /*
+     * ⚠ NACH EINER KONFERENZ IST DAS *WAS* ENTSCHIEDEN (Klaus 2026-09-07,
+     * gemessen an seinem ersten echten Lauf mit der Vorlage).
+     *
+     * Die Konferenz kostete 0,47 € in siebzehn Aufrufen, wählte mit 33 Punkten
+     * den „Spannungsfall-Rechner für Leitungen" — und die Schicht danach fragte
+     * Nora: „Mach daraus EINE greifbare Sache." Sie tat, was dastand, und
+     * erfand etwas Neues: „Werkstatt-Nachricht: Stilles Schwarzes Brett".
+     *
+     * Danach schärfte Ben das NEUE, während das Übergabe-Blatt oben noch den
+     * Sieger der Konferenz trug. **Ein Blatt mit zwei verschiedenen Aufträgen
+     * darin** — und die ganze Abstimmung war für nichts.
+     *
+     * Die Marke lag längst da: `konferenz.mjs` setzt `ausKonferenz: true` und
+     * den Siegertitel. Nur las sie niemand. **Ein Feld, das keiner liest, ist
+     * von einem fehlenden nicht zu unterscheiden** — dieselbe Lehre wie bei der
+     * Werkbank, die gebaut war und die kein Aufrufer baute.
+     *
+     * Was bleibt, ist Noras eigentliche Arbeit: aus dem entschiedenen Ziel eine
+     * BAUREIFE Sache machen (Gestalt, Beschreibung, für wen, Prüfmerkmal). Was
+     * wegfällt, ist die Freiheit, das Thema zu wechseln.
+     */
     frage: ({ auftrag }) => `Auftrag:\n${auftrag.ziel}\n\n` +
       (auftrag.pruefmerkmal ? `Vorgegebenes Prüfmerkmal:\n${auftrag.pruefmerkmal}\n\n` : "") +
-      `Mach daraus EINE greifbare Sache, die jemand benutzen kann. Keine ` +
-      `Absichtserklärung, kein Konzept — ein Werkzeug, eine Karte, eine Seite.`,
+      (auftrag.ausKonferenz
+        ? `DIESER AUFTRAG IST BEREITS ENTSCHIEDEN. Eine Konferenz hat darüber ` +
+          `abgestimmt${auftrag.sieger ? ` und „${auftrag.sieger}" gewählt` : ""}. ` +
+          `Du schlägst hier NICHTS Neues vor und wechselst das Thema NICHT — ` +
+          `du machst genau diese Sache baureif: Gestalt, Beschreibung, für wen ` +
+          `sie ist, und ein nachprüfbares Prüfmerkmal. Ein anderer Titel als der ` +
+          `entschiedene ist ein Fehler, kein Beitrag.`
+        : `Mach daraus EINE greifbare Sache, die jemand benutzen kann. Keine ` +
+          `Absichtserklärung, kein Konzept — ein Werkzeug, eine Karte, eine Seite.`),
   },
 
   /** Baut. Liefert fertigen Inhalt, keine Beschreibung von Inhalt. */

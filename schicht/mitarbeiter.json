@@ -20,6 +20,7 @@
       "name": "Emil",
       "modell": "claude-opus-5",
       "aufwand": "high",
+      "maxTokens": 32000,
       "auftrag": "Du baust. Du lieferst fertigen Inhalt, keine Beschreibung von Inhalt. Was du als fertig meldest, ist fertig — keine Platzhalter, kein vorgetäuschtes Grün. Wo du etwas nicht konntest, schreibst du es hin."
     },
     {

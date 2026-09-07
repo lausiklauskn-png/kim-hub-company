@@ -159,6 +159,10 @@ export function macheRufer({ api, wer, spinde, kasse, grundsaetze, werkbank = nu
     const begonnen = Date.now();
     const antwort = await api.frage({
       modell: m.modell, aufwand: m.aufwand, rolle, runde: ladung.runde || 0,
+      /* Der Token-Deckel je Rolle, aus `mitarbeiter.json`. Fehlt er, gilt der
+         der Api — die sieben Rollen, die Text statt Werkstücke liefern,
+         brauchen keinen eigenen. */
+      maxTokens: m.maxTokens || null,
       schema_name: schemaName,
       // ZWEI Dinge hängen an dieser einen Zeile:
       //
