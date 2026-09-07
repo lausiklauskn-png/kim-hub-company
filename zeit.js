@@ -117,8 +117,38 @@
     return h > 0 ? h + ":" + zz(m) + ":" + zz(r) : zz(m) + ":" + zz(r);
   }
 
+  /**
+   * DER TAG, AN DEM GEARBEITET WURDE — in ORTSZEIT, nicht in UTC.
+   *
+   * ⚠ WARUM DAS EINE EIGENE FUNKTION IST (Klaus 2026-09-07, mit Bild): sein
+   * Verlauf nannte „7.9.2026, 01:20:32", das Fahrtenbuch daneben „2026-09-06".
+   * Dieselbe Fahrt, zwei Tage.
+   *
+   * Die Ursache war `new Date().toISOString().slice(0, 10)` — und
+   * `toISOString()` ist UTC. Um 01:20 in Mitteleuropa ist es 23:20 des
+   * Vortags in Greenwich. **Jede Fahrt zwischen Mitternacht und zwei Uhr
+   * wurde auf den Vortag gebucht.**
+   *
+   * ⚠ UND DARAN HÄNGT GELD. Das Tageskontingent zählt nach diesem Tag: eine
+   * Nachtschicht belastet das Budget von gestern, und der Tagesdeckel greift
+   * am falschen Tag. Ein Buchungsdatum, das um einen Tag verrutscht, ist
+   * kein Schönheitsfehler.
+   *
+   * Ein Betreiber denkt in SEINEN Tagen. Ein Tagesdeckel ist ein Budget in
+   * seinem Leben, nicht in Greenwich.
+   *
+   * @param {Date} [d] — einspritzbar, damit eine Probe einen Zeitpunkt
+   *                     festhalten kann, ohne auf Mitternacht zu warten.
+   */
+  function tagOrt(d) {
+    var t = d || new Date();
+    var zz = function (n) { return (n < 10 ? "0" : "") + n; };
+    return t.getFullYear() + "-" + zz(t.getMonth() + 1) + "-" + zz(t.getDate());
+  }
+
   if (welt) welt.WERKSTATT_ZEIT = {
-    fahrtAbschnitte: fahrtAbschnitte, vereinigt: vereinigt, dauerText: dauerText
+    fahrtAbschnitte: fahrtAbschnitte, vereinigt: vereinigt, dauerText: dauerText,
+    tagOrt: tagOrt
   };
 })(typeof window !== "undefined" ? window
    : (typeof globalThis !== "undefined" ? globalThis : null));

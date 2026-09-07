@@ -22,6 +22,23 @@
  * Rücklage zurückgelegt (siehe kosten.mjs) — ohne sie wäre der Deckel eine
  * Falle: das Geld alle UND niemand weiß, wo es weitergeht.
  */
+import "../zeit.js";
+
+/*
+ * DER TAG KOMMT AUS DER ORTSZEIT, NICHT AUS UTC (Klaus 2026-09-07, mit Bild).
+ *
+ * Sein Verlauf nannte „7.9.2026, 01:20:32", das Fahrtenbuch daneben
+ * „2026-09-06" — dieselbe Fahrt, zwei Tage. `toISOString()` ist UTC; um 01:20
+ * in Mitteleuropa ist es 23:20 des Vortags in Greenwich. Jede Fahrt zwischen
+ * Mitternacht und zwei Uhr wurde auf den Vortag gebucht — und daran hängt das
+ * TAGESKONTINGENT, also Geld.
+ *
+ * `zeit.js` ist ein klassisches Skript und setzt ein Global; das ist derselbe
+ * Weg, den `buehne.js` und `ansicht.js` nehmen. Die Rechnung steht dort an
+ * EINER Stelle, damit Browser und Kommandozeile nicht zwei Tage kennen.
+ */
+const tagOrt = () => globalThis.WERKSTATT_ZEIT.tagOrt();
+
 import * as spind from "./spind.mjs";
 import { macheRufer } from "./ruf.mjs";
 
@@ -37,7 +54,7 @@ const kurz = (t, n = 400) => (t || "").length > n ? t.slice(0, n) + " …" : (t 
 export async function schicht({
   api, auftrag, mitarbeiter, kasse, spindAblage, grundsaetze: g, aufZwischenstand = null, werkbank = null,
   unterlagen = null, freigabe = null,
-  maxRunden = 4, datum = new Date().toISOString().slice(0, 10), arm = "voll",
+  maxRunden = 4, datum = tagOrt(), arm = "voll",
 } = {}) {
   const wer = Object.fromEntries(mitarbeiter.map((m) => [m.rolle, m]));
   for (const r of ROLLEN_REIHE)

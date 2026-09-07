@@ -1904,10 +1904,32 @@
     var echte = f.filter(function (x) { return x.echt; });
     var summe = echte.reduce(function (a, x) { return a + (x.eur || 0); }, 0);
     var min = f.reduce(function (a, x) { return a + (x.minuten || 0); }, 0);
+    /*
+     * ⚠ „BEZAHLT" HEISST: ES IST GELD GEFLOSSEN (Klaus 2026-09-07).
+     *
+     * Hier stand `echte.length` — das ist „nicht trocken". Sein Buch zeigte
+     * acht Fahrten, „davon 7 bezahlt", und drei davon hatten wirklich etwas
+     * gekostet: 0,01 + 0,02 + 0,01 = 0,04 €. Vier standen mit NULL Aufrufen
+     * und 0,00 € da und wurden mitgezählt.
+     *
+     * Eine Fahrt, die vor dem ersten Aufruf starb, ist echt gemeint und
+     * trotzdem nicht bezahlt. Für einen Leser heisst „bezahlt", dass Geld
+     * geflossen ist — und eine zu hohe Zahl in einer Buchhaltung ist derselbe
+     * Fehler wie eine zu niedrige, nur andersherum.
+     *
+     * Die Absicht bleibt sichtbar: `echte` steht als zweite Zahl daneben,
+     * wenn sie sich unterscheiden. Sonst verlöre man, WIE VIELE Fahrten
+     * überhaupt echt gemeint waren.
+     */
+    var bezahlte = echte.filter(function (x) { return (x.eur || 0) > 0; });
     if ($("#k-alle")) {
       $("#k-alle").textContent = eur(summe);
-      $("#k-alle-sub").textContent = f.length + " Fahrt(en), davon " + echte.length +
-        " bezahlt · " + min + " min zusammen";
+      $("#k-alle-sub").textContent = f.length + " Fahrt(en), davon " +
+        bezahlte.length + " mit Kosten" +
+        (echte.length > bezahlte.length
+          ? " (" + echte.length + " echt gemeint, der Rest starb vor dem ersten Aufruf)"
+          : "") +
+        " · " + min + " min zusammen";
     }
     var tage = {};
     f.forEach(function (x) { tage[x.tag] = true; });
@@ -3205,6 +3227,15 @@
            sind bei acht Rollen siebzehn Aufrufe, und genau dort hat Klaus
            gewartet. */
         umfang: daten.umfang || null,
+        /* ⚠ OB ER ZU ENDE LIEF. Ohne diese Zeile sagte die Uhr „✓ Schicht
+           beendet" auch über einem Lauf, der nach der Idee gestorben ist —
+           während die Zeile darunter „ABER er lief NICHT zu Ende" sagte.
+           `laeuft` schliesst es aus: ein laufender Lauf ist weder das eine
+           noch das andere. */
+        fertig: (daten.lauf && daten.lauf.ergebnis && !daten.lauf.laeuft)
+          ? !!daten.lauf.ergebnis.fertig
+          : (daten.konferenz && typeof daten.konferenz.ok === "boolean" && !daten.lauf)
+            ? daten.konferenz.ok : null,
         _art: artVon(daten.konferenz, daten.lauf),
         _datum: (daten.konferenz && daten.konferenz.datum) ||
                 (daten.lauf && daten.lauf.datum) || ""
@@ -4026,7 +4057,15 @@
      * warten hiesse, den Riegel nie zu messen. Genau die Sorte Behauptung, die
      * hier schon einmal Geld gekostet hat.
      */
-    setzeFahrten: function (b) { daten.fahrten = b; uhrZeichnen(); zeichneProtokoll(); },
+    /* ⚠ AUCH DAS FAHRTENBUCH NEU ZEICHNEN. Der Haken setzte nur Uhr und
+       Protokoll — die Kachel „N Fahrt(en), davon …" blieb auf dem vorigen
+       Stand, und ein Wächter darauf mass das VORIGE Einspeisen. Gefunden, als
+       eine neue Prüfung „davon 2 mit Kosten" las, obwohl eine Fahrt eingespeist
+       war. Ein Test-Haken, der die Anzeige nur halb erneuert, misst die halbe
+       Anzeige. */
+    setzeFahrten: function (b) {
+      daten.fahrten = b; uhrZeichnen(); zeichneProtokoll(); zeichneFahrtenbuch();
+    },
     /* Und was dabei herauskommt — damit eine Probe die VEREINIGUNG messen kann
        und nicht nur, ob irgendeine Zahl dasteht. */
     zeitStand: function () {
