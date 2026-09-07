@@ -34,7 +34,7 @@ import { schicht, ROLLEN_REIHE } from "./schicht/schicht.mjs";
 import { konferenz, KONFERENZ_ANTEIL } from "./schicht/konferenz.mjs";
 import { EchteApi, TrockenApi } from "./schicht/api.mjs";
 import { netzTransport, macheNotaus } from "./schicht/transport-netz.mjs";
-import { planBlatt } from "./schicht/plan-form.mjs";
+import { planBlatt, auftragsBlatt } from "./schicht/plan-form.mjs";
 import { erwarteteAufrufe } from "./schicht/umfang.mjs";
 import { Kasse } from "./schicht/kosten.mjs";
 import { BEISPIELE } from "./schicht/beispiele.mjs";
@@ -666,18 +666,33 @@ async function fahre({ echt }) {
        * ist dieses Blatt das EINZIGE, was übrig bleibt. Am Ende gebaut wäre
        * es genau in dem Fall weg, in dem man es am nötigsten braucht.
        */
-      if (konf.ok && konf.auftrag) {
-        letzterStand.blatt = {
-          text: planBlatt(konf, kasseKonf.bericht(),
-                          new Date().toISOString().slice(0, 10), !echt),
-          ausBeispiel: false,
-        };
-        window.__werkstatt.speise("blatt", letzterStand.blatt);
-      }
+      if (konf.ok && konf.auftrag) blattSchreiben("");
       letzterStand.konferenz = konf;
       letzterStand.wann = new Date().toISOString();
       await standSichern();
     }
+
+    /*
+     * ══ EINE STELLE, DIE DAS BLATT BAUT ═════════════════════════════════
+     *
+     * Sie wird zweimal gerufen: nach der Konferenz (ohne Schärfung, als
+     * Versicherung) und noch einmal, sobald Ben geschärft hat. Der zweite
+     * Aufruf überschreibt den ersten — das frühe Blatt ist die Rückfalllinie
+     * für eine Schicht, die danach stirbt, das späte das vollständige.
+     *
+     * ⚠ UND ES ENTSTEHT AUCH OHNE KONFERENZ (Klaus 2026-09-07). Sein
+     * Mindestmaß gilt auch dann, wenn er den Haken wegnimmt; bis dahin bekam
+     * er in dem Fall wieder nichts.
+     */
+    const blattSchreiben = (schaerfung) => {
+      const heute = new Date().toISOString().slice(0, 10);
+      const text = (konf && konf.ok && konf.auftrag)
+        ? planBlatt(konf, kasseKonf.bericht(), heute, !echt, schaerfung)
+        : auftragsBlatt({ auftrag, schaerfung, bericht: kasse.bericht(),
+                          datum: heute, trocken: !echt });
+      letzterStand.blatt = { text, ausBeispiel: false };
+      window.__werkstatt.speise("blatt", letzterStand.blatt);
+    };
 
     /* ⚠ HIER LÖST SICH DIE NAHT EIN. `schicht.mjs` gibt seinen Zwischenstand in
        DERSELBEN Form heraus wie das Endergebnis — das steht dort im Code, mit
@@ -694,6 +709,10 @@ async function fahre({ echt }) {
       freigabe: echt ? torOeffnen : null,
       aufZwischenstand: (z) => {
         window.__werkstatt.speise("lauf", z);
+        /* Sobald Ben geschärft hat, bekommt das Blatt seinen nützlichsten
+           Absatz. Vorher gab es ihn nirgends: das Blatt wurde am Ende der
+           Konferenz geschrieben, und Ben kommt danach. */
+        if (z && z.spec && z.spec.schaerfung) blattSchreiben(z.spec.schaerfung);
         letzterStand.lauf = z;
         letzterStand.wann = new Date().toISOString();
         standSichern();
