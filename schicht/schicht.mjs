@@ -75,7 +75,7 @@ export async function schicht({
     auftrag: { ziel: auftrag?.ziel, pruefmerkmal: auftrag?.pruefmerkmal || null },
     rollen: ROLLEN_REIHE,
     besetzung: mitarbeiter.map((m) => ({ rolle: m.rolle, name: m.name, modell: m.modell })),
-    spec, artefakt, stand: null,
+    spec, artefakt, fassungen, stand: null,
     ergebnis: { fertig, runden: Math.max(0, runde - 1), urteil: urteil?.urteil || null,
                 offeneBefunde: befunde.filter((x) => x.schwere === "hoch").length,
                 feierabendGrund: null, feierabendText: "" },
@@ -88,6 +88,28 @@ export async function schicht({
   // Vor dem ersten möglichen Abbruch angelegt: der Feierabend-Block liest sie,
   // und er läuft auch dann, wenn schon der erste Aufruf nicht mehr bezahlbar war.
   let artefakt = null, urteil = null, befunde = [], runde = 0, fertig = false, stopp = null;
+  /*
+   * ══ JEDE FASSUNG BLEIBT ═════════════════════════════════════════════════
+   *
+   * Klaus 2026-09-07: „ursprünglich sollte 1. Version, dann 2. Version und
+   * fertige Version generiert werden können."
+   *
+   * ⚠ DIE RUNDEN GAB ES SCHON — nur behielt sie niemand. `artefakt` war eine
+   * einzige Veränderliche und wurde in jeder Runde überschrieben; das
+   * Bau-Ereignis trug nur Dateiname und Zeichenzahl. **Version 1 war weg,
+   * sobald Version 2 entstand** — bezahlt und nicht mehr zu sehen.
+   *
+   * Und es ist mehr als ein Andenken: erst nebeneinander sieht man, ob die
+   * Truppe wirklich besser wird oder nur anders. Ohne die Vorstufen ist
+   * „nach drei Runden fertig" eine Behauptung über einen Weg, den niemand
+   * nachgehen kann.
+   *
+   * ⚠ SIE STEHT NEBEN `artefakt`, NICHT AN SEINER STELLE. Die letzte Fassung
+   * bleibt, wo sie war — jeder Leser dieses Ergebnisses (Anzeige, Blatt,
+   * Gegenprüfung) findet sie unverändert. Zwei Stellen umzubauen, um eine
+   * hinzuzufügen, wäre der grössere Eingriff mit dem grösseren Risiko.
+   */
+  const fassungen = [];
   let spec = null;
 
   // ── Ingenieur: aus dem Auftrag wird eine Sache ────────────────────────────
@@ -194,6 +216,13 @@ export async function schicht({
     const b = await ruf("bauer", { spec, befunde, urteil, runde });
     if (b.abbruch) { stopp = b.abbruch; break; }
     artefakt = b.inhalt;
+    /* ⚠ EINE KOPIE, KEIN VERWEIS. `artefakt` zeigt in der nächsten Runde auf
+       etwas anderes; ein Verweis liesse die Liste stillschweigend mitwandern,
+       und am Ende stünden dort n-mal dieselbe letzte Fassung. */
+    fassungen.push({ runde, ...artefakt });
+    /* Das EREIGNIS trägt weiterhin nur die Kennzahlen — es geht an die Bühne
+       und ins Abspielen, und ganze Werkstücke darin blähten jede Anzeige auf.
+       Der Inhalt steht in `fassungen`, an EINER Stelle. */
     merke({ phase: "build", runde, rolle: "bauer", wer: wer.bauer.name,
             dateiname: artefakt.dateiname, zeichen: (artefakt.inhalt || "").length,
             offen: artefakt.offen || [], weitergabe: artefakt.weitergabe || "" });
@@ -314,6 +343,13 @@ export async function schicht({
       besetzung: mitarbeiter.map((m) => ({ rolle: m.rolle, name: m.name, modell: m.modell })),
       spec,
       artefakt,
+      /* ⚠ AUCH HIER, NICHT NUR IM ZWISCHENSTAND. Die erste Fassung ergänzte
+         nur `zwischenstand()`; das Endergebnis kam ohne Fassungen zurück, und
+         ein Lauf, den man hinterher ansieht, hätte wieder nur die letzte
+         Version gezeigt. Gemessen an einer Trockenschicht: „Runden: 2 ·
+         Fassungen: 0". **Zwei Ausgänge derselben Sache, und nur einer war
+         nachgezogen.** */
+      fassungen,
       ergebnis: {
         fertig,
         runden: Math.max(0, runde - 1),

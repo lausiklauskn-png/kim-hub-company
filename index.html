@@ -823,11 +823,54 @@ footer{padding:18px 16px 40px;color:var(--leise);font-size:.87rem}
     </details>
 
     <h2 style="margin-top:18px">Der Auftrag</h2>
-    <label for="ziel">Was soll gebaut werden?</label>
-    <textarea id="ziel" rows="3" placeholder="Ein kleines Werkzeug, das …"></textarea>
+    <!-- ⚠ VORAUSGEFÜLLT, UND ZWAR ABSICHTLICH (Klaus 2026-09-07): „lege zum
+         Testen und Vergleichen eine feste Aufgabe als Vorlage in das Textfeld".
+
+         ZWEI GRÜNDE, und der zweite ist der wichtigere:
+         · Ein leeres Feld ist eine Frage, keine Vorlage. Wer die Werkstatt zum
+           ersten Mal sieht, muss sich erst einen Auftrag ausdenken, bevor er
+           sehen kann, was sie leistet.
+         · **Vergleichen geht nur bei gleichem Auftrag.** Zwei Läufe mit zwei
+           verschiedenen Aufträgen sagen nichts darüber, ob die Truppe besser
+           geworden ist — sie haben verschiedene Fragen beantwortet.
+
+         DER MARKT STEHT DRIN, weil die Rollen nicht ins Netz sehen können:
+         `company.js` ruft die Werkbank ohne Netz-Schalter, und ohne
+         hochgeladene Dateien entsteht gar keine Werkbank. Ohne diese Zahlen
+         rät Lisa. Gemessen am 2026-09-07 über pwa.directory, nologin.tools
+         und privacytools.io.
+
+         ⚠ DIE FORMULIERUNG IST GENAUER, NICHT AUSWEICHEND. Ein Wächter in
+         `smoke_company_form.mjs` verbietet im ganzen Dateitext die überholte
+         Zusicherung, die Agenten hätten nichts in der Hand — sie stand zwei
+         Wochen lang falsch in der App. Was hier gemeint ist, ist ohnehin
+         etwas anderes: es fehlt die WERKBANK, nicht die Werkzeug-Fähigkeit.
+
+         Und wer über einen verbotenen Satz schreibt, schreibt ihn nicht hin —
+         dieselbe Lehre wie bei der Doku-Probe und den Pfaden in Backticks.
+         Die erste Fassung dieses Kommentars zitierte ihn und wurde prompt
+         rot.
+
+         Änderbar bleibt es: es ist ein Feld, kein Gesetz. -->
+    <label for="ziel">Was soll gebaut werden?
+      <span class="leise">— vorausgefüllt mit der Vergleichs-Aufgabe; überschreibbar</span></label>
+    <textarea id="ziel" rows="10" placeholder="Ein kleines Werkzeug, das …">Baue EIN kleines Werkzeug als einzelne HTML-Datei, das ein Fremder benutzt, der uns nicht kennt, nichts installiert und kein Konto anlegt.
+
+FÜR WEN. Nicht für den Betreiber, nicht für diese Werkstatt. Für jemanden, der über eine Adresse hereinkommt, dreissig Sekunden Geduld hat und danach entweder einen Nutzen hat oder weg ist. Ein Werkzeug, das nur nützt, wenn man unsere Arbeitsweise kennt, ist VERFEHLT: an so einem kann kein Fremder beurteilen, ob es taugt.
+
+WAS ES NICHT SEIN DARF. Der Markt für "klein, ohne Anmeldung, läuft lokal" ist voll, nicht leer. Stand 2026-09: pwa.directory führt 663 PWAs in 15 Kategorien, nologin.tools veröffentlicht vierteljährliche Listen kostenloser Werkzeuge ohne Registrierung, privacytools.io ist eine eigene Institution. Passwort-Generator, Einheiten-Rechner, QR-Erzeuger, Bild-Verkleinerer, Farbwähler, JSON-Formatierer: davon gibt es Dutzende, und sie sind gut. Wer so etwas vorschlägt, baut die 664. Kachel.
+
+WORAN IHR ANSETZT. Nennt eine LAGE, in der jemand ein Problem hat und die vorhandenen Werkzeuge nicht helfen — weil sie ein Konto verlangen, weil sie die Daten hochladen, weil sie zwei Werkzeuge sind statt einem, oder weil niemand sie für diese Lage gebaut hat. Die Lage zuerst, das Werkzeug danach.
+
+FORM. Eine Datei. Kein Bauschritt, kein Framework, kein CDN, kein Server, kein Konto. Nach dem ersten Öffnen offline benutzbar. Auf einem Telefon im Hochformat bedienbar. Was der Nutzer eingibt, verlässt sein Gerät nicht — und das steht auf der Seite, nicht nur im Quelltext.
+
+WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bauen kann, ohne nachzufragen: die Lage, das Werkzeug, die Bedienschritte in der Reihenfolge, in der der Nutzer sie geht, und was ausdrücklich NICHT gebaut wird.</textarea>
+    <!-- ⚠ ZÄHLBAR, NICHT WOHLKLINGEND. Der Arzt misst gegen dieses Merkmal;
+         "soll nützlich sein" lässt jede Antwort durchgehen. Drei Eingaben und
+         zwei Alternativen sind Zahlen, an denen ein Urteil scheitern kann. -->
     <label for="merkmal">Woran sieht man am Ende, dass es erfüllt ist?
-      <span class="leise">— optional; ohne das nennt Nora selbst eines</span></label>
-    <input id="merkmal" type="text" placeholder="z. B.: eine Datei, unter 20 KB, läuft ohne Bauschritt">
+      <span class="leise">— vorausgefüllt; ohne Eintrag nennt Nora selbst eines</span></label>
+    <textarea id="merkmal" rows="4" placeholder="z. B.: eine Datei, unter 20 KB, läuft ohne Bauschritt">Ein Fremder, der die Seite zum ersten Mal öffnet und nichts erklärt bekommt, hat sein erstes brauchbares Ergebnis nach HÖCHSTENS DREI EINGABEN und ohne eine einzige Erklärzeile gelesen zu haben. Das Blatt nennt diese drei Schritte namentlich und in ihrer Reihenfolge; es nennt ausserdem MINDESTENS ZWEI vorhandene Werkzeuge, die dieselbe Lage NICHT lösen, jeweils mit einem Satz, woran es liegt.</textarea>
 
     <label for="dateien">Womit dürfen die Rollen arbeiten? <span class="leise">— optional</span></label>
     <input id="dateien" type="file" multiple>

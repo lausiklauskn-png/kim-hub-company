@@ -1464,6 +1464,53 @@
       ziel.appendChild(kasten);
 
       if (l.artefakt.weitergabe) ziel.appendChild(el("p", "leise", "Weitergabe: " + l.artefakt.weitergabe));
+
+      /*
+       * ══ DIE FRÜHEREN FASSUNGEN ═══════════════════════════════════════════
+       *
+       * Klaus 2026-09-07: „ursprünglich sollte 1. Version, dann 2. Version und
+       * fertige Version generiert werden können." Die Runden gab es schon —
+       * nur behielt sie niemand: `artefakt` wurde in jeder Runde
+       * überschrieben, und das Bau-Ereignis trug nur die Zeichenzahl.
+       *
+       * ⚠ NUR DIE FRÜHEREN. Die letzte Fassung steht oben mit Knopf und
+       * Vorschau; sie hier ein zweites Mal hinzulegen hiesse, dieselbe Datei
+       * zweimal anzubieten — und der Leser fragt sich, welche gilt.
+       *
+       * ⚠ UND SIE STEHEN ZU. Eine Schicht mit vier Runden legte sonst vier
+       * Werkstücke offen aufs Blatt; das ist genau der Text-Berg, den Klaus
+       * beanstandet hat. Wer vergleichen will, klappt auf.
+       */
+      var fassungen = Array.isArray(l.fassungen) ? l.fassungen : [];
+      var frueher = fassungen.slice(0, -1);
+      if (frueher.length) {
+        var vBox = el("details");
+        vBox.setAttribute("data-fassungen", String(frueher.length));
+        vBox.appendChild(el("summary", null,
+          frueher.length === 1 ? "Die Fassung davor ansehen"
+                               : "Die " + frueher.length + " Fassungen davor ansehen"));
+        vBox.appendChild(el("p", "leise",
+          "Jede Runde hat eine eigene Fassung gebaut. Sie stehen hier, damit man " +
+          "sieht, WAS sich zwischen den Runden geändert hat — nicht nur, dass es " +
+          "Runden gab."));
+        frueher.forEach(function (f) {
+          var fi = f.inhalt || "", fn = f.dateiname || "entwurf.txt";
+          var zeile = el("p", "leise",
+            "Runde " + f.runde + " · " + fn + " · " + fi.length + " Zeichen");
+          vBox.appendChild(zeile);
+          var fBlob = new Blob([alsDatei(fi, "text/plain")],
+            { type: "text/plain;charset=utf-8" });
+          var fLink = el("a", "ergebnis-knopf",
+            "⭳ Runde " + f.runde + " herunterladen");
+          fLink.href = URL.createObjectURL(fBlob);
+          fLink.setAttribute("download", "runde" + f.runde + "-" + fn);
+          vBox.appendChild(fLink);
+          var fPre = el("pre");
+          fPre.textContent = fi.slice(0, 4000) + (fi.length > 4000 ? "\n…" : "");
+          vBox.appendChild(fPre);
+        });
+        ziel.appendChild(vBox);
+      }
     } else {
       /* KEIN toter Knopf: liegt nichts vor, steht das da. */
       ziel.appendChild(el("p", "leise",
