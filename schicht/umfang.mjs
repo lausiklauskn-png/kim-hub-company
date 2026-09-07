@@ -63,4 +63,53 @@ export function restSchaetzung({ getan, gesamt, verstricheneMs } = {}) {
    dann stünde auf der Uhr eine andere Zahl als im Bericht. Dieselbe Bauart wie
    `zeit.js` und `WERKSTATT_ZEIT`. */
 if (typeof globalThis !== "undefined")
-  globalThis.WERKSTATT_UMFANG = { erwarteteAufrufe, restSchaetzung };
+  globalThis.WERKSTATT_UMFANG = { erwarteteAufrufe, restSchaetzung, regung, stillstandAbMs };
+
+/**
+ * AB WANN IST ES STILLSTAND UND NICHT MEHR ARBEIT?
+ *
+ * Klaus 2026-09-07: seine Schicht stand sieben Stunden auf „läuft", und die
+ * Uhr zählte brav weiter. **Eine Uhr, die läuft, während nichts geschieht, ist
+ * die schlimmste Auskunft von allen** — sie sieht aus wie Fortschritt.
+ *
+ * Die Grenze wird GERECHNET, nicht genagelt: ein einzelner Aufruf ist nach
+ * oben durch seine Runden und die Frist je Runde begrenzt. Dauert es länger,
+ * als beide zusammen erlauben, kann es kein arbeitender Aufruf mehr sein.
+ *
+ * Der Zuschlag ist die Netz-Wartezeit zwischen den Runden — großzügig, weil
+ * eine Meldung „steht still", die bei ehrlicher Arbeit erscheint, genau so
+ * schnell übersehen wird wie jede andere Warnung, die zu oft kommt.
+ *
+ * @param {{maxRunden:number, fristMs:number}} opt
+ * @returns {number} Millisekunden ohne fertigen Aufruf, ab denen es steht
+ */
+export function stillstandAbMs({ maxRunden, fristMs } = {}) {
+  const r = Math.max(1, Number(maxRunden) || 1);
+  const f = Math.max(1, Number(fristMs) || 1);
+  return Math.round(r * f * 1.25);
+}
+
+/**
+ * SEIT WANN NICHTS MEHR FERTIG WURDE — als Befund, nicht als Satz.
+ *
+ * ⚠ WARUM DAS HIER STEHT UND NICHT IN `buehne.js`: die Zusicherung, um die es
+ * geht, ist „eine Uhr, die läuft, während nichts geschieht, sieht aus wie
+ * Fortschritt". In der Bühne wäre sie nur mit einem Browser messbar — und ein
+ * Wächter, der nur im Browser lebt, ist in der Gegenprobe **immer** „nicht
+ * gefangen" (die fünfte Art, wie ein Fall nichts misst). Dieselbe Abhilfe wie
+ * bei `zeit.js`: was sich nachrechnen lässt, gehört in eine Datei, die überall
+ * läuft.
+ *
+ * Herausgegeben wird ein BEFUND, kein fertiger Text — die Bühne setzt die
+ * Wörter. Zwei Stellen, die beide über „steht" urteilen, liefen auseinander.
+ *
+ * @returns {{seitMs:number, steht:boolean}|null} null = keine Angabe vorhanden
+ */
+export function regung({ seitRegungMs, stehtAbMs } = {}) {
+  if (typeof seitRegungMs !== "number" || !isFinite(seitRegungMs)) return null;
+  const seit = Math.max(0, seitRegungMs);
+  const grenze = Number(stehtAbMs) || 0;
+  /* ⚠ EINE GRENZE VON 0 HIESSE „STEHT IMMER". Ohne Angabe wird deshalb nichts
+     behauptet — die Zahl steht trotzdem da, und der Leser urteilt selbst. */
+  return { seitMs: seit, steht: grenze > 0 && seit >= grenze };
+}

@@ -13,6 +13,7 @@
 import { HAENGER_AB } from "./spind.mjs";
 import { ROLLEN, system } from "./rollen.mjs";
 import { fuerAnweisung } from "./grundsaetze.mjs";
+import { kostenUsd } from "./kosten.mjs";
 
 /**
  * Sagt der Rolle, dass sie nachsehen KANN — und dass sie es SOLL, bevor sie
@@ -178,6 +179,29 @@ export function macheRufer({ api, wer, spinde, kasse, grundsaetze, werkbank = nu
          sieht, urteilt über eine Aufgabe, die sie nicht kennt — und das fiele
          niemandem auf, weil sie trotzdem etwas antwortet. */
       unterlagen,
+      /*
+       * ══ DIE BREMSE REICHT BIS IN DEN AUFRUF HINEIN ═════════════════════
+       *
+       * `darfNoch` oben wird EINMAL gefragt, bevor die Rolle losläuft. Was
+       * danach in `api.frage` passiert — Werkzeug-Runden, `pause_turn` —, lief
+       * bis zum 2026-09-07 ohne jede Grenze: Klaus' Schicht mit drei Euro
+       * Deckel und zwei Stunden Laufzeit stand nach sieben Stunden noch auf
+       * „läuft", weil beide Grenzen nur zwischen den Rollen gelten.
+       *
+       * ⚠ DIE POLITIK BLEIBT HIER. `api.mjs` fragt, die Kasse entscheidet —
+       * dieselbe Naht wie überall. Zwei Stellen, die beide über Geld urteilen,
+       * liefen auseinander, und dann hielte der Browser einen anderen Deckel
+       * ein als die Kommandozeile.
+       *
+       * ⚠ UND ES WIRD GERECHNET, NICHT GESCHÄTZT. Was dieser Aufruf bisher
+       * gekostet hat, steht in seinen eigenen Token — gebucht ist davon noch
+       * nichts, denn gebucht wird erst, wenn er zurückkommt. Ohne diese Zeile
+       * prüfte die Bremse gegen einen Stand von vor Stunden.
+       */
+      weiter: ({ usage }) => {
+        const darf = kasse.darfWeiter(kostenUsd(m.modell, usage));
+        return darf.ok ? null : darf;
+      },
     });
     // Die Dauer ist die Zahl, ohne die sich „wo staut es sich" gar nicht
     // beantworten lässt. Bis zum 2026-08-20 gab es nur `t` — eine Reihenfolge,

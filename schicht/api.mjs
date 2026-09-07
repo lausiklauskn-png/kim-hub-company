@@ -217,7 +217,7 @@ export class EchteApi {
   }
 
   async frage({ modell, aufwand, system, nachrichten, schema, werkbank = null,
-                unterlagen = null }) {
+                unterlagen = null, weiter = null }) {
     const kann = KANN[modell];
     if (!kann) throw new Error(`Unbekanntes Modell "${modell}" — lieber abbrechen als raten.`);
     const bote = await this._hol();
@@ -313,10 +313,53 @@ export class EchteApi {
           `Der Aufruf ist bezahlt, das Ergebnis unbrauchbar; deshalb steht das hier ` +
           `im Klartext statt als „konnte nicht gelesen werden".`);
 
+      /*
+       * ══ DIE BREMSE GILT AUCH INNERHALB EINES AUFRUFS ═══════════════════
+       *
+       * ⚠ SIE FEHLTE, UND KLAUS IST IN DIE LÜCKE GELAUFEN (2026-09-07): eine
+       * Schicht mit DREI EURO Deckel und zwei Stunden Laufzeit stand nach
+       * SIEBEN Stunden immer noch auf „läuft". Beide Grenzen waren gesetzt,
+       * beide griffen nicht — sie werden in `ruf.mjs` gefragt, also ZWISCHEN
+       * den Rollen. Diese Schleife hier lief dazwischen ungebremst.
+       *
+       * Gefragt wird VOR jeder weiteren Runde, nie nach einer fertigen
+       * Antwort: eine bezahlte Antwort wegzuwerfen wäre die teuerste Art,
+       * einen Deckel einzuhalten.
+       *
+       * Die Politik bleibt bei der Kasse — hier wird nur gefragt.
+       */
+      const nochWeiter = () => {
+        if (!weiter) return;
+        const halt = weiter({ runde: runden, usage: { ...summe } });
+        if (!halt) return;
+        const fehler = new Error(
+          `Mitten im Aufruf angehalten (${halt.grund || "grund unbekannt"}): ` +
+          `${halt.text || ""} Der Aufruf war nach ${runden} Runde(n) noch nicht fertig; ` +
+          `was bis hierher hinausging, ist bezahlt.`);
+        fehler.mittendrin = true;
+        fehler.grund = halt.grund || null;
+        throw fehler;
+      };
+
       // Ein Server-Werkzeug hat seine Runde voll. Anhängen und weiterreichen —
       // sonst endet der Lauf still mit einer halben Antwort. Steht so in der
       // SDK-Doku; ohne diesen Zweig ist es ein stummer Abbruch, kein Fehler.
       if (antwort.stop_reason === "pause_turn") {
+        /*
+         * ⚠ UND ER ZÄHLT MIT. Bis zum 2026-09-07 stand hier ein nacktes
+         * `continue` ohne Zähler — eine Schleife ohne Obergrenze, in der jede
+         * Runde bezahlt wird. `tool_use` daneben hatte seinen Deckel seit
+         * jeher; dieser Zweig hatte gar keinen, und die beiden sehen sich so
+         * ähnlich, dass es niemandem auffiel.
+         *
+         * **Ein `continue`, das keinen Zähler erhöht, ist eine Endlosschleife
+         * mit Rechnung.**
+         */
+        if (++runden > MAX_RUNDEN)
+          throw new Error(
+            `${modell} pausiert seit ${MAX_RUNDEN} Runden für Server-Werkzeuge, ohne ` +
+            `fertig zu werden. Abgebrochen — jede Runde ist bezahlt.`);
+        nochWeiter();
         verlauf.push({ role: "assistant", content: antwort.content });
         continue;
       }
@@ -327,6 +370,7 @@ export class EchteApi {
             `${modell} greift seit ${MAX_RUNDEN} Runden zu Werkzeugen, ohne fertig ` +
             `zu werden. Abgebrochen — jede Runde ist bezahlt. Bisher ` +
             `${werkzeugRufe} Werkzeug-Aufrufe.`);
+        nochWeiter();
         verlauf.push({ role: "assistant", content: antwort.content });
         // ALLE Ergebnisse in EINE Nachricht. Auf mehrere verteilt lernt das
         // Modell ab, parallel zu greifen — steht so in der SDK-Doku.

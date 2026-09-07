@@ -134,6 +134,46 @@ export class Kasse {
     return { ok: true, grund: "offen", text: "" };
   }
 
+  /**
+   * DARF EIN AUFRUF, DER SCHON LÄUFT, NOCH EINE RUNDE?
+   *
+   * ⚠ WARUM ES DIESE ZWEITE FRAGE ÜBERHAUPT BRAUCHT (Klaus 2026-09-07, nach
+   * sieben Stunden an einer Schicht mit drei Euro Deckel): `darfNoch` wird
+   * ZWISCHEN den Rollen gefragt, einmal je Aufruf. Was innerhalb eines Aufrufs
+   * passiert — Werkzeug-Runden, `pause_turn`, ein Modell, das nicht fertig wird
+   * — lief bis dahin **ohne jede Bremse**. Weder das Geld noch die Uhr konnten
+   * dort greifen, und gebucht wird erst, wenn der Aufruf zurückkommt.
+   *
+   * **Ein Deckel, der einen laufenden Aufruf nicht abschneiden kann, ist für
+   * genau den Fall keiner, in dem man ihn braucht.**
+   *
+   * `laufendUsd` ist, was dieser Aufruf bis hierher gekostet hat — gerechnet
+   * aus den echten Token seiner bisherigen Runden, nicht geschätzt. Es ist noch
+   * nicht gebucht (das geschieht erst, wenn der Aufruf zurückkommt), muss aber
+   * mitgezählt werden: sonst prüft die Bremse gegen einen Stand, der Stunden
+   * alt ist.
+   *
+   * Die RÜCKLAGE bleibt auch hier unangetastet — der Feierabend-Bericht muss
+   * noch bezahlbar sein, sonst endet die Schicht ohne die Auskunft, wo sie
+   * stehen geblieben ist.
+   *
+   * @param {number} laufendUsd was der laufende Aufruf bisher gekostet hat
+   */
+  darfWeiter(laufendUsd = 0) {
+    if (this.verstricheneMs() >= this.laufzeitMs)
+      return { ok: false, grund: "zeit",
+        text: `Die Schicht ist um (${Math.round(this.laufzeitMs / 60000)} Minuten) — ` +
+              `mitten in einem Aufruf. Was bis hierher hinausging, ist bezahlt.` };
+    const frei = this.freiUsd() - Math.max(0, Number(laufendUsd) || 0);
+    if (frei <= 0)
+      return { ok: false, grund: "geld",
+        text: `Der Deckel ist erreicht — mitten in einem Aufruf. ` +
+              `Dieser Aufruf hat bis hierher ${((Number(laufendUsd) || 0) / this.usdJeEuro).toFixed(2)} € ` +
+              `gekostet, gebucht waren vorher ${this.verbrauchtEur().toFixed(2)} € ` +
+              `von ${this.deckelEur.toFixed(2)} €.` };
+    return { ok: true, grund: "offen", text: "" };
+  }
+
   bericht() {
     const min = Math.round(this.verstricheneMs() / 60000);
     return {

@@ -136,6 +136,7 @@ export function merkeVor({ api, wer, spinde, spindAblage, vorschlaege, tafel, si
 export async function konferenz({
   api, mitarbeiter, kasse, spindAblage, lage = "", anteil = KONFERENZ_ANTEIL, werkbank = null,
   grundsaetze, datum = new Date().toISOString().slice(0, 10), unterlagen = null,
+  aufZwischenstand = null,
 } = {}) {
   const wer = Object.fromEntries(mitarbeiter.map((m) => [m.rolle, m]));
   /*
@@ -175,7 +176,29 @@ export async function konferenz({
   const beginn = Date.now();
   const events = [];
   let t = 0;
-  const merke = (e) => events.push({ t: t++, ms: Date.now() - beginn, ...e });
+  /*
+   * ══ DIE KONFERENZ MELDET SICH, WÄHREND SIE LÄUFT ═════════════════════════
+   *
+   * ⚠ SIE TAT ES ALS EINZIGE NICHT — und das ist genau die Strecke, auf der
+   * Klaus wartet. `schicht()` hat `aufZwischenstand` seit jeher; die Konferenz
+   * hatte nichts. Bei acht Rollen sind das SIEBZEHN von rund dreissig
+   * Aufrufen, in denen die Bühne unverändert dastand: die erste Hälfte jedes
+   * Laufs, und die erste, die man sieht.
+   *
+   * Klaus 2026-09-07: „wir machen es so, dass wir die echte Zeit annehmen,
+   * keine verzögerte Zeit, damit ich das besser sehen kann." Das Bild lag
+   * nicht in Zeitlupe hinterher — es stand still.
+   *
+   * ⚠ EIN FEHLER IM ZUSCHAUER DARF DEN LAUF NIE UMWERFEN. Er ist bezahlt;
+   * eine Anzeige ist es nicht wert. Dieselbe Klammer wie in `schicht.mjs`.
+   */
+  const melde = () => {
+    if (!aufZwischenstand) return;
+    try { aufZwischenstand({ art, events: events.slice(), laeuft: true,
+                             beginn: new Date(beginn).toISOString() }); }
+    catch { /* nie den Lauf umwerfen */ }
+  };
+  const merke = (e) => { events.push({ t: t++, ms: Date.now() - beginn, ...e }); melde(); };
 
   // ── Runde 1: jeder bringt einen ein ──────────────────────────────────────
   for (const m of mitarbeiter) {

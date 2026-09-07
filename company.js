@@ -32,10 +32,10 @@ import "./idb.js";
 import "./schluesseltresor.js";
 import { schicht, ROLLEN_REIHE } from "./schicht/schicht.mjs";
 import { konferenz, KONFERENZ_ANTEIL } from "./schicht/konferenz.mjs";
-import { EchteApi, TrockenApi } from "./schicht/api.mjs";
-import { netzTransport, macheNotaus } from "./schicht/transport-netz.mjs";
+import { EchteApi, TrockenApi, MAX_RUNDEN } from "./schicht/api.mjs";
+import { netzTransport, macheNotaus, FRIST_MS } from "./schicht/transport-netz.mjs";
 import { planBlatt, auftragsBlatt } from "./schicht/plan-form.mjs";
-import { erwarteteAufrufe } from "./schicht/umfang.mjs";
+import { erwarteteAufrufe, stillstandAbMs } from "./schicht/umfang.mjs";
 import { Kasse } from "./schicht/kosten.mjs";
 import { BEISPIELE } from "./schicht/beispiele.mjs";
 import { deuteGrundsaetze, KEINE } from "./schicht/grundsaetze.mjs";
@@ -451,13 +451,57 @@ function startLageZeichnen() {
   const p = $("start-sagt");
   $("trocken").disabled = stand.laeuft;
   $("echt").disabled = stand.laeuft || !stand.schluessel || !ziel;
-  /* Der Notaus zeigt sich nur, solange es etwas anzuhalten gibt — und sagt
-     nach dem Druck, dass er gezogen IST, statt weiter zum Drücken einzuladen. */
+  /*
+   * ══ DER NOTAUS IST IMMER DA (Klaus 2026-09-07) ═══════════════════════════
+   *
+   * „Er sollte immer da sein, auch eine angehaltene Schicht sollte beendet
+   * werden."
+   *
+   * ⚠ HIER STAND DAS GEGENTEIL, und die Begründung war gut: „ein Notaus, der
+   * immer dasteht und meistens nichts tut, ist ein toter Knopf; einer, der
+   * erscheint, sagt schon durch sein Erscheinen, dass etwas läuft." Der Preis
+   * dafür war, dass er GENAU DANN fehlte, wenn man ihn sucht: nach einem
+   * Neuladen lebt der Notaus nicht mehr, die Anzeige behauptete aber weiter
+   * einen Lauf. Klaus stand vor einer Uhr, die seit sieben Stunden zählte,
+   * und suchte einen Knopf, den es in dem Zustand nicht gab.
+   *
+   * Ein Knopf, der verschwindet, ist von einem Knopf, den es nie gab, nicht zu
+   * unterscheiden. Er steht jetzt immer da und sagt, WAS er tun wird —
+   * ausgegraut, wenn es nichts zu tun gibt. (Tafel-Evolutions-Klausel:
+   * benannt, nicht stillschweigend umgefahren.)
+   *
+   * DREI ZUSTÄNDE, DREI BESCHRIFTUNGEN:
+   *   · ein bezahlter Lauf läuft          → „■ Anhalten"
+   *   · er ist gezogen                    → „■ Wird angehalten …"
+   *   · die Anzeige behauptet einen Lauf,
+   *     es läuft aber nichts (Geist)      → „■ Schicht beenden"
+   *   · sonst                             → ausgegraut
+   */
   const halt = $("anhalten");
-  halt.hidden = !laufendesNotaus;
-  halt.disabled = !laufendesNotaus || laufendesNotaus.gezogen;
-  halt.textContent = laufendesNotaus && laufendesNotaus.gezogen
-    ? "■ Wird angehalten …" : "■ Anhalten";
+  /*
+   * ⚠ „WIRD ANGEHALTEN …" WAR SELBST EINE SACKGASSE. Nach dem Zug stand der
+   * Knopf ausgegraut da und lud zum Warten ein — und wenn der Abruf tot ist
+   * (eingefrorener Tab, abgerissenes Netz), kommt die Schicht nie zurück, das
+   * `finally` läuft nie, und die Uhr zählt weiter. Genau Klaus' Satz vom
+   * 2026-09-07: „auch eine angehaltene Schicht sollte beendet werden."
+   *
+   * Nach dem Zug geht deshalb kein Aufruf mehr hinaus — Beenden kostet ab da
+   * nichts mehr und ist der ehrliche Ausweg, kein Notbehelf.
+   *
+   * ⚠ `stand.laeuft` GEHÖRT IN DEN GEIST, nicht nur der Notaus. Ein
+   * TROCKENLAUF setzt `schichtlaeuft`, bekommt aber keinen Notaus — die erste
+   * Fassung hielt ihn deshalb für einen Geist und bot an, ihn wegzuräumen,
+   * WÄHREND er lief.
+   */
+  const geist = !stand.laeuft && zeigtLauf();
+  const beendbar = !!(laufendesNotaus && laufendesNotaus.gezogen) || geist;
+  halt.hidden = false;
+  halt.disabled = !(laufendesNotaus && !laufendesNotaus.gezogen) && !beendbar;
+  halt.textContent = laufendesNotaus && !laufendesNotaus.gezogen
+    ? "■ Anhalten" : beendbar ? "■ Schicht beenden" : "■ Anhalten";
+  halt.setAttribute("data-halt",
+    laufendesNotaus && !laufendesNotaus.gezogen ? "bereit"
+      : laufendesNotaus ? "gezogen" : geist ? "geist" : "nichts");
   p.setAttribute("data-start",
     stand.laeuft ? "laeuft" : !ziel ? "ohne-auftrag"
       : !stand.schluessel ? "ohne-schluessel" : "bereit");
@@ -476,13 +520,91 @@ $("ziel").oninput = startLageZeichnen;
    Abbruch: in die Kasse, ins Fahrtenbuch, in den gesicherten Stand. Ein
    Knopf, der stattdessen die Seite neu lüde, wäre der teurere Weg — dabei
    läuft KEIN Abbruch-Pfad, und das Geld stünde in keinem Buch. */
+/**
+ * BEHAUPTET DIE ANZEIGE GERADE, DASS ETWAS LÄUFT?
+ *
+ * Zwei Quellen, dieselbe wie in `ansicht.js`: die App selbst (`schichtlaeuft`,
+ * gesetzt beim Druck auf den Knopf) und der angezeigte Lauf. Gefragt wird die
+ * ANZEIGE, nicht der Ablauf — genau darin liegt der Geist: der Ablauf ist
+ * vorbei, die Anzeige weiss es nicht.
+ */
+function zeigtLauf() {
+  const d = (window.__werkstatt && window.__werkstatt.daten) || {};
+  return !!d.schichtlaeuft || !!(d.lauf && d.lauf.laeuft);
+}
+
+/**
+ * WAS DER NOTAUS SAGT — in seiner EIGENEN ZEILE.
+ *
+ * ⚠ DIESELBE FALLE ZUM DRITTEN MAL. `startLageZeichnen()` schreibt
+ * `#start-sagt` bedingungslos neu; wer seine Meldung dorthin schreibt und
+ * danach neu zeichnet, hat sie schon wieder gelöscht. Genau so stand es hier:
+ * die „Angehalten"-Meldung lebte so lange, wie der Klick dauert, und Klaus
+ * hätte danach „Eine Schicht läuft" gelesen — über einer Schicht, die er
+ * gerade angehalten hat.
+ *
+ * Aufgeschrieben war die Lehre längst („zwei Aussagen, zwei Zeilen", 2026-09-05
+ * an `#wieder-sagt`, 2026-09-06 an `#abbruch-sagt`). Sie steht jetzt an der
+ * Stelle, an der sie gilt.
+ */
+function sageNotaus(lage, text) {
+  const p = $("abbruch-sagt");
+  p.hidden = false;
+  p.setAttribute("data-abbruch", lage);
+  p.textContent = text;
+}
+
 $("anhalten").onclick = () => {
-  if (!laufendesNotaus || laufendesNotaus.gezogen) return;
-  laufendesNotaus.ziehen();
-  const p = $("start-sagt");
-  p.setAttribute("data-start", "anhalten");
-  p.textContent = "Angehalten. Der laufende Aufruf wird abgebrochen — was bis " +
-    "hierher hinausging, ist bezahlt und kommt ins Buch.";
+  /*
+   * ══ ZWEI AUFGABEN, EIN KNOPF — und der Unterschied steht in der Meldung ══
+   *
+   * Läuft wirklich etwas, wird es angehalten. Behauptet die Anzeige nur einen
+   * Lauf, wird die Behauptung geräumt. Beides heisst für Klaus dasselbe: „die
+   * Schicht ist vorbei, und ich sehe das auch."
+   */
+  if (laufendesNotaus && !laufendesNotaus.gezogen) {
+    laufendesNotaus.ziehen();
+    sageNotaus("anhalten",
+      "Angehalten. Der laufende Aufruf wird abgebrochen — was bis hierher " +
+      "hinausging, ist bezahlt und kommt ins Buch.");
+    startLageZeichnen();
+    return;
+  }
+
+  /* Ab hier heisst der Knopf „beenden". Erlaubt ist das, wenn der Notaus
+     gezogen ist (dann geht ohnehin nichts mehr hinaus) oder wenn die Anzeige
+     einen Lauf behauptet, den es in dieser Seite nicht gibt. */
+  const gezogen = !!(laufendesNotaus && laufendesNotaus.gezogen);
+  if (!gezogen && !zeigtLauf()) return;
+  laufendesNotaus = null;
+
+  /*
+   * ══ EINE GEISTER-SCHICHT BEENDEN ════════════════════════════════════════
+   *
+   * ⚠ UND ZWAR ENDGÜLTIG. Nur die Anzeige zu räumen reichte nicht: der Stand
+   * liegt in IndexedDB und käme beim nächsten Öffnen zurück. Klaus hätte
+   * gedrückt, es wäre weg gewesen — und am nächsten Morgen wieder da.
+   *
+   * ⚠ ES WIRD NICHTS GEBUCHT. Was dieser Lauf gekostet hat, steht in seiner
+   * eigenen Kasse, und die ist mit der Seite gestorben; hier ist keine Zahl
+   * mehr zu holen. Eine erfundene wäre schlimmer als keine — sie sähe aus wie
+   * eine gemessene. Deshalb sagt die Meldung ausdrücklich, dass die Kosten
+   * dieses Laufs hier NICHT stehen.
+   */
+  window.__werkstatt.speise("schichtlaeuft", null);
+  if (letzterStand.lauf) {
+    letzterStand.lauf = { ...letzterStand.lauf, laeuft: false };
+    window.__werkstatt.speise("lauf", letzterStand.lauf);
+    standSichern();
+  }
+  stand.laeuft = false;
+  sageNotaus("beendet", gezogen
+    ? "Beendet. Seit dem Anhalten ging kein Aufruf mehr hinaus — von hier an " +
+      "kostet nichts mehr. Ob die Gegenseite die letzte Antwort noch " +
+      "fertiggestellt hat, ist von hier aus nicht zu sehen; falls ja, ist sie bezahlt."
+    : "Beendet. Die Anzeige hat einen Lauf behauptet, der nicht mehr " +
+      "lief — das kommt vor, wenn die Seite mitten in einer Schicht neu geladen wurde. " +
+      "Was er gekostet hat, steht hier nicht: seine Kasse ist mit der Seite gegangen.");
   startLageZeichnen();
 };
 
@@ -636,9 +758,27 @@ async function fahre({ echt }) {
      * Beide Kassen zusammen sind der ganze Weg.
      */
     const erwartet = erwarteteAufrufe({ rollen: mitarbeiter.length, mitKonferenz }).gesamt;
+    /*
+     * ══ SEIT WANN NICHTS MEHR FERTIG WURDE ══════════════════════════════
+     *
+     * Klaus 2026-09-07, nach sieben Stunden an einer Schicht mit zwei Stunden
+     * Deckel: die Uhr zählte weiter, und mehr stand nicht da. **Eine laufende
+     * Uhr über einem stehenden Lauf sieht aus wie Fortschritt.**
+     *
+     * Gezählt wird der Abstand zum letzten FERTIGEN Aufruf, nicht zum Start.
+     * Das ist die Zahl, an der man Arbeit von Stillstand unterscheidet — und
+     * sie steht ab der ersten Sekunde da, nicht erst ab einer Schwelle: eine
+     * Auskunft, die erst bei Verdacht erscheint, kommt zu spät.
+     */
+    let letzteZahl = -1, letzteRegung = Date.now();
+    const stehtAb = stillstandAbMs({ maxRunden: MAX_RUNDEN, fristMs: FRIST_MS });
     umfangTakt = setInterval(() => {
       const getan = (kasseKonf ? kasseKonf.aufrufe.length : 0) + kasse.aufrufe.length;
-      window.__werkstatt.speise("umfang", { getan, gesamt: erwartet, mitKonferenz });
+      if (getan !== letzteZahl) { letzteZahl = getan; letzteRegung = Date.now(); }
+      window.__werkstatt.speise("umfang", {
+        getan, gesamt: erwartet, mitKonferenz,
+        seitRegungMs: Date.now() - letzteRegung, stehtAbMs: stehtAb,
+      });
     }, 1000);
     const konf = mitKonferenz ? await konferenz({
       api, mitarbeiter, kasse: kasseKonf, spindAblage: ablage,
@@ -648,6 +788,14 @@ async function fahre({ echt }) {
          also schon im Deckel enthalten. Ohne diese Zeile nähme sie ein Drittel
          von einem Drittel. */
       anteil: 1,
+      /*
+       * ⚠ DAS BILD FOLGT JETZT AUCH HIER MIT (Klaus 2026-09-07). Vorher meldete
+       * sich nur `schicht()`; die Konferenz — bei acht Rollen SIEBZEHN von rund
+       * dreissig Aufrufen — lief hinter einer stehenden Bühne ab. Das ist die
+       * erste Hälfte jedes Laufs und die erste, die man sieht: wer hier
+       * zusieht, sah minutenlang nichts und hielt es für einen Hänger.
+       */
+      aufZwischenstand: (z) => window.__werkstatt.speise("konferenz", z),
     }) : null;
     if (konf) {
       window.__werkstatt.speise("konferenz", konf);
@@ -830,7 +978,29 @@ window.addEventListener("beforeunload", (e) => {
 
   letzterStand = g;
   if (g.konferenz) window.__werkstatt.speise("konferenz", g.konferenz);
-  if (g.lauf) window.__werkstatt.speise("lauf", g.lauf);
+  /*
+   * ⚠ WAS AUS DER ABLAGE KOMMT, LÄUFT NICHT — und daran hing Klaus' Geister-
+   * Schicht (2026-09-07): seine Seite zeigte „Schicht läuft · 7:09:36", und
+   * es lief nichts.
+   *
+   * `zwischenstand()` in `schicht.mjs` trägt fest `laeuft: true` — richtig,
+   * solange er WÄHREND des Laufs herausgereicht wird. Gesichert wird er
+   * trotzdem, und beim nächsten Öffnen kam er unverändert zurück in die
+   * Anzeige. Die Bühne las `laeuft: true` und den ursprünglichen Beginn, also
+   * zählte sie los; der Notaus lebt aber im Arbeitsspeicher und war nach dem
+   * Neuladen weg. **Eine Uhr, die läuft, und kein Knopf, der sie anhält.**
+   *
+   * Das ist dieselbe Sorte wie „ein abgebrochener Lauf, der aussieht wie ein
+   * fertiger" — nur eine Ebene weiter: ein toter Lauf, der aussieht wie ein
+   * laufender. Und die schlimmere Hälfte ist, dass sie jedes Neuladen
+   * überlebt: sie liegt in IndexedDB, bis ein neuer Lauf sie überschreibt.
+   *
+   * Die Zeile gehört HIERHIN und nicht in `zwischenstand()`: dort ist
+   * `laeuft: true` die Wahrheit. Falsch wird es erst beim Wiederherstellen —
+   * also wird es dort geradegerückt, an der Stelle, die weiss, dass sie aus
+   * der Ablage liest.
+   */
+  if (g.lauf) window.__werkstatt.speise("lauf", { ...g.lauf, laeuft: false });
   /* Auch das Blatt überlebt ein Neuladen — sonst wäre der Auftrag weg, den
      Klaus gerade weitergeben wollte. */
   if (g.blatt) window.__werkstatt.speise("blatt", g.blatt);
@@ -860,6 +1030,11 @@ window.addEventListener("beforeunload", (e) => {
     ? `Der letzte Lauf vom ${wann} ist wieder da — er lief zu Ende.`
     : `Der letzte Lauf vom ${wann} ist wieder da, ABER er lief NICHT zu Ende. ` +
       `Was du siehst, ist der Stand bis zum Abbruch, kein Ergebnis.`;
+  /* ⚠ UND DER KNOPF WIRD NEU GEZEICHNET. Er hängt an dem, was die ANZEIGE
+     behauptet; wird die beim Öffnen gefüllt, muss er danach noch einmal
+     hinsehen. Ohne diese Zeile stünde er auf dem Stand von vor der
+     Wiederherstellung — ausgegraut über einer Anzeige, die einen Lauf zeigt. */
+  startLageZeichnen();
 })();
 
 /* ══ WAS DIE SEITE SICH HOLT ═══════════════════════════════════════════════ */
