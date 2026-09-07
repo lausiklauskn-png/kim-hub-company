@@ -1946,9 +1946,13 @@
     });
     t.appendChild(k);
 
-    var echte = f.filter(function (x) { return x.echt; });
-    var summe = echte.reduce(function (a, x) { return a + (x.eur || 0); }, 0);
-    var min = f.reduce(function (a, x) { return a + (x.minuten || 0); }, 0);
+    /* ⚠ GERECHNET WIRD IN `kassen.js` (2026-09-07), nicht hier. Die drei Zahlen
+       standen als Ausdrücke in dieser Datei und waren damit nur im Browser
+       prüfbar — ihr Gegenprobe-Fall meldete IMMER „nicht gefangen", ohne dass
+       etwas kaputt war. Dieselbe Abhilfe wie bei `zeit.js`: was sich
+       nachrechnen lässt, gehört dorthin, wo es überall läuft. */
+    var sum = window.WERKSTATT_KASSEN.fahrtSummen(f);
+    var summe = sum.eur, min = sum.minuten;
     /*
      * ⚠ „BEZAHLT" HEISST: ES IST GELD GEFLOSSEN (Klaus 2026-09-07).
      *
@@ -1966,19 +1970,16 @@
      * wenn sie sich unterscheiden. Sonst verlöre man, WIE VIELE Fahrten
      * überhaupt echt gemeint waren.
      */
-    var bezahlte = echte.filter(function (x) { return (x.eur || 0) > 0; });
     if ($("#k-alle")) {
       $("#k-alle").textContent = eur(summe);
-      $("#k-alle-sub").textContent = f.length + " Fahrt(en), davon " +
-        bezahlte.length + " mit Kosten" +
-        (echte.length > bezahlte.length
-          ? " (" + echte.length + " echt gemeint, der Rest starb vor dem ersten Aufruf)"
+      $("#k-alle-sub").textContent = sum.fahrten + " Fahrt(en), davon " +
+        sum.bezahlte + " mit Kosten" +
+        (sum.echte > sum.bezahlte
+          ? " (" + sum.echte + " echt gemeint, der Rest starb vor dem ersten Aufruf)"
           : "") +
         " · " + min + " min zusammen";
     }
-    var tage = {};
-    f.forEach(function (x) { tage[x.tag] = true; });
-    $("#fahrten-hinweis").textContent = "An " + Object.keys(tage).length + " Tag(en) gearbeitet. " +
+    $("#fahrten-hinweis").textContent = "An " + sum.tage + " Tag(en) gearbeitet. " +
       "Die Trockenläufe stehen mit drin: sie kosten nichts, sind aber Arbeit.";
   }
 

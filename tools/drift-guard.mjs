@@ -46,22 +46,22 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
  * Fingerabdrücke unten nachzieht und das hier vergisst, wird rot.
  */
 export const HERKUNFT = {
-  commit: "822ed67",
-  datum:  "2026-09-07T17:26:14+00:00",
-  betreff: "Der Sitzungs-Eintrag \u2014 und main eingeholt",
+  commit: "83187cb",
+  datum:  "2026-09-07T19:20:20+00:00",
+  betreff: "Die acht blinden Waechter \u2014 und die falsche Praemisse dahinter",
 };
 
 export const ERWARTET = [
   { datei: "index.html",                herkunft: "start.html",              sha: "c7064cdbf85b9dc9780c1278ddc25d42dd1f59a3537595aff66aab06afe7a5ce" },
   { datei: "company.js",                herkunft: "company.js",              sha: "8225958ef89441c83cceb7265c4f17423017f24fb8bc61c2f9e218e587629870" },
-  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "a0b9deaaadc63fc57088fc7a66adcf3ca0c5a757cee6e5749a837a06d5f2a6ed" },
+  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "b4f87404f9b0542f520d92dbb6f493925c9d95aff1d720bec7034cf4ba19317a" },
   { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "2b55844be02df209c8f18d7f8434b4a39bebe2621b7720a3e2b725bfdecaee9c" },
   { datei: "zeit.js",                   herkunft: "zeit.js",                 sha: "be43df30dd1a47045094f2a623d2089583c0354c8b58a640370f251d0b600a1a" },
   /* ⚠ NEU AM 2026-09-07. `zusammen()` ist aus `schicht/kosten.mjs` hierher
      umgezogen, weil die Ansicht ein klassisches Skript ist und es nicht
      importieren kann. Dieselbe Bauart wie `zeit.js` — und derselbe Grund:
      was sich nachrechnen laesst, gehoert dorthin, wo es ueberall laeuft. */
-  { datei: "kassen.js",                 herkunft: "kassen.js",               sha: "ca6430ad31457ad901a63fd96950e1c888f0e6ca9608583117139929aeca8af6" },
+  { datei: "kassen.js",                 herkunft: "kassen.js",               sha: "c6caa23ea7c11d4c81955ef8f3348537a2b2cbfd606fd2efa203dbf3da205e29" },
   { datei: "idb.js",                    herkunft: "idb.js",                  sha: "b244ab3f832bb4d4cd5ec87e51de364df5716ee7ca6fc8a2bceeea6b6c9bbd51" },
   { datei: "schluesseltresor.js",       herkunft: "schluesseltresor.js",     sha: "eaed30e8f3921835a3f58b69f89d9b008831f69f164ad1dfec630fa43161f666" },
   { datei: "schicht/konferenz.mjs",     herkunft: "schicht/konferenz.mjs",   sha: "41e2e4f38bc68f380da7e590955715a4b93c431572bfec451b3f7813b0dcaf39" },

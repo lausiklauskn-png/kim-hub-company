@@ -102,6 +102,52 @@
     };
   }
 
-  if (welt) welt.WERKSTATT_KASSEN = { zusammen: zusammen };
+  /**
+   * WAS DAS FAHRTENBUCH ZUSAMMENZAEHLT — drei Zahlen, drei Fragen.
+   *
+   * ⚠ WARUM DAS HIER STEHT (2026-09-07). Die Rechnung lag in `ansicht.js`, und
+   * dort ist sie nur im Browser pruefbar — die Gegenprobe faehrt ohne. Ihr Fall
+   * („Trockenlaeufe zaehlen in die Geldsumme mit — aus einer Uebung wird eine
+   * Rechnung") stand da und meldete IMMER „nicht gefangen", ohne dass etwas
+   * kaputt war. Dieselbe Abhilfe wie bei `zeit.js` und bei `zusammen` daneben.
+   *
+   * Die drei Zahlen sind ausdruecklich NICHT dieselbe:
+   *
+   *   fahrten    ALLE Fahrten. Trockenlaeufe sind Arbeit, auch wenn sie nichts
+   *              kosten — wer sie hier abzoege, verloere die Arbeitszeit.
+   *   echte      was echt gemeint war (`echt`), auch wenn es vor dem ersten
+   *              Aufruf starb.
+   *   bezahlte   was wirklich Geld gekostet hat (`eur > 0`).
+   *
+   * ⚠ UND `eur` WIRD NUR UEBER DIE ECHTEN SUMMIERT. Ein Trockenlauf traegt eine
+   * GERECHNETE Zahl; sie in die Geldsumme zu nehmen machte aus einer Uebung
+   * eine Rechnung. Klaus' Buch zeigte am 2026-09-07 acht Fahrten, „davon 7
+   * bezahlt" — bezahlt hatten drei. Eine zu hohe Zahl in einer Buchhaltung ist
+   * derselbe Fehler wie eine zu niedrige, nur andersherum.
+   */
+  function fahrtSummen(fahrten) {
+    var f = Array.isArray(fahrten) ? fahrten : [];
+    var echte = f.filter(function (x) { return x && x.echt; });
+    var bezahlte = echte.filter(function (x) { return (Number(x.eur) || 0) > 0; });
+    var tage = {};
+    f.forEach(function (x) { if (x && x.tag) tage[x.tag] = true; });
+    return {
+      fahrten: f.length,
+      echte: echte.length,
+      bezahlte: bezahlte.length,
+      /* Gerundet auf Cent, wie ueberall in dieser Datei — Gleitkomma-Summen
+         ueber viele Fahrten laufen sonst in der vierten Stelle auseinander. */
+      eur: Number(echte.reduce(function (a, x) { return a + (Number(x.eur) || 0); }, 0).toFixed(4)),
+      /* Die MINUTEN zaehlen ueber ALLE Fahrten — auch die trockenen.
+         ⚠ `x &&` gehoert HIER genauso hin wie oben: eine unbrauchbare Zeile im
+         Buch warf sonst, und ein Buch mit einer kaputten Zeile ist genau der
+         Fall, fuer den diese Rechnung robust sein muss. Gefunden von der
+         eigenen Probe, beim ersten Lauf. */
+      minuten: f.reduce(function (a, x) { return a + (x ? Number(x.minuten) || 0 : 0); }, 0),
+      tage: Object.keys(tage).length,
+    };
+  }
+
+  if (welt) welt.WERKSTATT_KASSEN = { zusammen: zusammen, fahrtSummen: fahrtSummen };
 })(typeof window !== "undefined" ? window
    : (typeof globalThis !== "undefined" ? globalThis : null));
