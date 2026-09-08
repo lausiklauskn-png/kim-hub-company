@@ -184,6 +184,23 @@ input:focus-visible,textarea:focus-visible{outline:2px solid var(--akzent);outli
   color:var(--leise);border:1px solid var(--kante);border-radius:7px;
   padding:2px 8px;margin:0 5px 5px 0;line-height:1.5}
 .merkmale{margin:6px 0 0;display:flex;flex-wrap:wrap}
+/* ── EINE ZEILE STATT EINES ABSATZES (Klaus 2026-09-08) ──────────────────
+   „in mein Rezeptbuch wäre ich mit einem Klick schon … erledigt, während ich
+   hier erst mal aufklappen muss, dann Text lesen."
+
+   Der Aufbau ist aus Mein Rezeptbuch übernommen — Symbol, Name, darunter
+   Datum und Inhalt, rechts die Knöpfe. Die FARBEN und die KNÖPFE bleiben
+   KHC (`--rand`, `--karte2`, `button.mini`); übernommen ist die Anordnung,
+   nicht das Aussehen. Genau so hat Klaus es verlangt.
+
+   ⚠ `min-width:0` am Textblock ist kein Schönheitsfehler: ohne ihn kann ein
+   flex-Kind nicht unter seine Inhaltsbreite schrumpfen, und ein langer Name
+   schiebt die Knöpfe aus der Karte. Auf 380 px fällt das zuerst auf. */
+.vorrat-zeile{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.vorrat-text{flex:1 1 12rem;min-width:0}
+.vorrat-name{font-weight:600;overflow-wrap:anywhere}
+.vorrat-knoepfe{display:flex;gap:6px;flex:0 0 auto;margin-left:auto}
+.vorrat-knoepfe button.mini{min-width:44px;min-height:44px;padding:4px 8px}
 /* Der lange Text hinter einem Knopf (Klaus 2026-08-20): „die MD-Gesprächstexte
    sollen als Button zu öffnen sein". <details> statt eigener Klick-Logik — der
    Browser bringt Tastatur, Vorlese-Ansage und Aufklappen ohne Skript mit. */
@@ -1466,93 +1483,40 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
            sie gar nicht erst ins Depot zu legen.
              Wohnort  = Browser-Speicher (IndexedDB + persist), wie im
                         Rezeptbuch. Nichts im Depot, kein Passwort im Alltag.
-             Ausgang  = das verschlüsselte Paket. Sicherung, Umzug, Weitergabe.
-           Sein Tresor hat KEINE Verschlüsselung (nachgemessen: null Treffer
-           für crypto.subtle/AES-GCM/PBKDF2) — er schützt gegen Verlust, nicht
-           gegen Mitlesen. Deshalb beides. -->
-      <!-- ══ AUFGERÄUMT AM 2026-09-08 (Klaus) ═══════════════════════════════
+             Ausgang  = das verschlüsselte Paket. Sicherung, Umzug, Weitergabe. -->
+      <!-- ══ FLACH GEBAUT AM 2026-09-08, auf Klaus' Urteil ══════════════════
            „im Prinzip ist der Tresor von KHC der Gleiche wie in Mein
-           Rezeptbuch nur sehr umständlich erklärt und dargestellt/aufgebaut."
+           Rezeptbuch nur sehr umständlich erklärt und dargestellt/aufgebaut …
+           in mein Rezeptbuch wäre ich mit einem Klick schon oder mit höchstens
+           zwei, drei Klicks schon erledigt, während ich hier erst mal
+           aufklappen muss, dann Text lesen."
 
-           ⚠ GEMESSEN, BEVOR GEÄNDERT — und die Zahl im Brief war zu gross.
-           Der Brief nannte „528 Wörter gegen rund 20". Gezählt: 496 Wörter im
-           ganzen Block, aber nur **72 ohne einen Klick** (davon 17 die
-           Beschriftung der Aufklapper). Der Text war also längst gefaltet;
-           eine frühere Sitzung hatte das erledigt.
+           ⚠ ER HAT EINE MESSUNG VON MIR WIDERLEGT. Ich hatte gezählt „nur 70
+           Wörter ohne einen Klick" und daraus geschlossen, das Textproblem sei
+           klein. Das war der RUHEZUSTAND. Er hat den ARBEITSZUSTAND gemessen —
+           und wer etwas tun will, klappt ja auf. Dann waren es 429.
 
-           DAS PROBLEM WAR DER AUFBAU, nicht die Textmenge. Gemessen an der
-           Klick-Tiefe: 📥 Einlesen lag **zwei Aufklapper tief**, und der
-           äussere hiess „Sicherung anlegen" — also war der Weg ZURÜCK unter
-           einer Überschrift abgelegt, die vom ANLEGEN handelt.
+           GEMESSEN an beiden Seiten, vorher:
+             Mein Rezeptbuch   0 Aufklapper ·  0 Absätze ·  ~33 Wörter · 1 Klick
+             KHC               4 Aufklapper · 19 Absätze · 429 Wörter
 
-           Genau dieser Fehler steht seit dem 2026-08-22 in der Verfassung:
-           „EINE RETTUNGSLEINE ALS ‚STATTDESSEN' ZU BESCHRIFTEN IST DER FEHLER
-           HINTER DEM FEHLER … es lag zwei Aufklapper tief." Damals wurde die
-           BESCHRIFTUNG repariert. Die TIEFE nicht — sie stand noch da.
+           WAS ÜBERNOMMEN IST: der Aufbau. Vier Blöcke flach untereinander,
+           jeder mit einer Überschrift; Zusicherungen als Chip statt als
+           Absatz; die Liste als Zeilen mit Knöpfen rechts.
 
-           Die Vorlage macht es anders: Mein Rezeptbuch stellt 📥 Importieren
-           und 📤 Exportieren als **Geschwister-Zeilen** nebeneinander, jede
-           mit einer Zeile Untertitel. Keine steckt in der anderen. Genau so
-           steht es jetzt hier: zwei gleichrangige Aufklapper, einer je
-           Richtung, beide EINEN Klick tief.
+           WAS NICHT ÜBERNOMMEN IST: das Aussehen. Klaus ausdrücklich — „das
+           UI/Button Farbe und Hintergrund sollte auf KHC abgestimmt sein".
+           Farben, Knöpfe und Hintergrund sind unverändert KHC.
 
-           ⚠ KÜRZER HEISST NICHT WENIGER. Jede Zusicherung ist geblieben, nur
-           als Chip statt als Absatz: „keine Dateiliste" · „zusammengeführt /
-           ersetzt" · „Verlorenes Passwort heisst verlorene Datei" · „das
-           Passwort gehört zur Datei, nicht zu dieser Seite". Die Wächter
-           hängen an Marken und losen Ausdrücken, nicht am Wortlaut — deshalb
-           war das Umformulieren überhaupt erlaubt. -->
+           ⚠ DIE ZWEI ERKLÄR-AUFKLAPPER BLEIBEN, und das ist kein Rückfall.
+           Gefaltet gehört, was ERKLÄRT — dafür gibt es einen Wächter, und die
+           Regel ist richtig. Weggefallen sind die BEDIEN-Aufklapper: kein
+           Knopf und kein Feld liegt mehr hinter einem Klick. -->
       <p class="merkmale">
         <span class="merkmal">nicht im Depot</span>
         <span class="merkmal">wohnt in diesem Browser</span>
       </p>
       <p class="leise" id="tresor-wo" data-wo="" data-dauerhaft="">Wird geprüft …</p>
-
-      <h4 style="margin:14px 0 4px">Angelegte Sicherungen</h4>
-      <p class="leise" data-sicherungen-grenze="" style="margin:0 0 6px">Was diese Seite
-        herausgegeben hat — <b>es ist keine Dateiliste</b>, in deinen
-        Download-Ordner kann kein Browser sehen.</p>
-      <div id="tresor-sicherungen" data-sicherungen="0"></div>
-      <p class="leise" id="tresor-sicherung" data-sicherung="">Wird geprüft …</p>
-
-      <!-- ══ DER RÜCKWEG (Klaus 2026-08-22, Befund A) ═══════════════════════
-           ZWEI BROWSER, EIN WOHNORT. DeX-Chrome und Tablet-Chrome sind
-           getrennte Instanzen mit getrenntem Speicher — das steht seit Monaten
-           in `Mein-WorkFloh/CLAUDE.md`, und der Umbau auf IndexedDB hat es
-           nicht bedacht. Im zweiten Browser stand „noch nichts geladen", und
-           danach kam nichts mehr. Ein Zustand, aus dem die Seite keinen Weg
-           zeigt, ist ein toter Knopf ohne Knopf.
-
-           Der Weg zurück ist 📥 Einlesen. Dieser Block holt ihn nach vorn,
-           aber NUR wenn nichts geladen ist: sonst stünde bei jedem Besuch eine
-           Anleitung für einen Fall, der nicht vorliegt.
-
-           EIN Weg, nicht zwei: der Knopf baut keinen zweiten Einlese-Pfad, er
-           klappt den vorhandenen auf und setzt den Finger hinein. Zwei
-           Fassungen desselben Werkzeugs wären eine Drift-Quelle mit Ansage. -->
-      <div id="tresor-rueckweg" data-rueckweg="" hidden
-           style="margin:10px 0 0;padding:10px;border:1px solid var(--rand);border-radius:8px">
-        <p style="margin:0 0 6px"><b>In diesem Browser liegen keine Zahlen.</b>
-          Das heißt nicht, dass sie weg sind.</p>
-        <p class="leise" data-rueckweg-grund="" style="margin:0 0 8px">Der Speicher gehört dem
-          einzelnen Browser. Wer die Zahlen im <b>DeX-Chrome</b> eingelesen hat,
-          findet sie im <b>Tablet-Chrome</b> nicht wieder, und umgekehrt. Nach
-          einem Gerätewechsel ist es dasselbe. Der Weg zurück ist deine
-          verschlüsselte Sicherung: die <code>.enc.json</code> aus dem
-          Download-Ordner einlesen, dann stehen sie auch hier.</p>
-        <button id="tresor-zum-einlesen" type="button">📥 Sicherung einlesen — Weg zeigen</button>
-        <p class="leise" id="tresor-rueckweg-lage" data-rueckweg-lage=""
-           style="margin:6px 0 0"></p>
-      </div>
-      <details class="erklaer" data-erklaer="bh-tresor-preis">
-        <summary>Der Preis des Browser-Speichers, und wie verschlüsselt wird</summary>
-        <p class="leise"><b>Der Preis:</b> dieser Speicher hängt am Browser. Wer
-          die Browserdaten löscht oder das Gerät wechselt, hat die Zahlen
-          verloren — dann ist die verschlüsselte Sicherung der Rückweg, kein
-          Luxus. AES-256-GCM, Schlüssel aus dem Passwort über 600 000
-          PBKDF2-Runden, dasselbe Verfahren wie in BookLedgerPro und
-          Mein-Tresor.</p>
-      </details>
 
       <div id="tresor-auf-block" hidden>
         <div class="pult">
@@ -1567,118 +1531,147 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
         ✓ Aufgeschlossen — nur in diesem Fenster. Das Passwort steht
         <b>nirgends gespeichert</b>; nach dem Neuladen fragt die Seite wieder.</p>
 
-      <!-- ══ RICHTUNG 1 VON 2 · HINAUS ══════════════════════════════════════ -->
-      <details class="erklaer" data-erklaer="tresor-werk">
-        <summary>🔒 Sicherung anlegen · Passwort der Sicherung ändern</summary>
+      <!-- ══ 1 · SICHERN — ein Feld, ein Knopf ═════════════════════════════ -->
+      <h4 style="margin:16px 0 6px">Sichern</h4>
+      <div class="pult">
+        <input id="tresor-name" type="text" placeholder="Name (z. B. vor dem Umbau)"
+               style="flex:1 1 220px">
+        <button id="tresor-sichern" type="button">💾 Sichern</button>
+      </div>
+      <p class="merkmale">
+        <span class="merkmal">bleibt in diesem Browser</span>
+        <span class="merkmal">kein Passwort nötig</span>
+        <span class="merkmal">nimmt, was in den Tabellen steht</span>
+      </p>
+      <p class="leise" id="tresor-vorrat-lage" data-vorrat-lage="" style="margin:6px 0 0"></p>
 
-        <!-- ⚠ BEFUND B (Klaus 2026-08-22): DIE BESCHRIFTUNG LOG.
-             Hier stand „Verschließen · Passwort ändern". Klaus hat es gelesen,
-             wie es dasteht: „Da kann jeder x-beliebige ein neues Passwort
-             anlegen und kann in den Ordner rein." Das klingt nach Kontopasswort
-             und nach Tür, und es ist weder das eine noch das andere.
+      <!-- ══ 2 · DIE LISTE — der Ein-Klick-Rückweg ═════════════════════════
+           Das ist der Unterschied, an dem Klaus' Beschwerde wirklich hing.
+           Vorher hatte KHC nur ein VERZEICHNIS dessen, was heruntergeladen
+           wurde — eine Quittung. Zurückholen hieß: Dateidialog, Passwort,
+           Knopf. Hier steht die Sicherung selbst, und 🔄 holt sie zurück. -->
+      <h4 style="margin:16px 0 6px">Sicherungen in diesem Browser</h4>
+      <div id="tresor-vorrat" data-vorrat="0"></div>
 
-             Was hier wirklich passiert: es entsteht eine SICHERUNGSDATEI, und
-             das Passwort gehört zu dieser Datei. Es verschließt die Seite
-             nicht. Wer am entsperrten Browser sitzt, sieht die Zahlen in der
-             Tabelle darüber, ganz ohne Passwort. -->
-        <p data-passwort-rolle="datei" style="margin:0 0 8px"><b>Das Passwort gehört zur
-          Sicherungsdatei</b>, nicht zu dieser Seite.</p>
-        <details class="erklaer" data-erklaer="bh-tresor-schloss">
-          <summary>Was das Passwort schützt — und was nicht</summary>
-          <p class="leise">Wer an diesem Browser sitzt, sieht die Zahlen in der
-            Tabelle darüber — dafür braucht es kein Passwort. Geschützt ist nur
-            die Datei, die das Gerät verlässt. Ein <b>neues</b> Passwort öffnet
-            also nichts, es legt eine <b>neue Sicherung</b> an; die alte bleibt
-            bei ihrem alten Passwort, bis du sie ersetzt.</p>
-          <p class="leise">Alles passiert <b>in diesem Browser</b>. Keine Datei
-            und kein Passwort gehen ins Netz, und keine Sitzung sieht sie. Ins
-            Depot kommt die <code>.enc.json</code>, die offene <b>nicht</b>.</p>
-        </details>
+      <!-- ══ DER RÜCKWEG (Klaus 2026-08-22, Befund A) ═══════════════════════
+           ZWEI BROWSER, EIN WOHNORT. DeX-Chrome und Tablet-Chrome sind
+           getrennte Instanzen mit getrenntem Speicher. Im zweiten Browser
+           stand „noch nichts geladen", und danach kam nichts mehr. Ein
+           Zustand, aus dem die Seite keinen Weg zeigt, ist ein toter Knopf
+           ohne Knopf. Der Kasten erscheint NUR, wenn nichts geladen ist. -->
+      <div id="tresor-rueckweg" data-rueckweg="" hidden
+           style="margin:10px 0 0;padding:10px;border:1px solid var(--rand);border-radius:8px">
+        <p style="margin:0 0 6px"><b>In diesem Browser liegen keine Zahlen.</b>
+          Das heißt nicht, dass sie weg sind.</p>
+        <p class="leise" data-rueckweg-grund="" style="margin:0 0 8px">Der Speicher gehört dem
+          einzelnen Browser. Wer die Zahlen im <b>DeX-Chrome</b> eingelesen hat,
+          findet sie im <b>Tablet-Chrome</b> nicht wieder, und umgekehrt. Der Weg
+          zurück ist deine verschlüsselte Sicherung: die <code>.enc.json</code> aus
+          dem Download-Ordner einlesen.</p>
+        <button id="tresor-zum-einlesen" type="button">📥 Sicherung einlesen — Weg zeigen</button>
+        <p class="leise" id="tresor-rueckweg-lage" data-rueckweg-lage=""
+           style="margin:6px 0 0"></p>
+      </div>
 
-        <div class="pult">
-          <input id="tresor-neu" type="password" autocomplete="new-password"
-                 placeholder="neues Passwort" style="flex:1 1 200px">
-          <input id="tresor-neu2" type="password" autocomplete="new-password"
-                 placeholder="noch einmal" style="flex:1 1 200px">
-        </div>
-        <div class="pult">
-          <button id="tresor-geladen" type="button">🔒 Verschlüsselte Sicherung ablegen</button>
-          <!-- ⚠ KLAUS' BEFUND: „ich finde keine Möglichkeit, eine bestehende
-               Datei wieder zu entschlüsseln." Er hatte recht — der Tresor war
-               einseitig gebaut: hinein ja, heraus nur auf den Bildschirm. Ein
-               Tresor, aus dem man nichts herausholen kann, ist ein Briefkasten. -->
-          <button id="tresor-klartext" type="button">🔓 Offen herunterladen</button>
-        </div>
-        <p class="merkmale">
-          <span class="merkmal">🔒 verschlossen · in den Download-Ordner</span>
-          <span class="merkmal">🔓 offen · zum Ansehen</span>
-          <span class="merkmal">nimmt, was in den Tabellen steht</span>
-        </p>
-        <p class="leise" id="tresor-werk-lage" data-tresor-werk="" style="margin:6px 0 0"></p>
-        <!-- KEIN ZURÜCKSETZEN. Das ist kein Mangel, es ist der Preis: gäbe es
-             einen Weg an dem Passwort vorbei, gäbe es ihn auch für den, vor dem
-             die Datei geschützt sein soll. Deshalb steht es hier und deshalb
-             wird das neue Passwort zweimal verlangt. -->
-        <p class="merkmale">
-          <span class="merkmal" data-verlust="">⚠ Verlorenes Passwort heißt verlorene Datei — kein Zurücksetzen</span>
-        </p>
-      </details>
-
-      <!-- ══ RICHTUNG 2 VON 2 · HEREIN ══════════════════════════════════════
-           ⚠ DIESER AUFKLAPPER STAND BIS ZUM 2026-09-08 **IM** OBEREN DRIN.
-           Damit lag der Weg zurück zwei Klicks tief und unter der Überschrift
-           „Sicherung anlegen" — die von der anderen Richtung handelt. Jetzt
-           sind es Geschwister, wie 📥 Importieren und 📤 Exportieren im
-           Rezeptbuch: gleichrangig, je EIN Klick.
-
+      <!-- ══ 3 · AUS EINER DATEI EINLESEN ═══════════════════════════════════
            ⚠ BEFUND C (Klaus 2026-08-22): 📥 Einlesen ist kein „stattdessen".
            Es ist der EINZIGE Weg zurück, wenn der Browser-Speicher leer ist.
-           Eine Rettungsleine als Nebenweg zu beschriften war der Grund, warum
-           Befund A überhaupt eine Sackgasse war — und sie tief einzugraben ist
-           dieselbe Sorte Fehler, nur räumlich statt sprachlich. -->
-      <details class="erklaer" data-erklaer="tresor-datei">
-        <summary>📥 Sicherung zurückholen · eine Datei von Hand verschließen</summary>
-        <p class="leise" data-einlesen-wirkung="" style="margin:0 0 6px"><b>📥 Einlesen</b> holt eine
-          gesicherte <code>.enc.json</code> aus dem Download-Ordner zurück in diesen
-          Browser — auch nach einem Gerätewechsel und vom einen Browser in den anderen.
-          <b>Stechuhr-Abschnitte werden zusammengeführt</b>, Belege und Zeiten
-          <b>ersetzt</b>.</p>
-        <div class="pult">
-          <input id="tresor-datei" type="file" accept=".json,application/json" style="flex:1 1 240px">
-        </div>
-        <!-- Erscheint erst, wenn die gewählte Datei schon ein Paket IST —
-             statt jeden zu fragen, der nur einmal verschließen will. -->
-        <div class="pult" id="tresor-alt-block" hidden>
-          <input id="tresor-alt" type="password" autocomplete="off"
-                 placeholder="altes Passwort" style="flex:1 1 200px">
-        </div>
-        <div class="pult">
-          <button id="tresor-einlesen" type="button">📥 In den Browser einlesen</button>
-        </div>
+           Deshalb steht es hier offen und nicht hinter einem Aufklapper. -->
+      <h4 style="margin:16px 0 6px">Aus einer Datei einlesen</h4>
+      <p class="leise" data-einlesen-wirkung="" style="margin:0 0 6px">Holt eine gesicherte
+        <code>.enc.json</code> aus dem Download-Ordner zurück — auch vom anderen
+        Browser oder Gerät. <b>Stechuhr-Abschnitte werden zusammengeführt</b>,
+        Belege und Zeiten <b>ersetzt</b>.</p>
+      <div class="pult">
+        <input id="tresor-datei" type="file" accept=".json,application/json" style="flex:1 1 240px">
+      </div>
+      <!-- Erscheint erst, wenn die gewählte Datei schon ein Paket IST —
+           statt jeden zu fragen, der nur einmal verschließen will. -->
+      <div class="pult" id="tresor-alt-block" hidden>
+        <input id="tresor-alt" type="password" autocomplete="off"
+               placeholder="Passwort der Datei" style="flex:1 1 200px">
+      </div>
+      <div class="pult">
+        <button id="tresor-einlesen" type="button">📥 In den Browser einlesen</button>
+      </div>
 
-        <!-- ⚠ Auf Android versteckt (Befund C). Dieser Knopf nimmt eine Datei
-             AUS DEM ORDNER — auf Klaus' Tablet läge sie in Termux, und dorthin
-             kommt Chrome nicht (NETZWEIT § 6b). Versteckt, nicht entfernt — am
-             Rechner ist das der einzige Weg für eine Datei, die die Seite nicht
-             lädt. Das NEUE Passwort nimmt dieser Weg aus den zwei Feldern im
-             Aufklapper darüber; seit die beiden Geschwister sind, steht das
-             ausdrücklich dabei statt „oben". -->
-        <div id="tresor-machen-block" data-machen="">
-          <div class="pult">
-            <button id="tresor-machen" type="button">🔒 Verschlüsselt ablegen</button>
-          </div>
-          <p class="merkmale">
-            <span class="merkmal">nimmt eine Datei aus dem Ordner</span>
-            <span class="merkmal">ist sie schon ein Paket: wechselt das Passwort</span>
-            <span class="merkmal">neues Passwort aus „🔒 Sicherung anlegen"</span>
-          </p>
+      <!-- ══ 4 · AUS DEM BROWSER HERAUSGEBEN ════════════════════════════════
+           ⚠ BEFUND B (Klaus 2026-08-22): DIE BESCHRIFTUNG LOG. Hier stand
+           „Verschließen · Passwort ändern". Er las, was dastand: „Da kann
+           jeder x-beliebige ein neues Passwort anlegen und kann in den Ordner
+           rein." Es verschlüsselt die SICHERUNGSDATEI; wer am entsperrten
+           Browser sitzt, sieht die Zahlen ohnehin in der Tabelle. -->
+      <h4 style="margin:16px 0 6px">Herausgeben — für Gerätewechsel und Depot</h4>
+      <p data-passwort-rolle="datei" class="leise" style="margin:0 0 6px"><b>Das Passwort gehört zur
+        Sicherungsdatei</b>, nicht zu dieser Seite.</p>
+      <div class="pult">
+        <input id="tresor-neu" type="password" autocomplete="new-password"
+               placeholder="neues Passwort" style="flex:1 1 200px">
+        <input id="tresor-neu2" type="password" autocomplete="new-password"
+               placeholder="noch einmal" style="flex:1 1 200px">
+      </div>
+      <div class="pult">
+        <button id="tresor-geladen" type="button">🔒 Verschlüsselte Sicherung ablegen</button>
+        <!-- ⚠ KLAUS' BEFUND: „ich finde keine Möglichkeit, eine bestehende
+             Datei wieder zu entschlüsseln." Ein Tresor, aus dem man nichts
+             herausholen kann, ist ein Briefkasten. -->
+        <button id="tresor-klartext" type="button">🔓 Offen herunterladen</button>
+      </div>
+      <p class="merkmale">
+        <span class="merkmal">🔒 verschlossen · in den Download-Ordner</span>
+        <span class="merkmal">🔓 offen · zum Ansehen</span>
+        <span class="merkmal" data-verlust="">⚠ Verlorenes Passwort heißt verlorene Datei — kein Zurücksetzen</span>
+      </p>
+
+      <!-- ⚠ Auf Android versteckt (Befund C). Dieser Knopf nimmt eine Datei
+           AUS DEM ORDNER — auf Klaus' Tablet läge sie in Termux, und dorthin
+           kommt Chrome nicht (NETZWEIT § 6b). Versteckt, nicht entfernt — am
+           Rechner ist das der einzige Weg für eine Datei, die die Seite nicht
+           lädt. Das NEUE Passwort nimmt er aus den zwei Feldern darüber. -->
+      <div id="tresor-machen-block" data-machen="">
+        <div class="pult">
+          <button id="tresor-machen" type="button">🔒 Gewählte Datei verschließen</button>
         </div>
-        <p class="leise" id="tresor-machen-hinweis" hidden style="margin:6px 0 0">
-          „🔒 Verschlüsselt ablegen" ist hier ausgeblendet: es nimmt eine Datei
-          aus einem Ordner, und auf Android kommt Chrome an Termux' Ordner
-          nicht heran. Nimm dafür in <b>🔒 Sicherung anlegen</b> den Knopf
-          <b>🔒 Verschlüsselte Sicherung ablegen</b> — der arbeitet mit den
-          Zahlen, die diese Seite schon geladen hat.</p>
+        <p class="merkmale">
+          <span class="merkmal">nimmt die oben gewählte Datei</span>
+          <span class="merkmal">ist sie schon ein Paket: wechselt das Passwort</span>
+        </p>
+      </div>
+      <p class="leise" id="tresor-machen-hinweis" hidden style="margin:6px 0 0">
+        „🔒 Gewählte Datei verschließen" ist hier ausgeblendet: es nimmt eine
+        Datei aus einem Ordner, und auf Android kommt Chrome an Termux' Ordner
+        nicht heran. Nimm dafür <b>🔒 Verschlüsselte Sicherung ablegen</b> — der
+        arbeitet mit den Zahlen, die diese Seite schon geladen hat.</p>
+      <p class="leise" id="tresor-werk-lage" data-tresor-werk="" style="margin:6px 0 0"></p>
+
+      <!-- ══ 5 · WAS HERAUSGEGEBEN WURDE ════════════════════════════════════ -->
+      <h4 style="margin:16px 0 6px">Herausgegebene Dateien</h4>
+      <p class="leise" data-sicherungen-grenze="" style="margin:0 0 6px">Was diese Seite
+        herausgegeben hat — <b>es ist keine Dateiliste</b>, in deinen
+        Download-Ordner kann kein Browser sehen.</p>
+      <div id="tresor-sicherungen" data-sicherungen="0"></div>
+      <p class="leise" id="tresor-sicherung" data-sicherung="">Wird geprüft …</p>
+
+      <details class="erklaer" data-erklaer="bh-tresor-preis">
+        <summary>Der Preis des Browser-Speichers, und wie verschlüsselt wird</summary>
+        <p class="leise"><b>Der Preis:</b> dieser Speicher hängt am Browser. Wer
+          die Browserdaten löscht oder das Gerät wechselt, hat die Zahlen
+          verloren — <b>und die Sicherungen in der Liste gleich mit</b>, denn sie
+          liegen im selben Speicher. Dagegen hilft nur die verschlüsselte Datei
+          im Download-Ordner. AES-256-GCM, Schlüssel aus dem Passwort über
+          600 000 PBKDF2-Runden, dasselbe Verfahren wie in BookLedgerPro und
+          Mein-Tresor.</p>
+      </details>
+      <details class="erklaer" data-erklaer="bh-tresor-schloss">
+        <summary>Was das Passwort schützt — und was nicht</summary>
+        <p class="leise">Wer an diesem Browser sitzt, sieht die Zahlen in der
+          Tabelle darüber — dafür braucht es kein Passwort. Geschützt ist nur
+          die Datei, die das Gerät verlässt. Ein <b>neues</b> Passwort öffnet
+          also nichts, es legt eine <b>neue Sicherung</b> an; die alte bleibt
+          bei ihrem alten Passwort, bis du sie ersetzt.</p>
+        <p class="leise">Alles passiert <b>in diesem Browser</b>. Keine Datei
+          und kein Passwort gehen ins Netz, und keine Sitzung sieht sie. Ins
+          Depot kommt die <code>.enc.json</code>, die offene <b>nicht</b>.</p>
       </details>
     </div>
 

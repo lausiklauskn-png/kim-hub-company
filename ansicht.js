@@ -4464,27 +4464,28 @@
         lage.textContent = t;
         lage.setAttribute("data-rueckweg-lage", m);
       };
-      var datei = document.querySelector('details[data-erklaer="tresor-datei"]');
       var feld = $("#tresor-datei");
-      if (!datei || !feld) {
+      if (!feld) {
         sag("Der Einlese-Weg ist auf dieser Seite nicht zu finden.", "fehlt");
         return;
       }
-      /* ⚠ SEIT DEM 2026-09-08 REICHT EINER. Bis dahin steckte „tresor-datei"
-         IN „tresor-werk", also musste der Knopf BEIDE aufklappen, sonst blieb
-         das Feld verborgen. Jetzt sind es Geschwister — „tresor-werk" ist die
-         andere Richtung (anlegen), und sie hier mit aufzureissen waere Laerm
-         vor jemandem, der zurueckholen will.
-         Die Zusicherung hat sich damit geaendert, nicht nur der Code: gemessen
-         wird nicht mehr „beide sind offen", sondern das, worauf es ankommt —
-         das Feld steht wirklich da. Ein Waechter, der aus einem nicht mehr
-         gueltigen Grund gruen bleibt, misst die Sabotage und nicht die Sache. */
-      datei.open = true;
-      /* Erst nach dem Aufklappen hat das Feld eine Lage — vorher zeigte
-         scrollIntoView auf ein Element ohne Höhe. */
+      /*
+       * ⚠ SEIT DEM 2026-09-08 IST NICHTS MEHR AUFZUKLAPPEN — und das ist der
+       * eigentliche Fortschritt, nicht eine vereinfachte Zeile.
+       *
+       * Bis heute morgen steckte „tresor-datei" IN „tresor-werk": der Knopf
+       * musste ZWEI Aufklapper aufreissen, sonst blieb das Feld verborgen.
+       * Mittags waren es Geschwister, also einer. Seit Klaus' Urteil am Abend
+       * („dann muss ich erst mal aufklappen, dann Text lesen") gibt es die
+       * Bedien-Aufklapper gar nicht mehr — das Feld steht immer da.
+       *
+       * Der Knopf bleibt trotzdem, und er ist kein Rest: er FUEHRT hin
+       * (scrollen + Finger hineinsetzen) und er ANTWORTET. Auf einer langen
+       * Karte ist „wo ist das nochmal" die eigentliche Frage.
+       */
       if (feld.scrollIntoView) feld.scrollIntoView({ block: "center" });
       try { feld.focus(); } catch (e) { /* ohne Tastatur nicht schlimm */ }
-      sag("Aufgeklappt. Wähle unten deine Sicherung (.enc.json aus dem"
+      sag("Hier ist der Weg: wähle deine Sicherung (.enc.json aus dem"
         + " Download-Ordner), gib ihr Passwort ein und drücke 📥.", "gezeigt");
     });
 
@@ -4619,6 +4620,265 @@
       }).catch(function () { /* fail-soft: eine Liste ist kein Grund, den Weg zu blockieren */ });
     }
 
+    /*
+     * ══ EINE STELLE, AN DER EINE SICHERUNG ANKOMMT ══════════════════════════
+     *
+     * Herausgezogen am 2026-09-08 aus dem Einlese-Knopf, weil das ZURUECKHOLEN
+     * aus dem Vorrat dieselbe Arbeit tut. Zwei Fassungen davon waeren eine
+     * Drift-Quelle mit Ansage: die eine wuerde die Stechuhr zusammenfuehren,
+     * die andere sie irgendwann ersetzen, und niemand saehe es, bis jemand
+     * seine Zeiten verliert.
+     *
+     * ⚠ ANGEWENDET WIRD NACH INHALT, NICHT NACH DATEINAMEN. Wer eine Sicherung
+     * umbenennt, soll sie trotzdem einlesen koennen — und ein Vorrats-Eintrag
+     * hat gar keinen Dateinamen.
+     */
+    function tresorWohin(o) {
+      if (o && o.belege) return "belege";
+      if (o && o.tage) return "zeiten";
+      if (o && Array.isArray(o.stechuhr)) return "stechuhr";
+      return null;
+    }
+
+    function tresorAnwenden(o) {
+      var ziel = tresorWohin(o);
+      if (!ziel) return Promise.reject(new Error("unbekannt"));
+      /*
+       * ⚠ ZUSAMMENGEFUEHRT, NICHT ERSETZT — und deshalb ein eigener Zweig.
+       * Die Stechuhr wohnt im localStorage, nicht in IndexedDB, und ein
+       * Import, der ersetzt, loescht den Bestand des Ziel-Browsers still.
+       * Genau darum geht es bei Klaus: zwei Browser, zwei Zeitbestaende.
+       */
+      if (ziel === "stechuhr") {
+        var zus = zeitApi().stechuhrZusammenfuehren(uhrAbschnitte(), o.stechuhr);
+        schreib("stechuhr", zus.liste);
+        uhrZeichnen(); zeichneProtokoll(); tresorZeichnen();
+        return Promise.resolve("Stechuhr eingelesen — " + zus.dazu + " Abschnitt(e) dazu"
+          + (zus.schonDa ? ", " + zus.schonDa + " waren schon da" : "")
+          + ". Deine hiesigen Zeilen bleiben; zusammengefuehrt wird ueber den"
+          + " Beginn, dieselbe Zeile kommt also nur einmal an.");
+      }
+      return idbSchreib(BH_SCHLUESSEL[ziel], JSON.stringify(o))
+        .then(speicherDauerhaft).then(function () {
+          daten[ziel] = o; delete verschlossen[ziel]; woher[ziel] = "eingelesen";
+          neuAufbauen(); tresorZeichnen();
+          return ziel + " eingelesen — die Zahlen stehen jetzt in diesem"
+            + " Browser und ersetzen, was vorher da war.";
+        });
+    }
+
+    /*
+     * ══ DER VORRAT — SICHERUNGEN IM BROWSER (Klaus 2026-09-08) ══════════════
+     *
+     * „im Prinzip ist der Tresor von KHC der Gleiche wie in Mein Rezeptbuch nur
+     * sehr umstaendlich … in mein Rezeptbuch waere ich mit einem Klick schon
+     * oder mit hoechstens zwei, drei Klicks schon erledigt."
+     *
+     * Er hatte recht, und der Grund lag tiefer als die Optik. GEMESSEN an
+     * beiden Seiten:
+     *
+     *   Mein Rezeptbuch  0 Aufklapper ·  0 Absaetze ·  ~33 Woerter · 1 Klick
+     *   KHC (vorher)     4 Aufklapper · 19 Absaetze · 429 Woerter · Aufklapper
+     *                                                   + Dateidialog + Passwort
+     *
+     * Der Unterschied war NICHT nur Text. Im Rezeptbuch ist jede Zeile eine
+     * echte Sicherung IM BROWSER — 🔄 druecken, und sie ist zurueck. In KHC war
+     * die Liste nur ein BELEG darueber, dass etwas heruntergeladen wurde; die
+     * Datei lag im Download-Ordner. Das Rezeptbuch hat die Sicherung, KHC hatte
+     * eine Quittung.
+     *
+     * ⚠ WAS BEWUSST NICHT MITKOPIERT WIRD: der Rezeptbuch-Tresor ist NICHT
+     * verschluesselt (nachgemessen, steht so in der Verfassung — er schuetzt
+     * gegen VERLUST, nicht gegen MITLESEN). Hier liegen Klaus' Rechnungsdaten.
+     * Der Vorrat ist deshalb der bequeme Weg INNERHALB eines Browsers; der Weg
+     * nach DRAUSSEN bleibt die verschluesselte Datei. Zwei Dinge, zwei
+     * Aufgaben — dieselbe Trennung wie seit dem 2026-08-22.
+     *
+     * ⚠ UND DER VORRAT IST KEIN SCHUTZ GEGEN GERAETEVERLUST. Er liegt im
+     * selben Browser wie die Zahlen: wer die Browserdaten loescht, verliert
+     * beide. Das steht auf der Karte, nicht nur hier.
+     */
+    /*
+     * ══ DER VORRAT ALS LISTE — nach dem Muster von Mein Rezeptbuch ══════════
+     *
+     * Eine Zeile, drei Knoepfe: 🔄 zurueckholen · 📤 verschlossen herunterladen ·
+     * 🗑 loeschen. Genau die drei, die dort seit langem erprobt sind.
+     *
+     * ⚠ DIE KNOEPFE TRAGEN KHC-STIL, NICHT REZEPTBUCH-STIL (Klaus 2026-09-08:
+     * „das UI/Button Farbe und Hintergrund sollte auf KHC abgestimmt sein").
+     * Uebernommen ist der AUFBAU, nicht das Aussehen: `.sich-zeile` und
+     * `button.mini` gab es hier schon, beide an KHCs Farbtoken.
+     *
+     * ⚠ UND JEDER KNOPF TRAEGT EIN `title`. Ein Symbol ohne Wort ist ein Raten-
+     * spiel — im Rezeptbuch steht dort dieselbe Erklaerung, nur als Tooltip
+     * statt als Absatz. Das ist der ganze Trick, mit dem es ohne Flietext
+     * auskommt.
+     */
+    function zeichneVorrat(liste) {
+      var z = $("#tresor-vorrat");
+      if (!z) return;
+      var l = Array.isArray(liste) ? liste : [];
+      leer(z);
+      z.setAttribute("data-vorrat", String(l.length));
+      if (!l.length) {
+        z.appendChild(el("p", "leise fehlt",
+          "Noch keine Sicherung im Browser. Der Knopf darüber legt eine an —"
+          + " danach steht sie hier und ein Druck auf 🔄 holt sie zurück."));
+        return;
+      }
+      l.forEach(function (e) {
+        var r = el("div", "sich-zeile vorrat-zeile");
+        r.setAttribute("data-vorrat-id", e.id);
+        var d = new Date(e.wann);
+        var wann = isNaN(d.getTime()) ? "?" : d.toLocaleString("de-DE",
+          { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+        var links = el("div", "vorrat-text");
+        links.appendChild(el("div", "vorrat-name",
+          (e.art === "auto" ? "🕐 " : "📌 ") + (e.name || (e.art === "auto" ? "Automatisch" : "Ohne Namen"))));
+        links.appendChild(el("div", "leise", wann + (e.inhalt ? "  ·  " + e.inhalt : "")));
+        r.appendChild(links);
+
+        var knoepfe = el("div", "vorrat-knoepfe");
+        var mach = function (zeichen, titel, tun) {
+          var b = el("button", "mini", zeichen);
+          b.type = "button";
+          b.title = titel;
+          b.setAttribute("aria-label", titel);
+          b.addEventListener("click", tun);
+          knoepfe.appendChild(b);
+          return b;
+        };
+        mach("🔄", "Diese Sicherung zurückholen", function () {
+          vorratSagen("Wird zurückgeholt …", "rechnet");
+          vorratZurueckholen(e.id).then(function (berichte) {
+            vorratSagen("Zurückgeholt: " + berichte.join(" ")
+              + " Dein Stand von eben liegt als „vor dem Zurückholen“ in der Liste.",
+              "zurueckgeholt");
+          }).catch(function (f) {
+            vorratSagen(String(f && f.message) === "weg"
+              ? "Diese Sicherung gibt es nicht mehr."
+              : "Ging nicht: " + String(f && f.message), "fehler");
+          });
+        });
+        /*
+         * ⚠ HERUNTERGELADEN WIRD VERSCHLOSSEN, und das braucht ein Passwort.
+         * Ein Knopf, der die Zahlen offen in den Download-Ordner legt, waere
+         * genau der Fehler vom 2026-08-22 — ein Tresor, neben dem der Klartext
+         * liegt, ist eine Anzeige und kein Schutz.
+         */
+        mach("📤", "Verschlossen in den Download-Ordner legen", function () {
+          var neu = tresorNeuePasswoerter(vorratSagen);
+          if (!neu) return;
+          vorratSagen("Wird verschlossen — 600 000 Runden, das dauert einen Moment.", "rechnet");
+          var jetzt = new Date();
+          Promise.all((e.teile || []).map(function (paar) {
+            return tresorZu(neu, JSON.stringify(paar[1])).then(function (paket) {
+              return [zeitApi().dateiName(paar[0], "enc.json", jetzt), paket];
+            });
+          })).then(function (fertig) {
+            fertig.forEach(function (x) { tresorAblegen(x[0], x[1]); });
+            vorratSagen(fertig.length + " Datei(en) heruntergeladen, verschlossen.", "fertig");
+            $("#tresor-neu").value = ""; $("#tresor-neu2").value = "";
+          }).catch(function (f) { vorratSagen("Ging nicht: " + String(f && f.message), "fehler"); });
+        });
+        mach("🗑", "Diese Sicherung aus dem Browser löschen", function () {
+          vorratLoeschen(e.id).then(function () {
+            vorratSagen("Gelöscht. Eine heruntergeladene Datei ist davon nicht betroffen.",
+              "geloescht");
+          });
+        });
+        r.appendChild(knoepfe);
+        z.appendChild(r);
+      });
+    }
+
+    function vorratSagen(text, marke) {
+      var n = $("#tresor-vorrat-lage");
+      if (!n) return;
+      n.textContent = text;
+      n.setAttribute("data-vorrat-lage", marke || "");
+    }
+
+    var BH_VORRAT = "bh_vorrat";
+    var VORRAT_HAND_MAX = 12;
+    var VORRAT_AUTO_MAX = 5;
+
+    function vorratLesen() {
+      return idbLies(BH_VORRAT).then(function (v) {
+        return Array.isArray(v) ? v : [];
+      }).catch(function () { return []; });
+    }
+
+    /*
+     * ⚠ GEKUERZT WIRD JE SORTE, NICHT UEBER DEN HAUFEN. Ein gemeinsamer Deckel
+     * haette die von Hand benannten Sicherungen weggeworfen, sobald genug
+     * automatische dazukamen — und die von Hand angelegte ist die, die jemand
+     * bewusst wollte. Dieselbe Trennung wie im Rezeptbuch (dort „Eigene
+     * Backups" und „Automatische Backups (letzte 5)").
+     */
+    function vorratKuerzen(liste) {
+      var hand = [], auto = [];
+      liste.forEach(function (e) { (e.art === "auto" ? auto : hand).push(e); });
+      return hand.slice(0, VORRAT_HAND_MAX).concat(auto.slice(0, VORRAT_AUTO_MAX));
+    }
+
+    function vorratSchreiben(liste) {
+      var g = vorratKuerzen(liste);
+      return idbSchreib(BH_VORRAT, g).then(speicherDauerhaft)
+        .then(function () { zeichneVorrat(g); return g; });
+    }
+
+    /*
+     * Eine Sicherung ist genau das, was auch in die DATEI ginge — dieselbe
+     * Quelle (`tresorWasAblegen`). Zwei Listen, die beide behaupten „das ist
+     * deine Sicherung", liefen auseinander, und dann enthielte die Datei
+     * etwas anderes als die Zeile darueber.
+     */
+    function vorratAnlegen(name, art) {
+      var teile = tresorWasAblegen();
+      if (!teile.length) return Promise.resolve(null);
+      var eintrag = {
+        id: "v" + Date.now() + "-" + Math.random().toString(36).slice(2, 8),
+        wann: new Date().toISOString(),
+        name: name || "",
+        art: art === "auto" ? "auto" : "hand",
+        inhalt: teile.map(function (x) { return zeitApi().paketInhalt(x[0], x[1]); })
+          .filter(Boolean).join(" · "),
+        teile: teile
+      };
+      return vorratLesen().then(function (liste) {
+        return vorratSchreiben([eintrag].concat(liste));
+      }).then(function () { return eintrag; });
+    }
+
+    /*
+     * ⚠ ZURUECKHOLEN LEGT VORHER EINEN STAND AN. Ohne das waere ein Fehlgriff
+     * endgueltig: wer die falsche Zeile trifft, hat seinen jetzigen Stand
+     * ersetzt und keinen Weg zurueck. Ein Ruecksprung, der selbst keinen
+     * Ruecksprung hat, ist eine Falle mit Knopf.
+     */
+    function vorratZurueckholen(id) {
+      return vorratLesen().then(function (liste) {
+        var e = null;
+        liste.forEach(function (x) { if (x.id === id) e = x; });
+        if (!e) throw new Error("weg");
+        return vorratAnlegen("vor dem Zurückholen", "auto").then(function () {
+          var berichte = [];
+          return (e.teile || []).reduce(function (kette, paar) {
+            return kette.then(function () {
+              return tresorAnwenden(paar[1]).then(function (b) { berichte.push(b); });
+            });
+          }, Promise.resolve()).then(function () { return berichte; });
+        });
+      });
+    }
+
+    function vorratLoeschen(id) {
+      return vorratLesen().then(function (liste) {
+        return vorratSchreiben(liste.filter(function (x) { return x.id !== id; }));
+      });
+    }
+
     function tresorAblegen(name, paket) {
       var a = el("a");
       a.href = URL.createObjectURL(new Blob([JSON.stringify(paket, null, 2)],
@@ -4658,6 +4918,40 @@
      * auch der entschluesselte Stand da — deshalb erledigt derselbe Knopf das
      * erste Verschluessen UND den Passwortwechsel.
      */
+    /*
+     * ══ SICHERN — EIN FELD, EIN KNOPF (Klaus 2026-09-08) ════════════════════
+     * Genau die Bedienung aus Mein Rezeptbuch: Name eintippen (darf leer
+     * bleiben), 💾 druecken, fertig. KEIN Passwort, KEIN Dateidialog — die
+     * Sicherung bleibt im Browser. Wer sie aus dem Browser heraus haben will,
+     * nimmt 📤 in ihrer Zeile, und DANN kommt das Passwort.
+     */
+    var tSichern = $("#tresor-sichern");
+    if (tSichern) tSichern.addEventListener("click", function () {
+      var feld = $("#tresor-name");
+      var name = feld ? feld.value.trim() : "";
+      vorratSagen("Wird gesichert …", "rechnet");
+      vorratAnlegen(name, "hand").then(function (e) {
+        if (!e) {
+          /* ⚠ EIN KNOPF, DER SCHWEIGT, IST DERSELBE STILLE FEHLSCHLAG wie
+             anderswo in dieser Datei. Es gibt einen Fall, in dem nichts
+             entsteht: es liegen gar keine Zahlen vor. Dann steht das da. */
+          vorratSagen("Nichts zu sichern — in diesem Browser stehen keine Zahlen."
+            + " Lies zuerst eine Sicherung ein oder lade einen Lauf.", "leer");
+          return;
+        }
+        if (feld) feld.value = "";
+        vorratSagen("Gesichert" + (e.inhalt ? " — " + e.inhalt : "")
+          + ". Sie steht jetzt in der Liste; 🔄 holt sie zurück.", "gesichert");
+      }).catch(function (f) {
+        vorratSagen("Ging nicht: " + String(f && f.message), "fehler");
+      });
+    });
+
+    /* Die Liste ueberlebt das Neuladen — sie liegt neben den Zahlen im
+       Browser-Speicher. Ohne diese Zeile stuende sie bei jedem Besuch leer da,
+       und genau dann braucht man sie. */
+    vorratLesen().then(zeichneVorrat);
+
     var tGeladen = $("#tresor-geladen");
     if (tGeladen) tGeladen.addEventListener("click", function () {
       var neu = tresorNeuePasswoerter(tresorSagen);
@@ -4794,31 +5088,9 @@
         if (!alt) throw new Error("alt-fehlt");
         return tresorAuf(alt, o).then(function (t) { return JSON.parse(t); });
       }).then(function (o) {
-        var ziel = wohin(o);
-        if (!ziel) throw new Error("unbekannt");
-        /*
-         * ⚠ ZUSAMMENGEFUEHRT, NICHT ERSETZT — und deshalb ein eigener Zweig.
-         * Die Stechuhr wohnt im localStorage, nicht in IndexedDB, und ein
-         * Import, der ersetzt, loescht den Bestand des Ziel-Browsers still.
-         * Genau darum geht es bei Klaus: zwei Browser, zwei Zeitbestaende.
-         */
-        if (ziel === "stechuhr") {
-          var zus = zeitApi().stechuhrZusammenfuehren(uhrAbschnitte(), o.stechuhr);
-          schreib("stechuhr", zus.liste);
-          uhrZeichnen(); zeichneProtokoll(); tresorZeichnen();
-          tresorSagen("Stechuhr eingelesen — " + zus.dazu + " Abschnitt(e) dazu"
-            + (zus.schonDa ? ", " + zus.schonDa + " waren schon da" : "")
-            + ". Deine hiesigen Zeilen bleiben; zusammengefuehrt wird ueber den"
-            + " Beginn, dieselbe Zeile kommt also nur einmal an.", "eingelesen");
-          return;
-        }
-        return idbSchreib(BH_SCHLUESSEL[ziel], JSON.stringify(o))
-          .then(speicherDauerhaft).then(function () {
-            daten[ziel] = o; delete verschlossen[ziel]; woher[ziel] = "eingelesen";
-            neuAufbauen(); tresorZeichnen();
-            tresorSagen(ziel + " eingelesen — die Zahlen stehen jetzt in diesem"
-              + " Browser und ersetzen, was vorher da war.", "eingelesen");
-          });
+        return tresorAnwenden(o).then(function (bericht) {
+          tresorSagen(bericht, "eingelesen");
+        });
       }).catch(function (fehler) {
         var grund = String(fehler && fehler.message);
         tresorSagen(
