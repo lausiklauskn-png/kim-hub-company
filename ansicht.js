@@ -4662,6 +4662,79 @@
     });
 
     /*
+     * ══ ENTER BESTÄTIGT (Klaus 2026-09-08 spät) ═══════════════════════════
+     * „Wenn ich Chefcode eingebe, per Enter der Chefcode gespeichert werden.
+     *  Wenn ich erst auf Zahlen zeigen klicken muss, es ist üblich nicht so.
+     *  Ich gebe die Zahlen ein und dann klick ich auf Enter."
+     *
+     * ⚠ DIE ZUORDNUNG STEHT IN EINER TABELLE, NICHT IN SECHS ZEILEN. Sechs
+     * einzeln gebundene Felder waeren sechs Stellen, an denen ein Feld an den
+     * FALSCHEN Knopf geraten kann — und ein Waechter muesste sie einzeln
+     * kennen. So misst er die Tabelle: jedes Feld genau seinen Knopf.
+     *
+     * ⚠ KEIN <form>. Die Felder stehen in keinem, und wer eines ergaenzte,
+     * laedt beim Enter die Seite neu und verliert den Zustand. `preventDefault`
+     * haelt ausserdem den Browser davon ab, die Eingabe sonstwie zu deuten.
+     *
+     * ⚠ UND ES IST DERSELBE WEG WIE DER KNOPF, kein zweiter. Enter ruft
+     * `click()` auf dem Knopf — nicht die Funktion dahinter. Zwei Wege in
+     * dieselbe Handlung laufen auseinander, sobald einer von beiden gepflegt
+     * wird; hier gibt es nur einen, und der Knopf ist er.
+     */
+    var ENTER_PAARE = [
+      ["#chef-code",     "#chef-auf"],       /* Zahlen zeigen */
+      ["#chef-neu",      "#chef-setzen"],    /* Code setzen */
+      ["#chef-neu2",     "#chef-setzen"],
+      ["#chef-alt",      "#chef-wechseln"],  /* Code wechseln */
+      ["#chef-wechsel",  "#chef-wechseln"],
+      ["#chef-wechsel2", "#chef-wechseln"]
+    ];
+    ENTER_PAARE.forEach(function (paar) {
+      var feld = $(paar[0]), knopf = $(paar[1]);
+      if (!feld || !knopf) return;
+      feld.setAttribute("data-enter-knopf", paar[1]);
+      feld.addEventListener("keydown", function (ev) {
+        if (ev.key !== "Enter") return;
+        ev.preventDefault();
+        knopf.click();
+      });
+    });
+
+    /*
+     * ══ DIE KARTEN DER BUCHHALTUNG GEHEN ZU (Klaus 2026-09-08 spät) ════════
+     * „Es nimmt so viel Platz weg beim Scrollen … eigentlich soll jeder
+     *  Container auch Tresor durch einen Button erst geöffnet werden, das
+     *  minimiert den Platz. und jeder kann selber entscheiden, was er sehen
+     *  will."
+     *
+     * Das Auf und Zu macht der Browser (`<details>`); hier wird nur GEMERKT,
+     * was der Nutzer gewählt hat. Sein Grund ist das Scrollen, und das kommt
+     * jeden Besuch wieder — ein Zustand, der jedes Mal von vorn anfängt, löst
+     * sein Problem genau einmal.
+     *
+     * ⚠ FEHLT DER EINTRAG, GILT ZU. Im privaten Fenster gibt `lies` die
+     * Vorgabe zurück, und die ist hier `false`. Das ist die Absicht: Klaus
+     * bittet um weniger Platz, also ist ZU der Anfangszustand — nicht der
+     * zuletzt zufällig gesehene.
+     *
+     * ⚠ UND ES WIRD NICHTS AUTOMATISCH ZUGEKLAPPT. Wer gerade einen Code
+     * gesetzt hat, will die Bestätigung lesen (`chefSetzen` sagt das an der
+     * Stelle selbst ausdrücklich). Eine Karte, die sich nach dem Enter von
+     * selbst schliesst, nähme ihm genau diese Antwort weg.
+     */
+    function faltEinrichten() {
+      var karten = document.querySelectorAll("details.falt[data-karte]");
+      Array.prototype.forEach.call(karten, function (d) {
+        var name = d.getAttribute("data-karte");
+        d.open = lies("falt_" + name, false) === true;
+        d.addEventListener("toggle", function () {
+          schreib("falt_" + name, d.open === true);
+        });
+      });
+    }
+    faltEinrichten();
+
+    /*
      * ── DER RÜCKWEG AUS DEM LEEREN BROWSER (Klaus 2026-08-22, Befund A) ──
      *
      * ⚠ EIN WEG, NICHT ZWEI. Dieser Knopf baut KEINEN zweiten Einlese-Pfad —

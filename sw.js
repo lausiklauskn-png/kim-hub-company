@@ -25,7 +25,7 @@
    nur noch die eigenen Vorräte weg. Ohne den Bump lieferte der Worker die
    alte `ansicht.js` weiter — und die löscht jeden Vorrat des Ursprungs,
    also auch den der Werkstatt und der dreissig Geschwister-Apps. */
-var CACHE_VERSION = "kim-hub-company-v45";
+var CACHE_VERSION = "kim-hub-company-v46";
 
 /* ⚠ NUR EIGENE VORRAETE AUFRAEUMEN — `caches` gehoert dem URSPRUNG, nicht dem
  * Pfad. Auf lausiklauskn-png.github.io liegen rund zwanzig Apps; ein Filter,
