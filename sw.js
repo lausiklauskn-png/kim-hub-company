@@ -20,7 +20,12 @@
  * die der Drift-Guard NICHT pinnt. Und er heisst `sw.js`, weil `ansicht.js`
  * genau diesen Namen registriert: eine Naht weniger.
  */
-var CACHE_VERSION = "kim-hub-company-v43";
+/* ⚠ v43 → v44 am 2026-09-08: `index.html` trägt jetzt die Wirt-Marke
+   `SBKIM_VORRAT_PRAEFIX = "kim-hub-company-"`, und `ansicht.js` räumt danach
+   nur noch die eigenen Vorräte weg. Ohne den Bump lieferte der Worker die
+   alte `ansicht.js` weiter — und die löscht jeden Vorrat des Ursprungs,
+   also auch den der Werkstatt und der dreissig Geschwister-Apps. */
+var CACHE_VERSION = "kim-hub-company-v44";
 
 /* ⚠ NUR EIGENE VORRAETE AUFRAEUMEN — `caches` gehoert dem URSPRUNG, nicht dem
  * Pfad. Auf lausiklauskn-png.github.io liegen rund zwanzig Apps; ein Filter,
