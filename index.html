@@ -829,21 +829,43 @@ footer{padding:18px 16px 40px;color:var(--leise);font-size:.87rem}
     </div>
     <p class="leise" id="schluessel-sagt" data-sagt="" role="status" aria-live="polite"></p>
 
+    <!-- ⚠ UMGESCHRIEBEN AM 2026-09-08, auf Klaus' Befund am eigenen Gerät:
+         „Schon wenn ich lese ‚Das offizielle SDK sperrt den Browser', da
+         bekomme ich die Krise und würde nichts mehr in der App anklicken,
+         wenn ich das Programm nicht kenne." Und: „der zusammenhang erschließt
+         sich einem fremden nicht."
+
+         Er hat recht, und zwar fuer die HAELFTE. Der Block tat zweierlei:
+         er ERKLAERTE eine SDK-Warnung (Betreiber-Schluessel im ausgelieferten
+         Code) und er BENANNTE eine offene Flanke. Das Erste beantwortete eine
+         Frage, die WIR beim Bauen hatten — der Nutzer hat sie nicht, und sie
+         steht ausgerechnet neben dem Feld, in das er seinen Schluessel tippen
+         soll. Ein Warnvokabular ohne Handlung ist an dieser Stelle kein
+         Hinweis, sondern ein Schreck.
+
+         Das Zweite bleibt: eine benannte Luecke ist Arbeit, eine verschwiegene
+         ist Schaden. Gesagt wird jetzt dasselbe ohne SDK, ohne Betreiber-
+         Exkurs und in der Reihenfolge, in der ein Mensch fragt: erst was mit
+         MEINEM Schluessel ist, dann was offen bleibt.
+
+         Der Volltext mit den Fundstellen steht unveraendert in
+         docs/BYOK_BEDINGUNGEN.md — nichts geht verloren, es steht nur nicht
+         mehr da, wo es niemandem hilft. -->
     <details class="erklaer" data-erklaer="bedingungen">
-      <summary>Was wir über die Bedingungen wissen — und was nicht</summary>
+      <summary>Darf man das? — was geklärt ist und was nicht</summary>
       <div class="leise" data-flanke>
-        <p>Das offizielle SDK sperrt den Browser, bis man es ausdrücklich
-          freigibt. Die Warnung dazu handelt durchgehend von <i>deinen</i>
-          Zugangsdaten als Betreiber — von einem Schlüssel, der im
-          ausgelieferten Code steckt und den jeder Besucher herausziehen kann.
-          <b>Dieser Fall liegt hier nicht vor:</b> im Code steht kein Schlüssel,
-          im Depot auch keiner, und abgerechnet wird auf deinem Konto.</p>
-        <p><b>Daraus folgt nicht, dass es erlaubt ist.</b> Die Doku zählt zwei
-          Fälle auf, in denen es unbedenklich sei — interne Werkzeuge und
-          Entwicklung. Eine öffentlich verteilte Seite steht nicht darin; die
-          Frage wird dort gar nicht gestellt. Aus „der genannte Schaden trifft
-          uns nicht" folgt keine Erlaubnis. <b>Das ist eine offene Flanke, und
-          sie steht hier, statt weggelächelt zu werden.</b></p>
+        <p><b>Für deinen Schlüssel ist nichts offen.</b> Er liegt verschlüsselt
+          in deinem Browser, geht nur an die KI-Adresse oben und wird auf
+          deinem Konto abgerechnet. Er steht nicht im Code, nicht im Depot,
+          und wir sehen ihn nie.</p>
+        <p><b>Offen ist etwas anderes:</b> die Nutzungsbedingungen des
+          KI-Anbieters sagen zu dieser Bauart — eine Seite, die jeder öffnen
+          und mit dem <i>eigenen</i> Schlüssel benutzen kann — schlicht nichts.
+          Sie ist dort weder erlaubt noch verboten. Wir halten sie für
+          unbedenklich; daraus folgt nicht, dass sie es ist. <b>Das ist eine
+          offene Flanke, und sie steht hier, statt weggelächelt zu werden.</b></p>
+        <p>Die Fundstellen dazu stehen im Depot in
+          <code>docs/BYOK_BEDINGUNGEN.md</code>.</p>
       </div>
     </details>
 

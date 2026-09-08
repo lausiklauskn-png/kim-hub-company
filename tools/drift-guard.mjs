@@ -46,17 +46,17 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
  * Fingerabdrücke unten nachzieht und das hier vergisst, wird rot.
  */
 export const HERKUNFT = {
-  commit: "9b55046",
-  datum:  "2026-09-08T12:34:51+02:00",
-  betreff: "▶ beginnt nach dem Auschecken neu — und die Monate stehen zusammengefasst da (#139)",
+  commit: "b507398",
+  datum:  "2026-09-08T12:51:35+02:00",
+  betreff: "JSON fürs Dashboard — und der Erklär-Block, der erschreckt hat (#140)",
 };
 
 export const ERWARTET = [
-  { datei: "index.html",                herkunft: "start.html",              sha: "fdcd52cf6ce70545513017a0c13d2e0506ad9bf73492e6d930cdadb1bc6df329" },
+  { datei: "index.html",                herkunft: "start.html",              sha: "455b338231ea91e8eed7c973b8b468c032fd81ffc5119c43296913ad4940ff3c" },
   { datei: "company.js",                herkunft: "company.js",              sha: "8225958ef89441c83cceb7265c4f17423017f24fb8bc61c2f9e218e587629870" },
-  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "be64aa841763a8e75f3adab1c700a624d466675b8364ce911d2f7da4eca4af58" },
+  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "faeaa043ec65e4f49195673d35aaca9047dac2e46fadcadab994f9a9ed2a83a3" },
   { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "2b55844be02df209c8f18d7f8434b4a39bebe2621b7720a3e2b725bfdecaee9c" },
-  { datei: "zeit.js",                   herkunft: "zeit.js",                 sha: "fbd0cba497858615d213a3c44ad405e2303c706a0dd48dc7b213f8474136e2e7" },
+  { datei: "zeit.js",                   herkunft: "zeit.js",                 sha: "a31e3078408a9e327a7e5c22d43b46c65d4408c72508bb87a963297a253798ce" },
   /* ⚠ NEU AM 2026-09-07. `zusammen()` ist aus `schicht/kosten.mjs` hierher
      umgezogen, weil die Ansicht ein klassisches Skript ist und es nicht
      importieren kann. Dieselbe Bauart wie `zeit.js` — und derselbe Grund:
