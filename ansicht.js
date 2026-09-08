@@ -2706,9 +2706,22 @@
     var a = $("#uhr-anzeige");
     if (!a) return;
     var stand = uhrStand();
-    a.textContent = uhrzeit(stand);
+    /* ⚠ DAUER, NICHT UHRZEIT. `uhrzeit()` gaebe `15:29:48` — und Klaus hat das
+       am 2026-09-08 als „drei Uhr nachmittags" gelesen, zu Recht: das IST die
+       Form einer Uhrzeit, und `uhrzeitJetzt()` weiter unten gibt echte
+       Uhrzeiten genauso aus. Die Zahl selbst war richtig. Begruendung in
+       `zeit.js` bei `dauerLang`. */
+    a.textContent = zeitApi().dauerLang(stand);
     a.setAttribute("data-sekunden", String(Math.round(stand)));
     a.setAttribute("data-laeuft", uhrLaeuft ? "ja" : "nein");
+    /* Und die zweite Haelfte seines Befunds: eine abgeschlossene Zaehlung soll
+       man AN DER ZAHL sehen, nicht drei Zeilen tiefer im Kleingedruckten. */
+    var lage = $("#uhr-lage");
+    if (lage) {
+      var aus = !uhrLaeuft && zeitApi().standAusgecheckt(uhrAbschnitte(), uhrNull());
+      lage.textContent = aus ? "ausgecheckt \u2014 \u27f2 beginnt eine neue Z\u00e4hlung" : "";
+      lage.setAttribute("data-uhr-lage", aus ? "ausgecheckt" : (uhrLaeuft ? "laeuft" : "bereit"));
+    }
     var st = $("#uhr-start");
     /*
      * EIN KNOPF, ZWEI ZUSTÄNDE (Klaus 2026-08-22): „Start und danach muss das
