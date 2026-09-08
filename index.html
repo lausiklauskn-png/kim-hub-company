@@ -104,7 +104,8 @@ small,.leise{color:var(--leise);font-size:.87rem}
  * folgt (--mx/--my setzt ansicht.js). Ohne Zeiger — Tablet, Tastatur — bleibt
  * er in der Mitte stehen und der Knopf sieht trotzdem richtig aus.
  */
-button{position:relative;overflow:hidden;font:inherit;cursor:pointer;
+button,
+details.falt > summary{position:relative;overflow:hidden;font:inherit;cursor:pointer;
   color:var(--schrift);background:linear-gradient(180deg,rgba(140,150,170,.14),rgba(18,23,33,.22));
   border:1px solid var(--kante);border-radius:12px;padding:9px 15px;font-weight:600;
   transition:border-color .18s ease, box-shadow .2s ease, transform .12s ease;
@@ -112,10 +113,12 @@ button{position:relative;overflow:hidden;font:inherit;cursor:pointer;
              inset 0 -3px 7px rgba(0,0,0,.34),
              inset 0 0 0 1px rgba(255,255,255,.06),
              0 6px 16px rgba(0,0,0,.30)}
-:root[data-thema="tag"] button{background:linear-gradient(180deg,#fff,#eef3f4);
+:root[data-thema="tag"] button,
+:root[data-thema="tag"] details.falt > summary{background:linear-gradient(180deg,#fff,#eef3f4);
   box-shadow:inset 0 1.5px .5px rgba(255,255,255,.9),inset 0 -3px 7px rgba(20,40,45,.10),
              inset 0 0 0 1px rgba(20,40,45,.05),0 4px 12px rgba(20,40,45,.10)}
-button::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+button::before,
+details.falt > summary::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
   background:
     radial-gradient(90px 64px at var(--mx,50%) var(--my,26%),rgba(255,255,255,.55),transparent 58%),
     linear-gradient(115deg,transparent 28%,
@@ -123,11 +126,16 @@ button::before{content:"";position:absolute;inset:0;border-radius:inherit;pointe
   background-size:auto,240% 100%;
   background-position:0 0,var(--mx,50%) 0;
   mix-blend-mode:screen;opacity:0;transition:opacity .22s}
-button:hover::before,button:focus-visible::before{opacity:.9}
-button:hover{border-color:var(--akzent);box-shadow:inset 0 1.5px .5px rgba(255,255,255,.30),
+button:hover::before,button:focus-visible::before,
+details.falt > summary:hover::before,
+details.falt > summary:focus-visible::before{opacity:.9}
+button:hover,
+details.falt > summary:hover{border-color:var(--akzent);box-shadow:inset 0 1.5px .5px rgba(255,255,255,.30),
   inset 0 -3px 7px rgba(0,0,0,.34),0 8px 20px rgba(0,0,0,.34),var(--schein)}
-button:active{transform:translateY(1px)}
-button:focus-visible{outline:2px solid var(--akzent);outline-offset:2px}
+button:active,
+details.falt > summary:active{transform:translateY(1px)}
+button:focus-visible,
+details.falt > summary:focus-visible{outline:2px solid var(--akzent);outline-offset:2px}
 button[aria-pressed="true"],button.an{
   background:linear-gradient(135deg,var(--akzent),var(--akzent-dunkel));
   color:var(--akzent-schrift);border-color:var(--akzent)}
@@ -263,20 +271,70 @@ details.erklaer > *:not(summary){margin-top:8px}
    Raum 1: dort steht die AUSKUNFT über einen Lauf, und die soll offen liegen.
    Hier faltet der Nutzer seine eigene Buchhaltung, auf Klaus' ausdrücklichen
    Auftrag, und der Zustand wird gemerkt. */
-details.falt > summary{cursor:pointer;list-style:none;
-  display:flex;align-items:center;gap:8px}
+/* ══ DIE ZUGEKLAPPTE KARTE SIEHT AUS WIE EIN KNOPF (Klaus 2026-09-08 spät) ═══
+   „gestalte bitte die Außenansicht … optisch genau wie die Button mit den
+    selben Effekten wie die Button Werkstatt, Buchhaltung und so weiter,
+    bringt etwas mehr Farbe ins Leben" · „Ansicht der Container meinte ich"
+
+   ⚠ DIE KNOPF-REGELN WURDEN ERWEITERT, NICHT KOPIERT. Oben steht jetzt
+   `button, details.falt > summary { … }` an jeder Stelle — Verlauf, Rundung,
+   Innenschatten, der Maus-Scheinwerfer im `::before`, hover, active, focus.
+   Eine zweite Fassung sähe heute gleich aus und liefe morgen auseinander,
+   sobald jemand die Knöpfe anfasst; genau die Drift-Quelle, die `karte.js`
+   in PWA Toolpoint vermeidet.
+
+   ⚠ UND `display:flex` AM SUMMARY BRAUCHT GENAU EIN KIND. Ein Flex-Container
+   macht jedes Kind zu einem Flex-Element und schluckt die Leerzeichen
+   DAZWISCHEN — der Befund vom 2026-08-23 („…und ernichtkann"). Hier stehen
+   das h3 und der Pfeil als `::after`; ein Pseudo-Element ist kein Geschwister
+   im Textfluss. Wer ein zweites echtes Kind ergänzt, hat es mit dieser Zeile
+   zu tun. */
+details.falt > summary{list-style:none;
+  display:flex;align-items:center;gap:10px;
+  padding:11px 15px;border-radius:12px}
 details.falt > summary::-webkit-details-marker{display:none}
-/* ⚠ KEIN `display:flex` AM SUMMARY OHNE DIESES h3. Ein Flex-Container macht
-   jedes Kind zu einem Flex-Element und schluckt die Leerzeichen DAZWISCHEN —
-   genau der Befund vom 2026-08-23 („…und ernichtkann"). Hier steht genau EIN
-   Kind darin, das h3, also gibt es kein Dazwischen. Wer ein zweites ergänzt,
-   hat es mit dieser Zeile zu tun. */
-details.falt > summary > h3{margin:0;flex:1 1 auto}
-details.falt > summary::after{content:"▸";color:var(--leise);
-  font:14px var(--mono);transition:transform .15s;flex:0 0 auto}
-details[open].falt > summary::after{transform:rotate(90deg)}
+details.falt > summary > h3{margin:0;flex:1 1 auto;font-size:1rem}
+/* Der Pfeil liegt ÜBER dem Schimmer (`::before` ist der Scheinwerfer und hat
+   `mix-blend-mode:screen`) — deshalb ein eigener Stapelplatz. */
+details.falt > summary::after{content:"▸";color:var(--leise);position:relative;z-index:1;
+  font:14px var(--mono);transition:transform .18s ease, color .18s ease;flex:0 0 auto}
+details[open].falt > summary::after{transform:rotate(90deg);color:var(--akzent)}
 details.falt > summary:hover::after{color:var(--akzent)}
-details.falt > *:not(summary):first-of-type{margin-top:10px}
+
+/* ══ MEHR FARBE — eine je Karte, und nur an der Kante ═══════════════════════
+   Klaus: „bringt etwas mehr Farbe ins Leben". Die Farbe sitzt in einem
+   Streifen links und im Rand, NIE in der Schrift: so bleibt der Kontrast in
+   allen drei Themen unangetastet (Bauregel Layout 2.3 — Kontrast gilt pro
+   Thema). Eine bunte Schrift hätte in „Tag" sofort Punkte gekostet.
+
+   Die Reihenfolge ist die der Karten von oben nach unten, damit sich beim
+   Scrollen ein Verlauf ergibt statt eines Flickenteppichs. */
+details.falt > summary{border-left:3px solid var(--karten-farbe,var(--kante))}
+details.falt > summary > h3{color:var(--karten-farbe,var(--schrift))}
+details[open].falt > summary{border-left-color:var(--karten-farbe,var(--akzent))}
+details.falt[data-karte="chef"]        > summary{--karten-farbe:#f2b544}
+details.falt[data-karte="stechuhr"]    > summary{--karten-farbe:#7fd4a8}
+details.falt[data-karte="fahrtenbuch"] > summary{--karten-farbe:#6fc3e8}
+details.falt[data-karte="zapfsaeule"]  > summary{--karten-farbe:#9db4ff}
+details.falt[data-karte="tresor"]      > summary{--karten-farbe:#c79ce8}
+details.falt[data-karte="anthropic"]   > summary{--karten-farbe:#ef9aa8}
+details.falt[data-karte="bauzeit"]     > summary{--karten-farbe:#f0a878}
+details.falt[data-karte="gesamt"]      > summary{--karten-farbe:#e6cf7a}
+/* ⚠ IM HELLEN THEMA SIND DIESELBEN TÖNE ZU BLASS. Sie werden nicht
+   ausgetauscht, sondern abgedunkelt — dann bleibt die Zuordnung Karte↔Farbe
+   dieselbe, und es gibt weiter nur EINE Liste.
+
+   ⚠ DIE 42 % SIND GERECHNET, NICHT GERATEN. Mit 62 % fielen SECHS der acht
+   Töne unter das Kontrast-Mindestmaß 4,5 (gemessen: „gesamt" auf 3,54) —
+   Bauregel Layout 2.3, Kontrast gilt PRO THEMA. Durchgerechnet über alle acht
+   liegt die Grenze bei 45 %; 42 % lassen Reserve, ohne dass die Farbe
+   verschwindet. Wer einen Ton ändert, rechnet alle drei Themen nach —
+   `smoke_falten.mjs` misst es. */
+:root[data-thema="tag"] details.falt > summary > h3{
+  color:color-mix(in srgb,var(--karten-farbe,var(--schrift)) 42%,#101418)}
+:root[data-thema="tag"] details.falt > summary{
+  border-left-color:color-mix(in srgb,var(--karten-farbe,var(--kante)) 70%,#101418)}
+details.falt > *:not(summary):first-of-type{margin-top:12px}
 details.mehr > summary{display:inline-flex;align-items:center;gap:6px;cursor:pointer;
   list-style:none;font-size:.8rem;font-family:var(--mono);color:var(--leise);
   border:1px solid var(--kante);border-radius:8px;padding:3px 9px}
