@@ -25,7 +25,7 @@
    nur noch die eigenen Vorräte weg. Ohne den Bump lieferte der Worker die
    alte `ansicht.js` weiter — und die löscht jeden Vorrat des Ursprungs,
    also auch den der Werkstatt und der dreissig Geschwister-Apps. */
-var CACHE_VERSION = "kim-hub-company-v47";
+var CACHE_VERSION = "kim-hub-company-v48";
 
 /* ⚠ NUR EIGENE VORRAETE AUFRAEUMEN — `caches` gehoert dem URSPRUNG, nicht dem
  * Pfad. Auf lausiklauskn-png.github.io liegen rund zwanzig Apps; ein Filter,
@@ -83,7 +83,15 @@ self.addEventListener("fetch", function (e) {
     return;
   }
 
-  e.respondWith(caches.match(e.request).then(function (t) {   // SCHALE: Vorrat zuerst
+  /* ⚠ `ignoreSearch` IST HIER KEIN BEIWERK (2026-09-08). Der Vorrat legt
+     `./icons/kimhub-96.png` ab, die Seite fragt nach `…?v=2` — fuer den Cache
+     sind das ZWEI Adressen, und ohne dieses Flag antwortet der Vorrat nicht.
+     Offline fehlte damit genau das Bild, das die Versionsnummer frisch halten
+     soll. Es fiel nie auf, solange nur das Favicon daran hing; seit die
+     Kopfmarke dasselbe Bild ist, waere es ein Loch im Kopf.
+     Es gilt fuer die SCHALE, nicht fuer die Daten: die stehen darueber und
+     holen ohnehin Netz zuerst. */
+  e.respondWith(caches.match(e.request, { ignoreSearch: true }).then(function (t) {   // SCHALE: Vorrat zuerst
     return t || fetch(e.request);
   }));
 });

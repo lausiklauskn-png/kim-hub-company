@@ -8,8 +8,8 @@
 <meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#0d1417">
 <link rel="manifest" href="company.webmanifest">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/kimhub-192.png?v=1">
-<link rel="apple-touch-icon" href="icons/kimhub-192.png?v=1">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/kimhub-192.png?v=2">
+<link rel="apple-touch-icon" href="icons/kimhub-192.png?v=2">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -96,7 +96,7 @@ a{color:var(--akzent)}
 small,.leise{color:var(--leise);font-size:.87rem}
 .kopf{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
   padding-top:18px;padding-bottom:10px}
-.marke{width:34px;height:34px;flex:0 0 34px;color:var(--akzent)}
+.marke{width:34px;height:34px;flex:0 0 34px;color:var(--akzent);border-radius:9px;display:block}
 .kopf .weg{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
 
 /* ── Glas-Knöpfe (family-project) ─────────────────────────────────────────
@@ -809,10 +809,14 @@ details.langtext>div{margin-top:4px}
 <body>
 
 <header class="kopf">
-  <svg class="marke" viewBox="0 0 32 32" aria-hidden="true">
-    <rect x="1" y="1" width="30" height="30" rx="8" fill="none" stroke="currentColor" stroke-width="2"/>
-    <path d="M9 22V10M9 16l7-6M9 16l7 6M20 10v12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-  </svg>
+  <!-- ⚠ DIE KOPFMARKE IST DAS APP-ICON SELBST, nicht eine zweite Zeichnung.
+       Hier stand bis zum 2026-09-08 ein gemaltes „K" als SVG — daneben lag im
+       Manifest ein ganz anderes Bild, und beide Apps trugen ohnehin dasselbe.
+       Wer eine Marke zweimal zeichnet, hat zwei Marken. `icons/kimhub-96.png`
+       liegt in JEDEM Depot anders: in der Werkstatt der Amboss, in Company der
+       Schlüssel — eine Zeile, jede App ihr eigenes Gesicht.
+       Feste Masse, damit beim Laden nichts springt (CLS). -->
+  <img class="marke" src="icons/kimhub-96.png?v=2" width="34" height="34" alt="" decoding="async">
   <div>
     <h1>Kim Hub Company</h1>
     <small>Acht Rollen, ein Auftrag — im Browser, auf deinem eigenen KI-Zugang.</small>
