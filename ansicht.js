@@ -3938,6 +3938,19 @@
             delete j._ausBeispiel;
             if (j.belege) { daten.belege = j; genommen.push(d.name + " → Belege"); }
             else if (j.tage) { daten.zeiten = j; genommen.push(d.name + " → Bauzeiten"); }
+            /*
+             * ⚠ ZUSAMMENGEFUEHRT, NICHT ERSETZT. Klaus hat zwei Browser mit je
+             * eigenen Zeiten; ein Import, der ersetzt, loescht einen davon —
+             * still, denn danach sieht die Liste vollstaendig aus. Die Regel
+             * steht in `zeit.js`, damit sie ohne Browser messbar ist.
+             */
+            else if (Array.isArray(j.stechuhr)) {
+              var zus = zeitApi().stechuhrZusammenfuehren(uhrAbschnitte(), j.stechuhr);
+              schreib("stechuhr", zus.liste);
+              genommen.push(d.name + " \u2192 Stechuhr: " + zus.dazu + " dazu"
+                + (zus.schonDa ? ", " + zus.schonDa + " schon da" : ""));
+              uhrZeichnen(); zeichneProtokoll();
+            }
             else if (j.fahrten) { daten.fahrten = j; genommen.push(d.name + " → Fahrtenbuch"); }
             else if (j.events && j.tafel) { daten.konferenz = j; genommen.push(d.name + " → Konferenz"); }
             else if (j.events && j.gegenstand) { daten.gegen = j; genommen.push(d.name + " → Gegenprüfung"); }
@@ -4277,6 +4290,42 @@
      * Datei, die aussieht wie eine Sicherung und beim Oeffnen scheitert.
      * Benannt statt stillschweigend umfahren (Tafel-Evolutions-Klausel).
      */
+    /*
+     * WAS IN EINE SICHERUNG GEHOERT — an EINER Stelle.
+     *
+     * Beide Ausgaenge (verschlossen und offen) bauen dieselbe Liste. Sie stand
+     * zweimal da, und zwei Stellen, die dasselbe behaupten, laufen auseinander:
+     * wer eine Sorte am einen Ausgang ergaenzt, vergisst den anderen, und dann
+     * enthaelt die offene Sicherung etwas anderes als die verschlossene.
+     *
+     * ⚠ AUFGEFALLEN IST DIE DOPPELUNG NICHT BEIM LESEN, sondern an einem
+     * Gegenprobe-Anker, der auf ZWEI Stellen passte. Ein mehrdeutiger Anker
+     * sabotiert nach Zufall die eine oder die andere — und misst damit nicht,
+     * was er zu messen glaubt.
+     *
+     * ⚠ WAS AUS DEM BEISPIEL STAMMT, WIRD NICHT ABGELEGT. Sonst verschluesselt
+     * Klaus erfundene Zahlen und haelt sie fuer seine.
+     *
+     * ⚠ DIE STECHUHR GEHOERT DAZU (Klaus 2026-09-08). Sie fehlte an beiden
+     * Ausgaengen: `belege` sind die Anthropic-Rechnungen, `zeiten` die
+     * BAUZEITEN aus der Git-Historie — seine gestempelten Abschnitte lebten im
+     * `localStorage` und hatten keinen einzigen Weg nach draussen. **Sein
+     * Stundennachweis war unsicherbar**, und genau danach hat er gefragt.
+     *
+     * ⚠ `uhrNull` REIST NICHT MIT. Die ⟲-Marke sagt, seit wann DIESER Browser
+     * zaehlt; eingelesen wuerde sie die laufende Zaehlung des Ziel-Browsers
+     * umwerfen. Gesichert werden die Abschnitte, nicht der Stand einer
+     * Stoppuhr.
+     */
+    function tresorWasAblegen() {
+      var was = [];
+      if (daten.belege && !daten.belege._ausBeispiel) was.push(["anthropic-belege", daten.belege]);
+      if (daten.zeiten && !daten.zeiten._ausBeispiel) was.push(["zeiten", daten.zeiten]);
+      var uhrZeilen = uhrAbschnitte();
+      if (uhrZeilen.length) was.push(["stechuhr", { stechuhr: uhrZeilen }]);
+      return was;
+    }
+
     function tresorAblegen(name, paket) {
       var a = el("a");
       a.href = URL.createObjectURL(new Blob([JSON.stringify(paket, null, 2)],
@@ -4320,11 +4369,7 @@
     if (tGeladen) tGeladen.addEventListener("click", function () {
       var neu = tresorNeuePasswoerter(tresorSagen);
       if (!neu) return;
-      var was = [];
-      /* Was aus dem mitgelieferten Beispiel stammt, wird NICHT abgelegt. Sonst
-         verschluesselte Klaus erfundene Zahlen und hielte sie fuer seine. */
-      if (daten.belege && !daten.belege._ausBeispiel) was.push(["anthropic-belege", daten.belege]);
-      if (daten.zeiten && !daten.zeiten._ausBeispiel) was.push(["zeiten", daten.zeiten]);
+      var was = tresorWasAblegen();
       if (!was.length) {
         tresorSagen(tresorGesperrt().length
           ? "Erst aufschliessen — verschlossen kann die Seite nichts weitergeben."
@@ -4374,9 +4419,7 @@
      */
     var tKlar = $("#tresor-klartext");
     if (tKlar) tKlar.addEventListener("click", function () {
-      var was = [];
-      if (daten.belege && !daten.belege._ausBeispiel) was.push(["anthropic-belege", daten.belege]);
-      if (daten.zeiten && !daten.zeiten._ausBeispiel) was.push(["zeiten", daten.zeiten]);
+      var was = tresorWasAblegen();
       if (!was.length) {
         tresorSagen(tresorGesperrt().length
           ? "Erst aufschliessen — verschlossen kann die Seite nichts weitergeben."
