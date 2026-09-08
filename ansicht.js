@@ -887,6 +887,15 @@
     Object.keys(teile).forEach(function (k) {
       if (teile[k]) teile[k].hidden = k !== lage;
     });
+    /* ⚠ DER AENDERN-BLOCK GEHOERT NICHT IN DIE DREI ZUSTAENDE, sondern quer
+       dazu: er steht in „zu" UND in „offen", denn wer den alten Code kennt,
+       darf ihn wechseln — ob die Zahlen gerade sichtbar sind oder nicht.
+       In „aus" gibt es nichts zu aendern. */
+    var aend = $("#chef-aendern");
+    if (aend) {
+      aend.hidden = !chefStand;
+      aend.setAttribute("data-chef-aendern", chefStand ? lage : "");
+    }
   }
 
   function chefSagen(text, marke) {
@@ -4470,6 +4479,49 @@
         chefSagen("Code gesetzt. Die Zahlen bleiben in diesem Fenster sichtbar;"
           + " ab dem nächsten Laden fragt die Seite danach.", "gesetzt");
       }, function () { chefSagen("Ging nicht — der Code wurde NICHT gesetzt.", "fehler"); });
+    });
+
+    /*
+     * ══ DEN CHEF-CODE WECHSELN (Klaus 2026-09-08) ═════════════════════════
+     * „Das Chefpasswort sollte noch änderbar sein, jederzeit … mit dem alten
+     * Passwort natürlich."
+     *
+     * ⚠ DER ALTE CODE WIRD IMMER GEPRUEFT, auch wenn die Zahlen gerade offen
+     * stehen. „Offen" ist ein Fenster-Zustand, kein Beweis — sonst koennte
+     * jemand am entsperrten Tablet den Code umsetzen und Klaus aus seinen
+     * eigenen Zahlen aussperren. Ein Wechsel ohne den alten Code WAERE das
+     * Zuruecksetzen, das es hier bewusst nicht gibt.
+     *
+     * ⚠ UND DIE PRUEFUNG STEHT VOR DEM SCHREIBEN. Andersherum waere der alte
+     * Code schon ueberschrieben, wenn sich herausstellt, dass er nicht passte
+     * — dieselbe Reihenfolge wie „erst die Fassung, dann das Passwort".
+     */
+    var cWechsel = $("#chef-wechseln");
+    if (cWechsel) cWechsel.addEventListener("click", function () {
+      var fAlt = $("#chef-alt"), f1 = $("#chef-wechsel"), f2 = $("#chef-wechsel2");
+      var alt = fAlt ? fAlt.value : "", a = f1 ? f1.value : "", b = f2 ? f2.value : "";
+      if (!alt) { chefSagen("Kein alter Code eingegeben — es wurde nichts geändert.", "alt-leer"); return; }
+      if (!a) { chefSagen("Kein neuer Code eingegeben — es wurde nichts geändert.", "leer"); return; }
+      if (a !== b) { chefSagen("Die beiden neuen Eingaben sind nicht gleich.", "ungleich"); return; }
+      chefSagen("Wird geprüft — 600 000 Runden, das dauert einen Moment.", "rechnet");
+      chefPruefen(alt).then(function (passt) {
+        if (!passt) {
+          /* Nichts geschrieben. Der alte Code gilt unverändert weiter. */
+          chefSagen("Der alte Code stimmt nicht — es wurde NICHTS geändert.", "alt-falsch");
+          return null;
+        }
+        return chefSetzen(a).then(function () {
+          if (fAlt) fAlt.value = ""; if (f1) f1.value = ""; if (f2) f2.value = "";
+          chefZeichnen();
+          /* Wer den alten Code kannte, darf auch sehen — `chefSetzen` macht
+             deshalb auf. Das steht dabei, statt zu ueberraschen. */
+          chefSagen("Code geändert — der alte gilt nicht mehr."
+            + " Die Zahlen stehen jetzt offen, wie nach dem Aufschließen.", "gewechselt");
+          return true;
+        });
+      }).catch(function () {
+        chefSagen("Ging nicht — der Code wurde NICHT geändert.", "fehler");
+      });
     });
 
     var cAuf = $("#chef-auf");
