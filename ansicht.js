@@ -507,7 +507,7 @@
     kopf.appendChild(el("p", "leise", "Geprüft wurde " + g.gegenstand.dateiname + " — " +
       (g.gegenstand.dateien || []).join(", ") + " (" + g.gegenstand.bytes + " Bytes)."));
     if (g.ergebnis.anKlaus)
-      kopf.appendChild(el("p", null, "→ Das geht an Klaus, nicht in eine dritte Runde."));
+      kopf.appendChild(el("p", null, "→ Das geht an den Betreiber, nicht in eine dritte Runde."));
     wo.insertBefore(kopf, wo.firstChild);
   }
 
@@ -880,6 +880,13 @@
     var zu = !!(chefStand && !chefOffen);
     Array.prototype.forEach.call(document.querySelectorAll("[data-chef=\"geld\"]"),
       function (n) { n.hidden = zu; });
+    /* ⚠ UND DAS GEGENSTUECK. Was NUR bei gesetztem Code dastehen soll — der
+       Satz, warum das Gesamt-Blatt gerade nicht herausgegeben wird — braucht
+       dieselbe Mechanik. Es an den BAUZEITPUNKT zu haengen ging schief: die
+       Karte entsteht, bevor `chefLaden()` durch ist. Ein Riegel gehoert an
+       das Element, nicht an die Reihenfolge. */
+    Array.prototype.forEach.call(document.querySelectorAll("[data-chef=\"nur-zu\"]"),
+      function (n) { n.hidden = !zu; });
     if (!kasten) return;
     var lage = !chefStand ? "aus" : chefOffen ? "offen" : "zu";
     kasten.setAttribute("data-chef-lage", lage);
@@ -897,6 +904,19 @@
       aend.setAttribute("data-chef-aendern", chefStand ? lage : "");
     }
   }
+
+  /*
+   * ⚠ WAS VERBORGEN IST, DARF AUCH NICHT HERAUSGEGEBEN WERDEN (Klaus
+   * 2026-09-08): „geld zahlen kann man unten auch lesen, wenn der Chef den
+   * Code nicht eingegeben hat".
+   *
+   * Er hat recht, und der Grund war eine Bauart-Luecke: der Riegel hing
+   * ausschliesslich an `data-chef="geld"` im DOKUMENT. Damit traf er weder
+   * die Tabellenzellen, die das Glue SPAETER baut (die Monats-Betraege und
+   * die Kosten-Zeile im Gesamt-Blatt), noch den Text, den die
+   * Mitnehm-Knoepfe herausgeben. Zwei Wege zum selben Geld, einer bewacht.
+   */
+  function geldVerborgen() { return !!(chefStand && !chefOffen); }
 
   function chefSagen(text, marke) {
     var w = $("#chef-lage");
@@ -2726,7 +2746,13 @@
     var kopf = el("tr");
     var spalten = ["Monat", "gestempelt", "gefahren", "zusammen"];
     if (c) spalten.push("Betrag");
-    spalten.forEach(function (h, i) { kopf.appendChild(el("th", i === 0 ? null : "zahl", h)); });
+    spalten.forEach(function (h, i) {
+      var th = el("th", i === 0 ? null : "zahl", h);
+      /* Die Spalte traegt die Marke — sonst steht die Ueberschrift „Betrag"
+         ueber einer leeren Spalte, und das sieht nach einem Fehler aus. */
+      if (h === "Betrag") th.setAttribute("data-chef", "geld");
+      kopf.appendChild(th);
+    });
     koerper.appendChild(kopf);
 
     var gesamt = 0;
@@ -2745,7 +2771,11 @@
       if (m.doppeltSek >= 1)
         zus.appendChild(el("small", "leise", " (davon " + uhrzeit(m.doppeltSek) + " doppelt)"));
       r.appendChild(zus);
-      if (c) r.appendChild(el("td", "zahl", eur(zeitkostenCent(m.sekunden, c) / 100)));
+      if (c) {
+        var bz = el("td", "zahl", eur(zeitkostenCent(m.sekunden, c) / 100));
+        bz.setAttribute("data-chef", "geld");
+        r.appendChild(bz);
+      }
       koerper.appendChild(r);
     });
 
@@ -2758,9 +2788,22 @@
     f.appendChild(el("td", "zahl", ""));
     f.appendChild(el("td", "zahl", ""));
     f.appendChild(el("td", "zahl", uhrzeit(gesamt)));
-    if (c) f.appendChild(el("td", "zahl", eur(zeitkostenCent(gesamt, c) / 100)));
+    if (c) {
+      var fz = el("td", "zahl", eur(zeitkostenCent(gesamt, c) / 100));
+      fz.setAttribute("data-chef", "geld");
+      f.appendChild(fz);
+    }
     koerper.appendChild(f);
+    /* ⚠ DIE MARKE ALLEIN REICHT NICHT. `chefZeichnen` laeuft beim Zeichnen der
+       Karte; diese Zellen entstehen SPAETER und waeren sonst sichtbar, bis
+       zufaellig etwas anderes neu zeichnet. Genau daran hing Klaus' Befund. */
     t.appendChild(koerper);
+    /* ⚠ NACH dem Einhaengen, nicht davor. Die erste Fassung stand eine Zeile
+       hoeher und lief damit ueber eine Tabelle, die noch gar nicht im
+       Dokument stand — der Riegel griff ins Leere, und die frischen
+       Betrag-Zellen standen offen. Derselbe Fehler wie immer: die
+       Reihenfolge. Gefunden hat es der Waechter, nicht das Nachdenken. */
+    chefZeichnen();
 
     /*
      * ⚠ ZWEI ZAHLEN AUF EINER SEITE, BEIDE RICHTIG (Klaus 2026-09-08). Seine
@@ -3056,10 +3099,12 @@
 
   function protokollText() {
     var liste = alleAbschnitte().filter(function (e) { return !e.laeuft; });
-    var mitKosten = lies("satzMitgeben", false) === true;
+    /* Verborgen heisst auch: nicht in den Text und nicht in die Datei, die
+       jemand weitergibt. Zwei Wege zum selben Geld — beide bewacht. */
+    var mitKosten = lies("satzMitgeben", false) === true && !geldVerborgen();
     var c = satzCent();
     var z = [];
-    z.push("Klaus' Zeit an der Werkstatt - Stechuhr und Fahrtenbuch");
+    z.push("Deine Zeit an der Werkstatt - Stechuhr und Fahrtenbuch");
     z.push(new Array(50).join("-"));
     if (!liste.length) {
       z.push("Keine Abschnitte gestempelt und keine Fahrt im Buch.");
@@ -3108,6 +3153,14 @@
       z.push("Geld, wenn sie produktiv bzw. abrechenbar genutzt wird.");
     } else if (mitKosten) {
       z.push("Arbeitskosten: nicht gerechnet - kein Stundensatz hinterlegt.");
+    } else if (geldVerborgen() && c) {
+      /* ⚠ WO GEKUERZT WURDE, STEHT DASS GEKUERZT WURDE. Die Zeile stumm
+         wegzulassen war der erste Anlauf, und der Unterschied ist nicht
+         Kosmetik: ein Blatt ohne Kosten-Zeile sieht aus wie eines, fuer das
+         nie ein Satz hinterlegt war. Eine stille Luecke ist schlimmer als
+         eine benannte — die eine wirft Fragen auf, die andere beantwortet sie.
+         Gefunden hat es der eigene Waechter, nicht das Nachdenken. */
+      z.push("Arbeitskosten: verborgen (Chef-Code) - zum Herausgeben zuerst die Zahlen zeigen.");
     }
 
     /*
@@ -3171,7 +3224,7 @@
         "Noch nichts zu übergeben — keine gestempelten Abschnitte und keine Fahrt im Buch."));
       return;
     }
-    mitnehmKnoepfe(ziel, "klaus-zeit.txt", protokollText(), "text/plain");
+    mitnehmKnoepfe(ziel, "eigene-zeit.txt", protokollText(), "text/plain");
 
     /*
      * ⚠ UND DAS JSON DANEBEN (Klaus 2026-09-08: „JSON für das Dashboard").
@@ -3184,7 +3237,9 @@
      * Der Stundensatz reist nur mit, wenn er ausdruecklich mitgegeben wird —
      * dieselbe Whitelist-Regel wie im Text.
      */
-    var mitKosten = lies("satzMitgeben", false) === true;
+    /* Verborgen heisst auch: nicht in den Text und nicht in die Datei, die
+       jemand weitergibt. Zwei Wege zum selben Geld — beide bewacht. */
+    var mitKosten = lies("satzMitgeben", false) === true && !geldVerborgen();
     var zone = "";
     try { zone = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) { zone = ""; }
     var buchFuerPaket = daten.fahrten && daten.fahrten.fahrten;
@@ -3201,7 +3256,7 @@
       "Dashboard — dieselben Zahlen wie oben, nur maschinenlesbar. Die " +
       "einzelnen Zeilen stehen nur in der Textfassung.";
     ziel.appendChild(erklaerung);
-    mitnehmKnoepfe(ziel, "klaus-zeit.json",
+    mitnehmKnoepfe(ziel, "eigene-zeit.json",
       JSON.stringify(paket, null, 2), "application/json");
     zeichneGesamt(liste, paket);
   }
@@ -3211,8 +3266,8 @@
    * Agententaetigkeit die Stunden auch da einen Gesamtdashboard und als Text
    * laesst sich das ja so und so runterladen").
    *
-   * Es rechnet NICHTS eigenes. Klaus' Zahlen kommen aus demselben Paket, das
-   * "klaus-zeit.json" traegt, die Agenten-Zahlen aus `fahrtSummen()` in
+   * Es rechnet NICHTS eigenes. Die eigenen Zahlen kommen aus demselben Paket,
+   * das "eigene-zeit.json" traegt, die Agenten-Zahlen aus `fahrtSummen()` in
    * `kassen.js` — DERSELBEN Funktion, aus der die Kachel oben rechnet. Zwei
    * Stellen, die dasselbe behaupten, laufen auseinander, und dann sagte das
    * Blatt unten etwas anderes als die Tabelle oben.
@@ -3236,16 +3291,26 @@
 
   function gesamtText(paket, ag) {
     var z = [], zeitApi_ = zeitApi();
-    z.push("Gesamt - Klaus und die Agenten");
+    z.push("Gesamt - deine Zeit und die Agenten");
     z.push("Erzeugt: " + new Date().toLocaleString("de-DE"));
     z.push("");
-    z.push("KLAUS (Stechuhr + Fahrtenbuch-Zeilen)");
+    z.push("DEINE ZEIT (Stechuhr + Fahrtenbuch-Zeilen)");
     z.push("  zusammen        " + zeitApi_.dauerLang(paket.gesamt.sekunden)
       + "  (" + deZahl(paket.gesamt.minuten) + " min)");
     z.push("  davon gestempelt " + zeitApi_.dauerLang(paket.gesamt.gestempeltSek));
     z.push("  davon gefahren   " + zeitApi_.dauerLang(paket.gesamt.gefahrenSek));
     z.push("  doppelt erfasst, EINMAL gezaehlt: " + zeitApi_.dauerLang(paket.gesamt.doppeltSek));
-    if (paket.gesamt.betragCent != null)
+    /* ⚠ WO GEKUERZT WURDE, STEHT DASS GEKUERZT WURDE. Die Zeile einfach
+       wegzulassen waere eine stille Luecke — der Leser hielte das Blatt fuer
+       vollstaendig.
+       ⚠⚠ UND DIE ERSTE FASSUNG WAR TOTER CODE: sie stand unter
+       `betragCent != null`, und bei gesetztem Code traegt das Paket gar keinen
+       Betrag (`satzCent: 0`). Der „verborgen"-Zweig konnte nie laufen — eine
+       Zusicherung, die genau dann schweigt, wenn sie gebraucht wird. Gefunden
+       hat es der eigene Waechter, weil er die DATEI liest statt den Knopf. */
+    if (geldVerborgen())
+      z.push("  Betrag          verborgen (Chef-Code) - zum Herausgeben zuerst die Zahlen zeigen");
+    else if (paket.gesamt.betragCent != null)
       z.push("  Betrag          " + deZahl((paket.gesamt.betragCent / 100).toFixed(2)) + " EUR");
     z.push("  Monate: " + (paket.monate.length
       ? paket.monate.map(function (m) { return m.monat + " " + deZahl(m.minuten) + " min"; }).join(", ")
@@ -3294,12 +3359,15 @@
     }
     var k = el("tbody"); leer(t);
     var kopf = el("tr");
-    ["", "Klaus", "Agenten"].forEach(function (h, i) {
+    ["", "Du", "Agenten"].forEach(function (h, i) {
       kopf.appendChild(el("th", i ? "zahl" : null, h));
     });
     k.appendChild(kopf);
-    var zeile = function (was, a, b) {
+    var zeile = function (was, a, b, geld) {
       var r = el("tr");
+      /* Nur die GELD-Zeile geht zu. „Stechuhr fuer alle, Zahlen nur fuer den
+         Betreiber" — die Zeit-Zeilen darueber bleiben stehen. */
+      if (geld) r.setAttribute("data-chef", "geld");
       r.appendChild(el("td", null, was));
       r.appendChild(el("td", "zahl", a));
       r.appendChild(el("td", "zahl", b));
@@ -3317,15 +3385,35 @@
       + ", mit Kosten " + ag.bezahlte + ")" : "–");
     zeile("Kosten", paket.gesamt.betragCent != null
       ? (paket.gesamt.betragCent / 100).toFixed(2).replace(".", ",") + " €" : "–",
-      ag ? ag.eur.toFixed(2).replace(".", ",") + " €" : "–");
+      ag ? ag.eur.toFixed(2).replace(".", ",") + " €" : "–", true);
     t.appendChild(k);
     t.setAttribute("data-gesamt-agenten", ag ? "ja" : "nein");
 
+    /* ⚠ DIE MARKE ALLEIN REICHT NICHT — dieselbe Stelle wie in der
+       Monats-Tabelle: diese Zeile entsteht SPAETER als das Zeichnen der Karte. */
+    chefZeichnen();
+
     leer(m);
     if (!ag) m.appendChild(el("p", "leise",
-      "Ohne Fahrtenbuch trägt das Blatt nur Klaus' Zeit — das steht auch darin."));
-    mitnehmKnoepfe(m, "gesamt.txt", gesamtText(voll, ag), "text/plain");
-    mitnehmKnoepfe(m, "gesamt.json", JSON.stringify(voll, null, 2), "application/json");
+      "Ohne Fahrtenbuch trägt das Blatt nur deine Zeit — das steht auch darin."));
+    /*
+     * ⚠ ZWEI WEGE ZUM SELBEN GELD, UND EINER WAR BEWACHT. Das Blatt traegt
+     * die Kosten der Agenten (`agenten.eur`) auch dann, wenn die Karte, aus
+     * der sie stammen, verborgen ist. Der Knopf, der es HERAUSGIBT, geht
+     * deshalb mit zu — und ein Satz sagt, warum er fehlt, statt ihn
+     * stillschweigend verschwinden zu lassen.
+     */
+    var hin = el("p", "leise", "Zum Mitnehmen zuerst die Zahlen zeigen —"
+      + " das Blatt trägt Beträge, und der Chef-Code gilt.");
+    hin.setAttribute("data-gesamt-verborgen", "");
+    hin.setAttribute("data-chef", "nur-zu");
+    m.appendChild(hin);
+    var raus = el("div");
+    raus.setAttribute("data-chef", "geld");
+    mitnehmKnoepfe(raus, "gesamt.txt", gesamtText(voll, ag), "text/plain");
+    mitnehmKnoepfe(raus, "gesamt.json", JSON.stringify(voll, null, 2), "application/json");
+    m.appendChild(raus);
+    chefZeichnen();
   }
 
   // ── Abspielen ───────────────────────────────────────────────────────────
@@ -5311,6 +5399,58 @@
     });
 
     // ── 📤 Teilen & Synchronisieren ────────────────────────────────────────
+    /*
+     * ⚠ WARUM ES ZWEI KNOEPFE SIND (Klaus 2026-09-08): „bei teilen und sichern
+     * geht der download, aber teilen und die optionen nicht auf".
+     *
+     * `navigator.share` verlangt eine FRISCHE Nutzer-Geste. Zwischen dem Klick
+     * und dem Aufruf liegen zwei IndexedDB-Lesungen und ein `fetch`; bis die
+     * durch sind, hat Android die Geste verfallen lassen und `share()` wirft.
+     * Derselbe Befund wie beim Termux-Sprung am 2026-08-22 — die Regel stand
+     * schon da („alles Geste-Abhaengige passiert ZUERST") und half hier nicht,
+     * weil die Datei erst aus dem Gesammelten entsteht.
+     *
+     * Klaus' eigenes Rezeptbuch loest das seit langem mit `retryShareBook`:
+     * die fertige Datei liegt bereit, und ein ZWEITER Druck ruft `share()`
+     * ohne ein einziges `await` davor. Nachgeschlagen, nicht neu erfunden.
+     */
+    var bereiteDatei = null;
+
+    function fehlerName(f) {
+      return (f && (f.name || f.message)) ? String(f.name || f.message) : "unbekannt";
+    }
+    function zweitenGriffZeigen() {
+      var n = $("#bh-teilen-nochmal");
+      if (n) n.hidden = !(bereiteDatei && navigator.share);
+    }
+
+    var tNochmal = $("#bh-teilen-nochmal");
+    if (tNochmal) tNochmal.addEventListener("click", function () {
+      if (!bereiteDatei) {
+        lageSagen("#bh-teilen-lage", "data-teilen-lage",
+          "Erst „📤 Teilen / Sichern\" drücken — dann liegt die Datei bereit.", "leer");
+        return;
+      }
+      /* ⚠ HIER STEHT KEIN `await` UND KEIN `.then` VOR `share()`. Genau das
+         ist der ganze Zweck dieses Knopfes; wer hier etwas davorschiebt,
+         nimmt ihm seine Wirkung und baut den Fehler wieder ein. */
+      navigator.share({ files: [bereiteDatei.datei], title: "Kimhub — Inhalt" })
+        .then(function () {
+          lageSagen("#bh-teilen-lage", "data-teilen-lage",
+            "Geteilt — " + inhaltZaehlen(bereiteDatei.paket), "geteilt");
+        })
+        .catch(function (f) {
+          if (f && f.name === "AbortError") {
+            lageSagen("#bh-teilen-lage", "data-teilen-lage", "Abgebrochen.", "abgebrochen");
+            return;
+          }
+          lageSagen("#bh-teilen-lage", "data-teilen-lage",
+            "Teilen ging auch beim zweiten Versuch nicht (" + fehlerName(f) + "). "
+            + bereiteDatei.name + " liegt im Download-Ordner: Dateien-App öffnen →"
+            + " antippen → Teilen → Quick Share.", "fehler");
+        });
+    });
+
     var tTeil = $("#bh-teilen");
     if (tTeil) tTeil.addEventListener("click", function () {
       lageSagen("#bh-teilen-lage", "data-teilen-lage", "Wird zusammengestellt …", "rechnet");
@@ -5334,11 +5474,23 @@
             d.name, { type: "application/json" });
         } catch (e) { datei = null; }
         var kann = !!(datei && navigator.canShare && navigator.canShare({ files: [datei] }));
+        /* Die fertige Datei bleibt liegen — der zweite Knopf braucht sie, und
+           er darf sie NICHT neu bauen (dann waere die Geste wieder weg). */
+        bereiteDatei = datei ? { datei: datei, paket: d.paket, name: d.name } : null;
         var inDenOrdner = function (warum) {
           tresorAblegen(d.name, d.paket);
+          zweitenGriffZeigen();
           lageSagen("#bh-teilen-lage", "data-teilen-lage",
-            warum + " — " + d.name + " liegt im Download-Ordner."
-            + " Von dort per E-Mail oder Quick Share senden. " + inhaltZaehlen(d.paket),
+            warum + " — " + d.name + " liegt im Download-Ordner. "
+            + inhaltZaehlen(d.paket)
+            /* ⚠ DER HINWEIS MUSS ZU DEM PASSEN, WAS DASTEHT. Die erste
+               Fassung versprach den zweiten Knopf auch dort, wo er verborgen
+               bleibt (kein `navigator.share`) — ein Verweis auf einen Knopf,
+               den es nicht gibt, ist schlimmer als kein Verweis. Gefragt wird
+               deshalb dasselbe wie in `zweitenGriffZeigen`. */
+            + ((bereiteDatei && navigator.share)
+              ? "  Die Datei ist fertig: „📤 Jetzt teilen\" öffnet das Teilen-Fenster."
+              : "  Dateien-App öffnen → antippen → Teilen → Quick Share."),
             "datei");
         };
         if (!kann) { inDenOrdner("Dieser Browser kann keine Dateien teilen"); return; }
@@ -5355,7 +5507,11 @@
               lageSagen("#bh-teilen-lage", "data-teilen-lage", "Abgebrochen.", "abgebrochen");
               return;
             }
-            inDenOrdner("Teilen ging nicht");
+            /* ⚠ DER FEHLER WIRD BEIM NAMEN GENANNT. „Teilen ging nicht" allein
+               hat Klaus am 2026-09-08 eine Meldung gegeben, aus der niemand
+               ablesen konnte, WORAN es lag — und der Verdacht (verfallene
+               Geste) war nur ein Verdacht. Der Name steht jetzt dabei. */
+            inDenOrdner("Teilen ging nicht (" + fehlerName(f) + ")");
           });
       }).catch(function (f) {
         lageSagen("#bh-teilen-lage", "data-teilen-lage",

@@ -1174,8 +1174,8 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
       <summary><b>Die Regeln für die Hand, die baut</b></summary>
       <ul>
         <li><b>Ein Durchgang.</b> Bauen, dann zurück zum Gegenprüfen. Findet der
-          Negativbauer etwas Schweres, geht es an Klaus — nicht in Runde drei.</li>
-        <li><b>Der PR bleibt Entwurf.</b> Nur Klaus setzt ihn auf fertig.</li>
+          Negativbauer etwas Schweres, geht es an den Betreiber — nicht in Runde drei.</li>
+        <li><b>Der PR bleibt Entwurf.</b> Nur der Betreiber setzt ihn auf fertig.</li>
         <li><b>Gemessen wird gegen das Prüfmerkmal</b>, nicht gegen den eigenen Eindruck.
           Wer baut und danach berichtet, schreibt sein eigenes Zeugnis — deshalb die
           Gegenprüfung.</li>
@@ -1230,7 +1230,7 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
     </div>
 
     <div class="karte">
-      <h3>Was Klaus und ich dazu sagen</h3>
+      <h3>Was du und ich dazu sagen</h3>
       <p class="leise">Bleibt im Browser (nur dieses Gerät), geht nirgendwo hin.
         Zum Weitergeben: kopieren.</p>
       <textarea id="notiz" placeholder="Was ist gut? Was ist Murks? Was soll die nächste Schicht anders machen?"></textarea>
@@ -1268,7 +1268,7 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
          nicht nur hier: ein Schloss, das mehr verspricht, als es hält, ist der
          Fehler, gegen den die halbe Verfassung geschrieben ist. -->
     <div class="karte" id="chef" data-chef-lage="" style="margin-top:14px">
-      <h3>🙈 Chef-Code</h3>
+      <h3>💼 Chef-Code</h3>
 
       <div id="chef-aus" hidden>
         <p style="margin:0 0 6px"><b>Kein Chef-Code gesetzt.</b> Alle Zahlen
@@ -1283,7 +1283,7 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
                  placeholder="noch einmal" style="flex:1 1 200px">
         </div>
         <div class="pult">
-          <button id="chef-setzen" type="button">🙈 Zahlen verbergen</button>
+          <button id="chef-setzen" type="button">🕶 Zahlen verbergen</button>
         </div>
       </div>
 
@@ -1301,7 +1301,7 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
         <p style="margin:0 0 6px">✓ <b>Offen — nur in diesem Fenster.</b> Nach dem
           Neuladen fragt die Seite wieder.</p>
         <div class="pult">
-          <button id="chef-wieder-zu" type="button">🙈 Wieder verbergen</button>
+          <button id="chef-wieder-zu" type="button">🕶 Wieder verbergen</button>
         </div>
       </div>
 
@@ -1396,7 +1396,7 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
              gehören dazu (vor Termux gibt es keinen Knopf), aber der Name
              behauptete eine Herkunft, die nicht stimmte. Die Aufteilung steht
              jetzt in der Zeile darunter. -->
-        <small>Klaus' Zeit — gestempelt + gefahren</small>
+        <small>Deine Zeit — gestempelt + gefahren</small>
         <div class="gross" id="k-klaus">0:00</div>
         <!-- Ohne Stundensatz steht hier, DASS keiner hinterlegt ist — nie
              „0,00 €". Eine Null sähe aus wie gemessen. Genau wie BLP es tut. -->
@@ -1420,7 +1420,7 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
          Arbeitsspeicher — deshalb überlebt er dort das Neuladen. -->
     <div class="karte" style="margin-top:14px">
       <h3>Stechuhr</h3>
-      <p class="leise">Für Klaus' eigene Zeit. Niemand außer ihm weiß, wann er
+      <p class="leise">Für deine eigene Zeit. Niemand außer dir weiß, wann du
         davorsitzt — deshalb ein Knopf und keine Schätzung. <b>▶ zählt weiter,
         wo die Uhr stehen geblieben ist</b>; auf null setzt sie nur ⟲.</p>
       <!-- EIN KNOPF FÜR START UND PAUSE (Klaus 2026-08-22): „Start und Pause
@@ -1501,7 +1501,7 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
       <h4 style="margin:16px 0 4px">Für das Protokoll</h4>
       <p class="leise">Die Seite kann nicht selbst ins Depot schreiben — sie gibt
         die Zeiten heraus, eine Sitzung trägt sie ein. Die Zeit der Agenten steht
-        im Fahrtenbuch darunter; das hier ist die von Klaus.</p>
+        im Fahrtenbuch darunter; das hier ist deine.</p>
       <div id="uhr-protokoll"><p class="leise">Noch nichts zu übergeben.</p></div>
     </div>
 
@@ -1720,6 +1720,20 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
       </p>
       <div class="pult" style="margin-top:8px">
         <button id="bh-teilen" type="button">📤 Teilen / Sichern</button>
+        <!-- ⚠ DER ZWEITE GRIFF — und er ist kein Notbehelf, sondern der Weg
+             (Klaus 2026-09-08: „bei teilen und sichern geht der download, aber
+             teilen und die optionen nicht auf").
+
+             `navigator.share` verlangt eine FRISCHE Fingerberührung. Zwischen
+             dem ersten Druck und dem Teilen liegen zwei Datenbank-Lesungen und
+             ein `fetch` — bis die durch sind, hat Android die Geste verfallen
+             lassen, und `share()` wirft. Derselbe Befund wie beim
+             Termux-Sprung am 2026-08-22: „alles Geste-Abhängige passiert
+             ZUERST." Hier geht das nicht, denn die Datei entsteht erst aus dem
+             Gesammelten. Klaus' eigenes Rezeptbuch löst es mit genau diesem
+             zweiten Knopf (`retryShareBook`) — die fertige Datei liegt bereit,
+             und sein Druck ruft `share()` ohne ein einziges `await` davor. -->
+        <button id="bh-teilen-nochmal" type="button" hidden>📤 Jetzt teilen</button>
       </div>
       <p class="leise" id="bh-teilen-lage" data-teilen-lage="" style="margin:6px 0 0"></p>
 
@@ -1825,9 +1839,9 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
     </div>
 
     <div class="karte" id="gesamt-karte">
-      <h3>Gesamt — Klaus und die Agenten auf einem Blatt</h3>
+      <h3>Gesamt — deine Zeit und die Agenten auf einem Blatt</h3>
       <p class="leise" data-gesamt-erklaerung="">Beides nebeneinander, <b>nicht addiert</b>:
-        die Stechuhr misst Klaus' Zeit an der Werkstatt, das Fahrtenbuch die der Agenten.
+        die Stechuhr misst deine Zeit an der Werkstatt, das Fahrtenbuch die der Agenten.
         Eine Fahrt läuft oft, während die Stechuhr läuft — was sich überschneidet, steht
         oben unter „doppelt erfasst" und zählt dort schon nur einmal.</p>
       <div class="rollt"><table id="gesamt"><tbody><tr><td class="leise">Noch nicht geladen.</td></tr></tbody></table></div>

@@ -52,9 +52,9 @@ export const HERKUNFT = {
 };
 
 export const ERWARTET = [
-  { datei: "index.html",                herkunft: "start.html",              sha: "b7297b19ac67484f4943ed50a2db7cae02ecbb73e1d89acdb89ff782fb515575" },
+  { datei: "index.html",                herkunft: "start.html",              sha: "704df50d5b2272b7cedfaefcab403bda400cf25fbd3c69c2936d34316fb78b1b" },
   { datei: "company.js",                herkunft: "company.js",              sha: "8225958ef89441c83cceb7265c4f17423017f24fb8bc61c2f9e218e587629870" },
-  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "ea473d749b248a95e087b1f0babbf9cfd553fd0c3035056a6ea2fab4ac40813a" },
+  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "dd3e79927462e5092ba93ec6be125bd5231388d7d11a82db6cfb7acaee21b0f5" },
   { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "2b55844be02df209c8f18d7f8434b4a39bebe2621b7720a3e2b725bfdecaee9c" },
   { datei: "zeit.js",                   herkunft: "zeit.js",                 sha: "b2d483fa378d67a852feac4c9f7aff0f2d9977ebe149f510f606072f77a385c9" },
   /* ⚠ NEU AM 2026-09-07. `zusammen()` ist aus `schicht/kosten.mjs` hierher
