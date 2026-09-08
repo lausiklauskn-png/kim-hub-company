@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#12161b">
+<title>Bündel-Prüfer — Ist das wirklich eine App?</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<style>
+:root{
+  --grund:#f4f6f8; --karte:#ffffff; --schrift:#14181d; --leise:#4a545f;
+  --rahmen:#9aa6b2; --schwer:#a3261a; --leicht:#7a5200; --gut:#1e6b3a;
+  --code-grund:#eef1f4;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --grund:#12161b; --karte:#1b2129; --schrift:#e9eef3; --leise:#b3bdc8;
+    --rahmen:#5d6b7a; --schwer:#ff9284; --leicht:#f2b544; --gut:#7fd6a0;
+    --code-grund:#0d1116;
+  }
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--grund); color:var(--schrift);
+  font:16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding:16px 14px 48px;
+}
+main{max-width:640px; margin:0 auto}
+h1{font-size:1.5rem; line-height:1.25; margin:0 0 4px}
+h2{font-size:1.15rem; margin:28px 0 10px; border-bottom:2px solid var(--rahmen); padding-bottom:6px}
+h3{font-size:.95rem; margin:14px 0 4px; color:var(--leise); text-transform:uppercase; letter-spacing:.04em}
+p{margin:8px 0}
+.leise{color:var(--leise)}
+.grenz{
+  border:2px solid var(--rahmen); border-radius:10px;
+  padding:12px; margin:16px 0; background:var(--karte);
+}
+.grenz b{display:block; margin-bottom:4px}
+.knopfblock{display:flex; flex-direction:column; gap:10px; margin:18px 0 8px}
+button{
+  font:inherit; font-weight:600; min-height:48px; padding:12px 14px;
+  border:2px solid var(--rahmen); border-radius:10px;
+  background:var(--karte); color:var(--schrift); cursor:pointer; width:100%;
+}
+button:hover{border-color:var(--schrift)}
+button:focus-visible{outline:3px solid var(--schrift); outline-offset:2px}
+.wähler{position:absolute; width:1px; height:1px; opacity:0; pointer-events:none}
+.hinweis{font-size:.92rem; color:var(--leise); margin:6px 2px 0}
+#ablage{
+  border:2px dashed var(--rahmen); border-radius:10px; padding:10px;
+  text-align:center; font-size:.92rem; color:var(--leise); margin-top:10px;
+}
+#ablage.aktiv{border-style:solid; border-color:var(--schrift); color:var(--schrift)}
+.schalter{
+  border:2px solid var(--rahmen); border-radius:10px; background:var(--karte);
+  padding:12px; margin:16px 0;
+}
+.schalter label{
+  display:flex; align-items:flex-start; gap:10px; min-height:44px;
+  padding:6px 0; font-size:.95rem; cursor:pointer;
+}
+.schalter input{width:22px; height:22px; margin-top:2px; flex:0 0 auto}
+.soll{
+  border-left:6px solid var(--rahmen); background:var(--karte);
+  padding:10px 12px; margin:14px 0; border-radius:0 8px 8px 0; font-size:.95rem;
+}
+.soll.fehl{border-left-color:var(--schwer)}
+.geprueft{
+  background:var(--karte); border:2px solid var(--rahmen); border-radius:10px;
+  padding:10px 12px; margin:14px 0; font-size:.95rem;
+}
+.zaehlung{font-weight:700; margin:18px 0 6px}
+.fund{
+  background:var(--karte); border:2px solid var(--rahmen);
+  border-left:6px solid var(--leicht); border-radius:0 10px 10px 0;
+  padding:12px 14px; margin:12px 0;
+}
+.fund.schwer{border-left-width:12px; border-left-color:var(--schwer)}
+.fund .kopf{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0 0 2px}
+.marke{font-size:1.1rem; line-height:1}
+.rang{font-weight:800; letter-spacing:.02em}
+.kennung{
+  font:700 .85rem/1 ui-monospace, "SFMono-Regular", Consolas, monospace;
+  border:2px solid var(--rahmen); border-radius:6px; padding:5px 7px;
+}
+.ort{font-size:.92rem; color:var(--leise); margin:2px 0 0}
+pre{
+  margin:0; background:var(--code-grund); border:1px solid var(--rahmen);
+  border-radius:8px; padding:10px 12px; overflow-x:auto;
+  font:14px/1.5 ui-monospace, "SFMono-Regular", Consolas, monospace;
+  white-space:pre;
+}
+.kopierbox{display:flex; flex-direction:column; gap:8px}
+.kopierbox button{min-height:44px; font-size:.95rem}
+details{background:var(--karte); border:2px solid var(--rahmen); border-radius:10px; margin:16px 0}
+summary{padding:12px 14px; font-weight:700; cursor:pointer; min-height:44px}
+details .inhalt{padding:0 14px 12px}
+ul{margin:8px 0; padding-left:22px}
+li{margin:5px 0}
+footer{margin-top:34px; padding-top:14px; border-top:2px solid var(--rahmen); font-size:.9rem; color:var(--leise)}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Bündel-Prüfer</h1>
+<p class="leise">Sieht sich vier Dateien an und sagt, was einer installierbaren App im Weg steht.</p>
+
+<div class="grenz">
+  <b>Grenze dieses Werkzeugs</b>
+  Dieser Prüfer sagt nicht, ob ein Browser die App wirklich installieren würde. Das entscheidet jeder Browser nach eigenen Regeln, die sich ändern, und verlangt unter anderem HTTPS.
+</div>
+
+<div class="knopfblock">
+  <button id="k-selbst">Mich selbst prüfen</button>
+  <button id="k-test">Test-Bündel laden</button>
+  <button id="k-waehlen">Dateien wählen</button>
+</div>
+<input id="wähler" class="wähler" type="file" multiple>
+<p class="hinweis">Alles läuft in deinem Browser. Keine Datei wird gesendet, keine fremde Adresse wird geladen. Funktioniert im Flugmodus.</p>
+<div id="ablage">Zugabe: Dateien lassen sich auch hierher ziehen.</div>
+
+<div class="schalter" id="schalter" hidden>
+  <p style="margin:0 0 6px"><b>Fehler im Test-Bündel</b> — jeder einzeln abschaltbar.</p>
+  <label><input type="checkbox" id="f1" checked> <span><b>F1</b> — start_url steht auf <code>"/"</code> statt <code>"./"</code></span></label>
+  <label><input type="checkbox" id="f2" checked> <span><b>F2</b> — icon-192.png ist in Wahrheit 180 Punkte breit</span></label>
+  <label><input type="checkbox" id="f3" checked> <span><b>F3</b> — display steht auf <code>browser</code></span></label>
+  <label><input type="checkbox" id="f4" checked> <span><b>F4</b> — icon.svg nennt 64, das Manifest 512</span></label>
+  <label><input type="checkbox" id="f5" checked> <span><b>F5</b> — die Vorratsliste nennt <code>stil.css</code></span></label>
+</div>
+
+<div id="bericht">
+  <h2>Noch nichts geprüft</h2>
+  <p>Noch nichts geprüft. Der Prüfer sieht sich sechs Dinge an:</p>
+  <ul>
+    <li>Sind alle vier Dateien da?</li>
+    <li>Sind <code>start_url</code> und <code>scope</code> relativ (<code>./</code>) statt <code>/</code>?</li>
+    <li>Steht <code>display</code> auf <code>standalone</code>?</li>
+    <li>Gibt es Icons für 192 und 512 — und stimmt die behauptete Größe?</li>
+    <li>Hat der Service-Worker einen <code>fetch</code>-Aufruf?</li>
+    <li>Passt seine Vorratsliste zu den Dateien, die es wirklich gibt?</li>
+  </ul>
+</div>
+
+<footer>
+  Die Regeln stammen aus den Angaben, die ein Browser für die Installation liest: Web-App-Manifest und Service-Worker.
+  Der Prüfer liest Text und Datei-Bytes, er führt nichts aus.
+  Stand: 2026-09-04.
+</footer>
+
+</main>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   1. KATALOG DER FUNDE — feste Kennungen, damit ein Fund beim
+      Abschalten eines anderen seine Kennung NICHT wechselt.
+   ══════════════════════════════════════════════════════════════ */
+var KATALOG = {
+  1:'start_url ist absolut',
+  2:'PNG-Icon: behauptete Größe stimmt nicht mit der Datei überein',
+  3:'display steht nicht auf standalone',
+  4:'SVG-Icon: die beiden Angaben widersprechen sich',
+  5:'Vorratsliste nennt eine Datei, die es nicht gibt',
+  6:'scope ist absolut',
+  7:'Pflicht-Datei fehlt im Bündel',
+  8:'Service-Worker hat keinen fetch-Aufruf',
+  9:'Kein Icon mit 192x192',
+  10:'Kein Icon mit 512x512',
+  11:'Datei liegt im Bündel, steht aber nicht in der Vorratsliste',
+  12:'Manifest ist kein gültiges JSON',
+  13:'Icon-Datei aus dem Manifest fehlt im Bündel'
+};
+
+/* ══════════════════════════════════════════════════════════════
+   2. HILFEN
+   ══════════════════════════════════════════════════════════════ */
+function basisname(p){ var t = String(p).split('/'); return t[t.length-1]; }
+function normPfad(p){
+  var s = String(p).trim().split('?')[0].split('#')[0];
+  if(s === './' || s === '/' || s === '') return 'index.html';
+  return basisname(s);
+}
+function zeileMit(text, such){
+  if(!text) return null;
+  var z = text.split('\n');
+  for(var i=0;i<z.length;i++){ if(z[i].indexOf(such) !== -1) return i+1; }
+  return null;
+}
+function trimZeile(text, nr){
+  if(!text || !nr) return null;
+  var z = text.split('\n')[nr-1];
+  return z ? z.trim() : null;
+}
+function istPfad(s){
+  if(s === './' || s === '/') return true;
+  if(!/^[\w\-./]+$/.test(s)) return false;
+  return /\.(html|htm|js|mjs|css|json|webmanifest|png|svg|jpg|jpeg|webp|gif|ico|woff2?|txt)$/i.test(s);
+}
+/* Kantenlänge eines PNG aus dem IHDR-Kopf. Null, wenn es kein PNG ist. */
+function pngGroesse(bytes){
+  if(!bytes || bytes.length < 24) return null;
+  var sig = [137,80,78,71,13,10,26,10];
+  for(var i=0;i<8;i++){ if(bytes[i] !== sig[i]) return null; }
+  if(String.fromCharCode(bytes[12],bytes[13],bytes[14],bytes[15]) !== 'IHDR') return null;
+  var b = bytes[16]*16777216 + bytes[17]*65536 + bytes[18]*256 + bytes[19];
+  var h = bytes[20]*16777216 + bytes[21]*65536 + bytes[22]*256 + bytes[23];
+  return { breite:b, hoehe:h };
+}
+function b64zuBytes(b64){
+  var roh = atob(b64), a = new Uint8Array(roh.length);
+  for(var i=0;i<roh.length;i++) a[i] = roh.charCodeAt(i);
+  return a;
+}
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   3. DER PRÜFER
+      dateien: Map name -> { text:String|null, bytes:Uint8Array|null }
+   ══════════════════════════════════════════════════════════════ */
+function pruefe(dateien){
+  var funde = [], ok = [], ungeprueft = [];
+  function fund(nr, rang, datei, zeile, dasteht, kaputt, richtig, richtigIstZeile){
+    funde.push({ nr:nr, rang:rang, datei:datei, zeile:zeile,
+                 dasteht:dasteht, kaputt:kaputt, richtig:richtig,
+                 kopierbar: richtigIstZeile !== false });
+  }
+  var hat = function(n){ return dateien.has(n); };
+  var txt = function(n){ var d = dateien.get(n); return d && d.text ? d.text : ''; };
+
+  /* --- Namen bestimmen: was sagt index.html selbst? --- */
+  var idxName = null;
+  dateien.forEach(function(_, n){ if(/^index\.html?$/i.test(n)) idxName = n; });
+  var idxTxt = idxName ? txt(idxName) : '';
+
+  var manName = null;
+  var m = idxTxt.match(/<link[^>]*rel=["']manifest["'][^>]*>/i);
+  if(m){ var h = m[0].match(/href=["']([^"']+)["']/i); if(h) manName = normPfad(h[1]); }
+  if(!manName){ dateien.forEach(function(_, n){ if(/\.webmanifest$/i.test(n) || /^manifest\.json$/i.test(n)) manName = n; }); }
+  if(!manName) manName = 'manifest.webmanifest';
+
+  var swName = null;
+  var r = idxTxt.match(/register\(\s*["']([^"']+)["']/);
+  if(r) swName = normPfad(r[1]);
+  if(!swName){ dateien.forEach(function(_, n){ if(/^(sw|service-worker|serviceworker)\.js$/i.test(n)) swName = n; }); }
+  if(!swName) swName = 'sw.js';
+
+  /* --- Prüfpunkt 1: Dateien vollständig --- */
+  if(!idxName){
+    fund(7,'schwer','index.html',null,'Keine Datei index.html im Bündel.',
+      'Ohne Startseite gibt es nichts zu installieren. Der Browser findet weder Manifest noch Service-Worker, weil beide von dieser Seite aus angemeldet werden.',
+      'Eine Datei index.html anlegen und dort das Manifest verlinken.', false);
+  } else { ok.push('index.html ist da.'); }
+
+  if(!hat(manName)){
+    fund(7,'schwer',manName,null,'Die Datei ' + manName + ' fehlt im Bündel.',
+      'Ohne Manifest bietet kein Browser das Installieren an. Die Seite bleibt eine gewöhnliche Internetseite.',
+      'Die Datei ' + manName + ' anlegen.', false);
+  } else { ok.push(manName + ' ist da.'); }
+
+  if(!hat(swName)){
+    fund(7,'schwer',swName,null,'Die Datei ' + swName + ' fehlt im Bündel.',
+      'Ohne Service-Worker gibt es keinen Offline-Vorrat. Im Flugmodus zeigt die App die Fehlerseite des Browsers.',
+      'Die Datei ' + swName + ' anlegen.', false);
+  } else { ok.push(swName + ' ist da.'); }
+
+  /* --- Manifest lesen --- */
+  var man = null, manTxt = hat(manName) ? txt(manName) : '';
+  if(hat(manName)){
+    try { man = JSON.parse(manTxt); }
+    catch(e){
+      fund(12,'schwer',manName,null,'Der Inhalt lässt sich nicht als JSON lesen: ' + e.message,
+        'Der Browser wirft ein Manifest, das er nicht lesen kann, ganz weg — als wäre es nicht da. Solange das so ist, fallen die Prüfpunkte 2, 3 und 4 hier aus.',
+        'Das Manifest reparieren (meist ein Komma zu viel oder eines zu wenig).', false);
+      ungeprueft.push('start_url, scope, display und die Icons — das Manifest ist nicht lesbar.');
+    }
+  }
+
+  /* --- Prüfpunkt 2: start_url und scope --- */
+  if(man){
+    [['start_url',1],['scope',6]].forEach(function(paar){
+      var feld = paar[0], nr = paar[1], wert = man[feld];
+      if(wert === undefined){
+        ungeprueft.push(feld + ' ist im Manifest nicht angegeben — der Browser rät dann selbst.');
+        return;
+      }
+      var z = zeileMit(manTxt, '"' + feld + '"');
+      if(/^\//.test(String(wert)) || /^[a-z]+:\/\//i.test(String(wert))){
+        fund(nr,'schwer',manName,z, trimZeile(manTxt,z) || ('"' + feld + '": "' + wert + '"'),
+          'Die App startet dann immer ganz oben auf der Adresse. Liegt sie in einem Unterordner — bei GitHub Pages der Normalfall — öffnet das installierte Symbol eine fremde oder leere Seite.',
+          '"' + feld + '": "./",');
+      } else {
+        ok.push(feld + ' ist relativ angegeben: "' + wert + '".');
+      }
+    });
+  }
+
+  /* --- Prüfpunkt 3: display --- */
+  if(man){
+    var d = man.display, zd = zeileMit(manTxt, '"display"');
+    if(d === 'standalone'){
+      ok.push('display steht auf standalone.');
+    } else if(d === 'fullscreen' || d === 'minimal-ui'){
+      fund(3,'leicht',manName,zd, trimZeile(manTxt,zd) || ('"display": "' + d + '"'),
+        'Das ist erlaubt, aber nicht das übliche App-Gefühl: ' + (d === 'fullscreen' ? 'die App nimmt den ganzen Schirm ein, auch die Uhrzeile.' : 'es bleibt eine schmale Leiste des Browsers stehen.'),
+        '"display": "standalone",');
+    } else {
+      fund(3,'schwer',manName,zd, trimZeile(manTxt,zd) || ('"display": ' + JSON.stringify(d === undefined ? null : d)),
+        'Der Browser bietet das Installieren gar nicht erst an. Wer die App doch auf den Startbildschirm legt, bekommt ein Lesezeichen mit Adressleiste statt einer App.',
+        '"display": "standalone",');
+    }
+  }
+
+  /* --- Prüfpunkt 4: Icons --- */
+  if(man){
+    var icons = Array.isArray(man.icons) ? man.icons : [];
+    var groessen = {};
+    icons.forEach(function(i){
+      String(i.sizes || '').toLowerCase().split(/\s+/).forEach(function(s){ if(s) groessen[s] = true; });
+    });
+    if(!groessen['192x192']){
+      fund(9,'schwer',manName, zeileMit(manTxt,'"icons"'),'Kein Icon mit sizes "192x192".',
+        'Android nimmt dieses Bild für den Startbildschirm. Fehlt es, lehnen die meisten Browser das Installieren ab.',
+        '{ "src": "./icon-192.png", "sizes": "192x192", "type": "image/png" },');
+    } else { ok.push('Ein Icon mit 192x192 ist angegeben.'); }
+    if(!groessen['512x512']){
+      fund(10,'schwer',manName, zeileMit(manTxt,'"icons"'),'Kein Icon mit sizes "512x512".',
+        'Dieses Bild erscheint im Startbild beim Öffnen. Fehlt es, lehnen die meisten Browser das Installieren ab.',
+        '{ "src": "./icon-512.png", "sizes": "512x512", "type": "image/png" },');
+    } else { ok.push('Ein Icon mit 512x512 ist angegeben.'); }
+
+    icons.forEach(function(i){
+      if(!i || !i.src) return;
+      var name = normPfad(i.src);
+      var behauptet = String(i.sizes || '').toLowerCase().split(/\s+/).filter(Boolean);
+      var zi = zeileMit(manTxt, i.src);
+      if(!dateien.has(name)){
+        fund(13,'schwer',manName,zi, trimZeile(manTxt,zi) || ('"src": "' + i.src + '"'),
+          'Das Manifest verweist auf eine Bilddatei, die es im Bündel nicht gibt. Der Browser bekommt an dieser Stelle nichts und verwirft den Eintrag.',
+          'Die Datei ' + name + ' anlegen — oder den Eintrag löschen.', false);
+        return;
+      }
+      if(/\.png$/i.test(name)){
+        var bytes = (dateien.get(name) || {}).bytes;
+        if(!bytes){
+          ungeprueft.push('Die Kantenlänge von ' + name + ' — die Datei lag nicht als Bytes vor.');
+          return;
+        }
+        var g = pngGroesse(bytes);
+        if(!g){
+          ungeprueft.push(name + ' beginnt nicht wie eine PNG-Datei — die Kantenlänge wurde nicht gelesen.');
+          return;
+        }
+        var echt = g.breite + 'x' + g.hoehe;
+        if(behauptet.length && behauptet.indexOf(echt) === -1){
+          fund(2,'schwer',manName,zi,
+            'Das Manifest sagt "' + behauptet.join(' ') + '" für ' + name + '. Kantenlänge aus der Datei gelesen: ' + g.breite + ' statt ' + behauptet[0].split('x')[0] + '.',
+            'Der Browser rechnet mit der behaupteten Größe und bekommt eine andere. Das Symbol wird unscharf gezogen — manche Browser verwerfen den Eintrag ganz und finden dann kein Icon mehr.',
+            '"sizes": "' + echt + '",');
+        } else {
+          ok.push(name + ': Kantenlänge aus der Datei gelesen — ' + echt + ', wie behauptet.');
+        }
+      } else if(/\.svg$/i.test(name)){
+        var stxt = txt(name);
+        var mw = stxt.match(/\bwidth\s*=\s*["'](\d+(?:\.\d+)?)(?:px)?["']/i);
+        var mh = stxt.match(/\bheight\s*=\s*["'](\d+(?:\.\d+)?)(?:px)?["']/i);
+        if(mw && mh){
+          var svgG = Math.round(parseFloat(mw[1])) + 'x' + Math.round(parseFloat(mh[1]));
+          if(behauptet.length && behauptet.indexOf(svgG) === -1){
+            fund(4,'leicht',manName,zi,
+              'Das Manifest sagt "' + behauptet.join(' ') + '", die Datei ' + name + ' nennt width="' + mw[1] + '" height="' + mh[1] + '". Bei SVG wird nichts gemessen — verglichen werden nur die beiden Angaben im Bündel.',
+              'Eine der beiden Angaben ist falsch, und welche, weiß nur der, der die Datei gemacht hat. Browser nehmen mal die eine, mal die andere — das Symbol erscheint dann zu klein oder abgeschnitten.',
+              'width="' + behauptet[0].split('x')[0] + '" height="' + behauptet[0].split('x')[1] + '"');
+          } else {
+            ok.push(name + ': die beiden Angaben stimmen überein (' + svgG + '). Gemessen wird bei SVG nichts.');
+          }
+        } else {
+          ok.push(name + ': die Datei nennt keine feste Größe, sie skaliert. Bei SVG wird nichts gemessen — verglichen werden nur die beiden Angaben im Bündel.');
+        }
+      } else {
+        ungeprueft.push('Die Größe von ' + name + ' — nur PNG und SVG werden angesehen.');
+      }
+    });
+  }
+
+  /* --- Prüfpunkt 5: fetch im Service-Worker --- */
+  var swTxt = hat(swName) ? txt(swName) : '';
+  if(hat(swName)){
+    var hatFetch = /addEventListener\s*\(\s*["'`]fetch["'`]/.test(swTxt) || /\bonfetch\s*=/.test(swTxt);
+    if(hatFetch){
+      ok.push(swName + ' hat einen fetch-Aufruf.');
+    } else {
+      fund(8,'schwer',swName,null,'Kein addEventListener("fetch", …) und kein onfetch im Quelltext.',
+        'Ohne diesen Aufruf gibt der Service-Worker nichts aus seinem Vorrat heraus. Der Vorrat liegt da und wird nie benutzt — im Flugmodus zeigt die App die Fehlerseite des Browsers.',
+        'self.addEventListener("fetch", e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));');
+    }
+  }
+
+  /* --- Prüfpunkt 6: Vorratsliste, beide Richtungen --- */
+  if(hat(swName)){
+    var gelistet = {}, zeilen = swTxt.split('\n');
+    for(var zi2=0; zi2<zeilen.length; zi2++){
+      var re = /(['"`])([^'"`\n]*)\1/g, tr;
+      while((tr = re.exec(zeilen[zi2])) !== null){
+        if(istPfad(tr[2])){
+          var n2 = normPfad(tr[2]);
+          if(!gelistet[n2]) gelistet[n2] = { roh:tr[2], zeile:zi2+1 };
+        }
+      }
+    }
+    var gelistetLeer = Object.keys(gelistet).length === 0;
+    if(gelistetLeer){
+      ungeprueft.push('Die Vorratsliste in ' + swName + ' — im Quelltext stehen keine Datei-Pfade in Anführungszeichen. Baut der Service-Worker seine Liste anders zusammen, sieht der Prüfer sie nicht.');
+    } else {
+      /* Richtung A: aufgeführt, aber nicht da */
+      Object.keys(gelistet).forEach(function(n3){
+        if(!dateien.has(n3)){
+          fund(5,'schwer',swName,gelistet[n3].zeile,
+            "'" + gelistet[n3].roh + "' steht in der Vorratsliste, die Datei ist aber nicht im Bündel.",
+            'Beim Einrichten holt der Service-Worker alle aufgeführten Dateien auf einmal. Fehlt eine einzige, bricht der ganze Vorgang ab: die App hat dann gar keinen Offline-Vorrat, und niemand bekommt eine Fehlermeldung zu sehen.',
+            'Die Zeile löschen — oder die Datei anlegen.', false);
+        }
+      });
+      /* Richtung B: da, aber nicht aufgeführt */
+      dateien.forEach(function(_, n4){
+        if(!gelistet[n4]){
+          fund(11,'leicht',swName,null,
+            n4 + ' liegt im Bündel, steht aber in keiner Zeile der Vorratsliste.',
+            'Diese Datei fehlt offline. Beim ersten Besuch fällt das nicht auf, im Flugmodus schon — dann bleibt genau dieser Teil leer.',
+            "  './" + n4 + "',");
+        }
+      });
+      var beideSauber = !funde.some(function(f){ return f.nr === 5 || f.nr === 11; });
+      if(beideSauber) ok.push('Die Vorratsliste passt in beide Richtungen zu den vorhandenen Dateien.');
+    }
+  }
+
+  /* --- Immer offen: was dieser Prüfer nicht ansieht --- */
+  ungeprueft.push('Ob der Server über HTTPS ausliefert.');
+  ungeprueft.push('Ob die Icons etwas Sinnvolles zeigen.');
+  ungeprueft.push('Ob der Service-Worker die Dateien wirklich in den Vorrat legt — gelesen wird nur sein Quelltext.');
+  ungeprueft.push('Unterordner: verglichen werden Dateinamen ohne Ordner.');
+
+  funde.sort(function(a,b){
+    if(a.rang !== b.rang) return a.rang === 'schwer' ? -1 : 1;
+    return a.nr - b.nr;
+  });
+  return { funde:funde, ok:ok, ungeprueft:ungeprueft, namen:{ index:idxName, manifest:manName, sw:swName } };
+}
+
+/* ══════════════════════════════════════════════════════════════
+   4. ANZEIGE
+   ══════════════════════════════════════════════════════════════ */
+var zielBericht = document.getElementById('bericht');
+
+function fundKarte(f){
+  var marke = f.rang === 'schwer' ? '▲' : '●';
+  var rang  = f.rang === 'schwer' ? 'Schwer' : 'Leicht';
+  var ort = f.datei + (f.zeile ? ', Zeile ' + f.zeile : ', Zeile nicht bestimmbar');
+  var h = '';
+  h += '<article class="fund ' + f.rang + '">';
+  h += '<p class="kopf"><span class="marke" aria-hidden="true">' + marke + '</span>';
+  h += '<span class="rang">' + rang + '</span>';
+  h += '<span class="kennung">F' + f.nr + '</span></p>';
+  h += '<p class="ort">' + esc(ort) + '</p>';
+  h += '<h3>Was dasteht</h3><pre>' + esc(f.dasteht) + '</pre>';
+  h += '<h3>Was dadurch kaputtgeht</h3><p>' + esc(f.kaputt) + '</p>';
+  h += '<h3>Richtig ist</h3>';
+  if(f.kopierbar){
+    h += '<div class="kopierbox"><pre>' + esc(f.richtig) + '</pre>';
+    h += '<button type="button" data-kopier="' + esc(f.richtig) + '">Zeile kopieren</button></div>';
+  } else {
+    h += '<p>' + esc(f.richtig) + '</p>';
+  }
+  h += '</article>';
+  return h;
+}
+
+function zeige(bericht, dateien, modus, sollNummern){
+  var h = '';
+
+  /* Was geprüft wurde */
+  var namen = [];
+  dateien.forEach(function(_, n){ namen.push(n); });
+  h += '<div class="geprueft"><b>Was geprüft wurde</b><br>';
+  if(namen.length === 0){
+    h += 'Es konnte keine einzige Datei gelesen werden. Unten steht deshalb nichts — das heißt <b>nicht</b>, dass alles in Ordnung ist.';
+  } else {
+    h += 'Angesehen: ' + esc(namen.sort().join(', ')) + ' (' + namen.length + ' Dateien).';
+    var fehlt = [];
+    if(!bericht.namen.index || !dateien.has(bericht.namen.index)) fehlt.push('index.html');
+    if(!dateien.has(bericht.namen.manifest)) fehlt.push(bericht.namen.manifest);
+    if(!dateien.has(bericht.namen.sw)) fehlt.push(bericht.namen.sw);
+    h += '<br>Nicht dabei: ' + (fehlt.length ? esc(fehlt.join(', ')) : '—');
+  }
+  h += '</div>';
+
+  if(namen.length === 0){ zielBericht.innerHTML = h; return; }
+
+  /* Soll-Vergleich beim Test-Bündel */
+  if(modus === 'test'){
+    var ist = {};
+    bericht.funde.forEach(function(f){ ist[f.nr] = true; });
+    var fehlend = sollNummern.filter(function(n){ return !ist[n]; });
+    var unerwartet = Object.keys(ist).map(Number).filter(function(n){ return sollNummern.indexOf(n) === -1; });
+    h += '<div class="soll' + (fehlend.length || unerwartet.length ? ' fehl' : '') + '">';
+    h += '<b>Dieses Bündel ist absichtlich fehlerhaft. Die Funde unten sollen so sein — sie zeigen, dass der Prüfer greift.</b><br>';
+    h += 'Soll: ' + (sollNummern.length ? sollNummern.map(function(n){ return 'F' + n; }).join(', ') : 'kein Fund (alle fünf abgeschaltet)') + '.<br>';
+    if(fehlend.length) h += '<b>Fund ' + fehlend.map(function(n){ return 'F' + n; }).join(', ') + ' fehlt.</b><br>';
+    if(unerwartet.length) h += '<b>Unerwartet: ' + unerwartet.map(function(n){ return 'F' + n + ' (' + KATALOG[n] + ')'; }).join(', ') + '.</b><br>';
+    if(!fehlend.length && !unerwartet.length) h += 'Alle erwarteten Funde sind da, kein anderer ist dazugekommen.';
+    h += '</div>';
+  }
+
+  /* Funde */
+  var schwer = bericht.funde.filter(function(f){ return f.rang === 'schwer'; }).length;
+  var leicht = bericht.funde.length - schwer;
+  if(bericht.funde.length){
+    h += '<p class="zaehlung">' + bericht.funde.length + ' Funde: ' + schwer + ' schwer, ' + leicht + ' leicht.</p>';
+    bericht.funde.forEach(function(f){ h += fundKarte(f); });
+  } else {
+    h += '<h2>Kein Fund</h2>';
+    h += '<p>An diesen sechs Punkten wurde nichts gefunden. Das ist keine Freigabe — es ist die Liste dessen, was angesehen wurde:</p>';
+    h += '<ul>' + bericht.ok.map(function(o){ return '<li>' + esc(o) + '</li>'; }).join('') + '</ul>';
+    h += '<p><b>Nicht geprüft wurde:</b></p>';
+    h += '<ul>' + bericht.ungeprueft.map(function(u){ return '<li>' + esc(u) + '</li>'; }).join('') + '</ul>';
+    h += '<div class="grenz">Dieser Prüfer sagt nicht, ob ein Browser die App wirklich installieren würde. Das entscheidet jeder Browser nach eigenen Regeln, die sich ändern, und verlangt unter anderem HTTPS.</div>';
+  }
+
+  /* In Ordnung + nicht geprüft, wenn es Funde gab */
+  if(bericht.funde.length){
+    h += '<details><summary>In Ordnung (' + bericht.ok.length + ')</summary><div class="inhalt"><ul>';
+    h += bericht.ok.map(function(o){ return '<li>' + esc(o) + '</li>'; }).join('');
+    h += '</ul></div></details>';
+    h += '<details><summary>Nicht geprüft (' + bericht.ungeprueft.length + ')</summary><div class="inhalt"><ul>';
+    h += bericht.ungeprueft.map(function(u){ return '<li>' + esc(u) + '</li>'; }).join('');
+    h += '</ul></div></details>';
+  }
+
+  zielBericht.innerHTML = h;
+}
+
+zielBericht.addEventListener('click', function(e){
+  var b = e.target.closest ? e.target.closest('button[data-kopier]') : null;
+  if(!b) return;
+  var t = b.getAttribute('data-kopier');
+  var fertig = function(gut){ b.textContent = gut ? 'Kopiert' : 'Nicht kopiert — Zeile von Hand markieren'; setTimeout(function(){ b.textContent = 'Zeile kopieren'; }, 2500); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(function(){ fertig(true); }, function(){ fertig(false); });
+  } else { fertig(false); }
+});
+
+/* ══════════════════════════════════════════════════════════════
+   5. DAS TEST-BÜNDEL — fünf Fehler, jeder einzeln abschaltbar
+   ══════════════════════════════════════════════════════════════ */
+/* Zwei echte PNG-Dateien. Die Kantenlänge steht in ihren Bytes (IHDR)
+   und wird vom Prüfer von dort gelesen, nicht aus dem Dateinamen. */
+var PNG192 = 'iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAAAAAB3tzPbAAAAqklEQVR42u3PAQ0AAAwCIDvZv5s5/kED0uMiICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg8D8wP8SxpZLkLNgAAAAASUVORK5CYII=';
+var PNG180 = 'iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAAAAAAYplnuAAAAmUlEQVR42u3OAQ0AAAwCIPs3sK01/g0SkD4UaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaemLBliMqHYcyYOpAAAAAElFTkSuQmCC';
+
+var TEST_INDEX = [
+'<!doctype html>',
+'<html lang="de">',
+'<head>',
+'<meta charset="utf-8">',
+'<meta name="viewport" content="width=device-width, initial-scale=1">',
+'<title>Beispiel-App</title>',
+'<link rel="manifest" href="./manifest.webmanifest">',
+'</head>',
+'<body>',
+'<h1>Beispiel-App</h1>',
+'<script>navigator.serviceWorker.register("./sw.js");<\/script>',
+'</body>',
+'</html>'
+].join('\n');
+
+function testManifest(f1, f3, f4){
+  return [
+    '{',
+    '  "name": "Beispiel-App",',
+    '  "short_name": "Beispiel",',
+    '  "start_url": "' + (f1 ? '/' : './') + '",',
+    '  "scope": "./",',
+    '  "display": "' + (f3 ? 'browser' : 'standalone') + '",',
+    '  "background_color": "#101418",',
+    '  "theme_color": "#101418",',
+    '  "icons": [',
+    '    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png" },',
+    '    { "src": "./icon.svg", "sizes": "512x512", "type": "image/svg+xml" }',
+    '  ]',
+    '}'
+  ].join('\n');
+}
+
+function testSw(f5){
+  var liste = [
+    "  './',",
+    "  './index.html',",
+    "  './manifest.webmanifest',",
+    "  './sw.js',",
+    "  './icon-192.png',",
+    "  './icon.svg'" + (f5 ? ',' : '')
+  ];
+  if(f5) liste.push("  './stil.css'");
+  return [
+    "const VORRAT = 'beispiel-app-v1';",
+    'const DATEIEN = ['
+  ].concat(liste).concat([
+    '];',
+    "self.addEventListener('install', e => {",
+    '  e.waitUntil(caches.open(VORRAT).then(c => c.addAll(DATEIEN)));',
+    '});',
+    "self.addEventListener('fetch', e => {",
+    '  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));',
+    '});'
+  ]).join('\n');
+}
+
+/* Der Test-SVG trägt bewusst kein xmlns: er wird nie gezeichnet,
+   sondern nur als Text gelesen. So steht im Quelltext dieser Seite
+   keine einzige http-Fundstelle. */
+function testSvg(f4){
+  var groesse = f4 ? ' width="64" height="64"' : '';
+  return '<svg viewBox="0 0 512 512"' + groesse + '>\n  <rect width="512" height="512" fill="#2b6cb0"/>\n</svg>';
+}
+
+function testBuendel(){
+  var f1 = document.getElementById('f1').checked;
+  var f2 = document.getElementById('f2').checked;
+  var f3 = document.getElementById('f3').checked;
+  var f4 = document.getElementById('f4').checked;
+  var f5 = document.getElementById('f5').checked;
+  var d = new Map();
+  d.set('index.html',            { text:TEST_INDEX, bytes:null });
+  d.set('manifest.webmanifest',  { text:testManifest(f1,f3,f4), bytes:null });
+  d.set('sw.js',                 { text:testSw(f5), bytes:null });
+  d.set('icon-192.png',          { text:null, bytes:b64zuBytes(f2 ? PNG180 : PNG192) });
+  d.set('icon.svg',              { text:testSvg(f4), bytes:null });
+  var soll = [];
+  if(f1) soll.push(1);
+  if(f2) soll.push(2);
+  if(f3) soll.push(3);
+  if(f4) soll.push(4);
+  if(f5) soll.push(5);
+  soll.sort(function(a,b){ return a-b; });
+  return { dateien:d, soll:soll };
+}
+
+function laufTest(){
+  var b = testBuendel();
+  zeige(pruefe(b.dateien), b.dateien, 'test', b.soll);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   6. DIE DREI EINGÄNGE
+   ══════════════════════════════════════════════════════════════ */
+document.getElementById('k-test').addEventListener('click', function(){
+  document.getElementById('schalter').hidden = false;
+  laufTest();
+});
+['f1','f2','f3','f4','f5'].forEach(function(id){
+  document.getElementById(id).addEventListener('change', laufTest);
+});
+
+document.getElementById('k-selbst').addEventListener('click', function(){
+  document.getElementById('schalter').hidden = true;
+  zielBericht.innerHTML = '<p>Die eigenen vier Dateien werden gelesen …</p>';
+  var namen = ['index.html','manifest.webmanifest','sw.js','icon.svg'];
+  var d = new Map();
+  Promise.all(namen.map(function(n){
+    return fetch('./' + n, { cache:'no-store' })
+      .then(function(a){ if(!a.ok) throw new Error(a.status); return a.text(); })
+      .then(function(t){ d.set(n, { text:t, bytes:null }); })
+      .catch(function(){ /* Datei nicht lesbar — sie fehlt dann im Bericht */ });
+  })).then(function(){
+    if(d.size === 0){
+      zielBericht.innerHTML = '<div class="geprueft"><b>Was geprüft wurde</b><br>Keine der vier Dateien war lesbar. Das passiert, wenn die Seite direkt von der Festplatte geöffnet wurde (Adresse beginnt mit <code>file:</code>) — dann darf eine Seite ihre Nachbardateien nicht lesen. Über einen Server oder aus der installierten App heraus geht es. <b>Es heißt nicht, dass alles in Ordnung ist.</b></div>';
+      return;
+    }
+    zeige(pruefe(d), d, 'selbst', null);
+  });
+});
+
+var wähler = document.getElementById('wähler');
+document.getElementById('k-waehlen').addEventListener('click', function(){ wähler.click(); });
+wähler.addEventListener('change', function(){ dateienNehmen(wähler.files); });
+
+var ablage = document.getElementById('ablage');
+['dragenter','dragover'].forEach(function(ev){
+  ablage.addEventListener(ev, function(e){ e.preventDefault(); ablage.classList.add('aktiv'); });
+});
+['dragleave','drop'].forEach(function(ev){
+  ablage.addEventListener(ev, function(e){ e.preventDefault(); ablage.classList.remove('aktiv'); });
+});
+ablage.addEventListener('drop', function(e){
+  if(e.dataTransfer && e.dataTransfer.files) dateienNehmen(e.dataTransfer.files);
+});
+
+function dateienNehmen(liste){
+  document.getElementById('schalter').hidden = true;
+  var d = new Map(), arr = Array.prototype.slice.call(liste);
+  if(!arr.length) return;
+  zielBericht.innerHTML = '<p>' + arr.length + ' Dateien werden gelesen …</p>';
+  Promise.all(arr.map(function(f){
+    var name = basisname(f.name);
+    var binaer = /\.(png|jpg|jpeg|webp|gif|ico|woff2?)$/i.test(name);
+    return new Promise(function(fertig){
+      var leser = new FileReader();
+      leser.onload = function(){
+        if(binaer) d.set(name, { text:null, bytes:new Uint8Array(leser.result) });
+        else d.set(name, { text:leser.result, bytes:null });
+        fertig();
+      };
+      leser.onerror = function(){ fertig(); };
+      if(binaer) leser.readAsArrayBuffer(f); else leser.readAsText(f);
+    });
+  })).then(function(){ zeige(pruefe(d), d, 'wahl', null); });
+}
+
+/* Offline-Vorrat anmelden */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  });
+}
+</script>
+</body>
+</html>
