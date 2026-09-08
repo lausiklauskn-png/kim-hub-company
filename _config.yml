@@ -1,0 +1,39 @@
+# Wie GitHub Pages dieses Depot ausliefert.
+#
+# ⚠ ES GIBT GENAU EINEN GRUND FÜR DIESE DATEI. Unter `werkzeuge/buendel-pruefer/`
+# liegt BELEGMATERIAL aus Lauf 01 — das erste Werkstück der Werkstatt, vom Arzt
+# als „nachbessern" beurteilt. Sein Service-Worker löscht in `activate` JEDEN
+# Vorrat, der nicht seiner ist:
+#
+#   caches.keys().then(namen => Promise.all(
+#     namen.map(n => n === VORRAT ? null : caches.delete(n))))
+#
+# `caches` gehört dem URSPRUNG, nicht dem Pfad. Auf lausiklauskn-png.github.io
+# liegen rund 21 Apps — ein einziger Besuch dieser Seite räumt deren
+# Offline-Vorräte weg. Gemessen am 2026-09-08 an zwei Wegwerf-Apps unter einem
+# Ursprung: App B löschte den Vorrat von App A.
+#
+# Kein Datenverlust (ein Vorrat füllt sich wieder), aber die Offline-Fähigkeit
+# der Geschwister fällt aus, bis jede einmal online geöffnet wurde.
+#
+# DIE DATEI SELBST BLEIBT UNANGETASTET. Sie ist der Beleg dafür, dass die
+# Werkstatt diesen Fehler gebaut hat; wer ihn herausnimmt, nimmt den Beleg
+# heraus. Der Befund steht daneben in BEFUND-DANACH.md. Auf GitHub bleibt alles
+# lesbar — nur ausgeliefert wird es nicht.
+#
+# ⚠ `exclude` ERSETZT Jekylls Vorgabeliste, es ergänzt sie nicht. Deshalb stehen
+# die Vorgaben hier mit, obwohl heute keine dieser Dateien im Depot liegt: ohne
+# sie wären sie beim nächsten Zuwachs still wieder dabei.
+exclude:
+  - werkzeuge/buendel-pruefer/
+  # ab hier Jekylls eigene Vorgaben, wörtlich:
+  - .sass-cache/
+  - .jekyll-cache/
+  - gemfiles/
+  - Gemfile
+  - Gemfile.lock
+  - node_modules/
+  - vendor/bundle/
+  - vendor/cache/
+  - vendor/gems/
+  - vendor/ruby/
