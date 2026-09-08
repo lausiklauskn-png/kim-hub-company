@@ -250,6 +250,33 @@ details.erklaer > summary::before{content:"?";font-weight:700;transition:transfo
 details[open].erklaer > summary::before{content:"×"}
 details.erklaer > summary:hover{border-color:var(--akzent);color:var(--schrift)}
 details.erklaer > *:not(summary){margin-top:8px}
+/* ══ DIE KARTEN DER BUCHHALTUNG GEHEN ZU (Klaus 2026-09-08 spät) ═══════
+   „Es nimmt so viel Platz weg beim Scrollen … eigentlich soll jeder Container
+   auch Tresor durch einen Button erst geöffnet werden, das minimiert den Platz.
+   und jeder kann selber entscheiden, was er sehen will."
+
+   `<details>` statt eigener Klick-Logik — wie überall sonst hier: der Browser
+   bringt Tastatur, Vorlese-Ansage und Aufklappen ohne Skript mit. Eine eigene
+   Klick-Logik wäre der tote Knopf, den wir nicht bauen.
+
+   ⚠ DAS IST NICHT DIE TAFEL „Erklärungen falten, Daten nicht". Die gilt für
+   Raum 1: dort steht die AUSKUNFT über einen Lauf, und die soll offen liegen.
+   Hier faltet der Nutzer seine eigene Buchhaltung, auf Klaus' ausdrücklichen
+   Auftrag, und der Zustand wird gemerkt. */
+details.falt > summary{cursor:pointer;list-style:none;
+  display:flex;align-items:center;gap:8px}
+details.falt > summary::-webkit-details-marker{display:none}
+/* ⚠ KEIN `display:flex` AM SUMMARY OHNE DIESES h3. Ein Flex-Container macht
+   jedes Kind zu einem Flex-Element und schluckt die Leerzeichen DAZWISCHEN —
+   genau der Befund vom 2026-08-23 („…und ernichtkann"). Hier steht genau EIN
+   Kind darin, das h3, also gibt es kein Dazwischen. Wer ein zweites ergänzt,
+   hat es mit dieser Zeile zu tun. */
+details.falt > summary > h3{margin:0;flex:1 1 auto}
+details.falt > summary::after{content:"▸";color:var(--leise);
+  font:14px var(--mono);transition:transform .15s;flex:0 0 auto}
+details[open].falt > summary::after{transform:rotate(90deg)}
+details.falt > summary:hover::after{color:var(--akzent)}
+details.falt > *:not(summary):first-of-type{margin-top:10px}
 details.mehr > summary{display:inline-flex;align-items:center;gap:6px;cursor:pointer;
   list-style:none;font-size:.8rem;font-family:var(--mono);color:var(--leise);
   border:1px solid var(--kante);border-radius:8px;padding:3px 9px}
@@ -1268,7 +1295,8 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
          nicht nur hier: ein Schloss, das mehr verspricht, als es hält, ist der
          Fehler, gegen den die halbe Verfassung geschrieben ist. -->
     <div class="karte" id="chef" data-chef-lage="" style="margin-top:14px">
-      <h3>💼 Chef-Code</h3>
+      <details class="falt" data-karte="chef">
+        <summary><h3>💼 Chef-Code</h3></summary>
 
       <div id="chef-aus" hidden>
         <p style="margin:0 0 6px"><b>Kein Chef-Code gesetzt.</b> Alle Zahlen
@@ -1366,6 +1394,7 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
           verborgen. Dann hilft nur deine Sicherung, eingelesen in einen frischen
           Browser — dort ist noch kein Code gesetzt.</p>
       </details>
+      </details>
     </div>
 
     <div class="kacheln" id="kacheln">
@@ -1419,7 +1448,8 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
          vorhandenen Wert, und der Wert steht IM SPEICHER, nicht im
          Arbeitsspeicher — deshalb überlebt er dort das Neuladen. -->
     <div class="karte" style="margin-top:14px">
-      <h3>Stechuhr</h3>
+      <details class="falt" data-karte="stechuhr">
+        <summary><h3>Stechuhr</h3></summary>
       <p class="leise">Für deine eigene Zeit. Niemand außer dir weiß, wann du
         davorsitzt — deshalb ein Knopf und keine Schätzung. <b>▶ zählt weiter,
         wo die Uhr stehen geblieben ist</b>; auf null setzt sie nur ⟲.</p>
@@ -1503,10 +1533,12 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
         die Zeiten heraus, eine Sitzung trägt sie ein. Die Zeit der Agenten steht
         im Fahrtenbuch darunter; das hier ist deine.</p>
       <div id="uhr-protokoll"><p class="leise">Noch nichts zu übergeben.</p></div>
+      </details>
     </div>
 
     <div class="karte" data-chef="geld">
-      <h3>Fahrtenbuch — was die Werkstatt wirklich gearbeitet hat</h3>
+      <details class="falt" data-karte="fahrtenbuch">
+        <summary><h3>Fahrtenbuch — was die Werkstatt wirklich gearbeitet hat</h3></summary>
       <details class="erklaer" data-erklaer="bh-fahrtenbuch">
         <summary>Was im Buch steht — Trockenläufe, Deckel, gelaufene Zeit</summary>
         <p class="leise">Jede Fahrt trägt sich beim Feierabend selbst ein: Tag,
@@ -1520,16 +1552,19 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
       </details>
       <div class="rollt"><table id="fahrten"><tbody><tr><td class="leise">Noch nicht geladen.</td></tr></tbody></table></div>
       <p id="fahrten-hinweis" class="leise" style="margin-top:10px"></p>
+      </details>
     </div>
 
     <div class="karte" data-chef="geld">
-      <h3>Tageskontingent — die Zapfsäule</h3>
+      <details class="falt" data-karte="zapfsaeule">
+        <summary><h3>Tageskontingent — die Zapfsäule</h3></summary>
       <p class="leise">Was das Fahrtenbuch je Tag zusammenzählt, steht unabhängig
         davon noch einmal in <code>schicht/kontingent.json</code>: dort bucht
         jede echte Schicht ihren Verbrauch, damit der Tagesdeckel greift.
         <b>Zwei Quellen für dieselbe Zahl</b> — weichen sie ab, steht es hier.</p>
       <div class="rollt"><table id="zapf"><tbody><tr><td class="leise">Noch nicht geladen.</td></tr></tbody></table></div>
       <p id="zapf-hinweis" class="leise" style="margin-top:10px"></p>
+      </details>
     </div>
 
     <!-- ══ DER TRESOR (Klaus 2026-08-22) ══════════════════════════════════
@@ -1548,7 +1583,8 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
          Passwort auf sein Wort: „passwort reicht, was ich von zeit zu zeit
          ändern kann. 2. beides Verschlüsseln." -->
     <div class="karte" id="tresor" data-tresor-zu="0" style="margin-top:14px" data-chef="geld">
-      <h3>🔒 Tresor</h3>
+      <details class="falt" data-karte="tresor">
+        <summary><h3>🔒 Tresor</h3></summary>
       <!-- ⚠ ZWEI DINGE, ZWEI AUFGABEN (Klaus 2026-08-22, nach dem Blick in
            sein Rezeptbuch). Sein Schaden war nicht „jemand sitzt an meinem
            Tablet", sondern: die Datei lag im Depot und Pages hat sie
@@ -1814,10 +1850,12 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
           und kein Passwort gehen ins Netz, und keine Sitzung sieht sie. Ins
           Depot kommt die <code>.enc.json</code>, die offene <b>nicht</b>.</p>
       </details>
+      </details>
     </div>
 
     <div class="karte" data-chef="geld">
-      <h3>Was Anthropic wirklich berechnet hat</h3>
+      <details class="falt" data-karte="anthropic">
+        <summary><h3>Was Anthropic wirklich berechnet hat</h3></summary>
       <p class="leise">Aus den Belegen im Postfach. <b>Drei verschiedene Dinge</b> —
         und nur das dritte bezahlt die Agenten:</p>
       <ul>
@@ -1828,24 +1866,29 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
       </ul>
       <div class="rollt"><table id="belege"><tbody><tr><td class="leise">Noch nicht geladen.</td></tr></tbody></table></div>
       <p id="belege-hinweis" class="hinweis leise" style="margin-top:10px"></p>
+      </details>
     </div>
 
     <div class="karte">
-      <h3>Bauzeit, Tag für Tag</h3>
+      <details class="falt" data-karte="bauzeit">
+        <summary><h3>Bauzeit, Tag für Tag</h3></summary>
       <p class="leise">Spanne zwischen dem ersten und dem letzten Commit eines Tages.
         Das ist eine <b>Untergrenze</b>, kein Aufwand: Lesen und Verwerfen vor dem
         ersten Commit fehlen darin, Pausen dazwischen zählen voll mit.</p>
       <div class="rollt"><table id="zeiten"><tbody><tr><td class="leise">Noch nicht geladen.</td></tr></tbody></table></div>
+      </details>
     </div>
 
     <div class="karte" id="gesamt-karte">
-      <h3>Gesamt — deine Zeit und die Agenten auf einem Blatt</h3>
+      <details class="falt" data-karte="gesamt">
+        <summary><h3>Gesamt — deine Zeit und die Agenten auf einem Blatt</h3></summary>
       <p class="leise" data-gesamt-erklaerung="">Beides nebeneinander, <b>nicht addiert</b>:
         die Stechuhr misst deine Zeit an der Werkstatt, das Fahrtenbuch die der Agenten.
         Eine Fahrt läuft oft, während die Stechuhr läuft — was sich überschneidet, steht
         oben unter „doppelt erfasst" und zählt dort schon nur einmal.</p>
       <div class="rollt"><table id="gesamt"><tbody><tr><td class="leise">Noch nicht geladen.</td></tr></tbody></table></div>
       <div id="gesamt-mitnehmen"></div>
+      </details>
     </div>
   </section>
 
