@@ -608,6 +608,29 @@
    * Dateiliste sie von selbst chronologisch. Ein Datum am Ende oder in
    * deutscher Schreibweise (08.09.2026) sortiert nach Tag, nicht nach Zeit.
    */
+  /*
+   * ⚠ ZWEI ZAHLEN FUER DASSELBE, BEIDE RICHTIG (Klaus 2026-09-08, an seinem
+   * eigenen Blatt gefunden): die ANZEIGE stand auf 24:15:16, die UEBERGABE
+   * auf 23:18:56. Die Differenz war eine laufende Uhr.
+   *
+   * Beides ist richtig — die Anzeige zeigt den Stand JETZT, die Uebergabe nur
+   * abgeschlossene Abschnitte, weil die Dauer einer laufenden noch nicht
+   * feststeht. Nur stand es nirgends dran, und damit war es zum vierten Mal
+   * an einem Tag dasselbe Muster: zwei Zahlen, beide stimmen, kein Hinweis.
+   *
+   * Der Satz wird GERECHNET, nicht getippt — eine Zahl im Text und eine im
+   * Kopf laufen auseinander.
+   */
+  function laufendeUhrSatz(laeuft, jetztMs) {
+    if (!laeuft || typeof laeuft.von !== "number" || !(laeuft.von > 0)) return "";
+    var sek = Math.max(0, ((Number(jetztMs) || Date.now()) - laeuft.von) / 1000);
+    var was = String(laeuft.was || "").trim();
+    return "NICHT enthalten: eine laufende Uhr, seit " + dauerLang(sek)
+      + (was ? " (" + was + ")" : "")
+      + ". Sie zaehlt erst mit, wenn sie pausiert oder ausgecheckt ist —"
+      + " deshalb steht in der Anzeige eine groessere Zahl als hier.";
+  }
+
   function dateiName(art, endung, jetzt) {
     var d = jetzt instanceof Date ? jetzt : (jetzt ? new Date(jetzt) : new Date());
     if (isNaN(d.getTime())) d = new Date();
@@ -664,7 +687,7 @@
     monatsSummen: monatsSummen, monatsSchluessel: monatsSchluessel,
     dashboardPaket: dashboardPaket, kostenCent: kostenCent, PAKET_FASSUNG: PAKET_FASSUNG,
     stechuhrZusammenfuehren: stechuhrZusammenfuehren,
-    paketInhalt: paketInhalt,
+    paketInhalt: paketInhalt, laufendeUhrSatz: laufendeUhrSatz,
     dateiName: dateiName
   };
 })(typeof window !== "undefined" ? window

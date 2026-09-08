@@ -60,6 +60,42 @@
     if (text != null) n.textContent = text;
     return n;
   }
+  /*
+   * ⚠ UND SIE STEHT HIER OBEN, NICHT WEITER UNTEN. Beim ersten Anlauf lag sie
+   * versehentlich im INNEREN Scope einer anderen Funktion; `uhrZeichnen` sah
+   * sie dort nicht, warf, und die Liste wurde gar nicht mehr gezeichnet — die
+   * Probe meldete "0 Schlussstriche", also etwas ganz anderes als die
+   * Ursache. Dieselbe Familie wie "die Werkbank stand ueber der Definition
+   * des Schalters, den sie benutzt".
+   */
+  /*
+   * ⚠ EIN AUFTRAGSTEXT VON 300 WOERTERN IN EINER TABELLENZEILE (Klaus
+   * 2026-09-08, an seinem Fahrtenbuch): "beim Fahrtenbuch und der Stechuhr
+   * sind die Texte noch nicht zusammengefasst. In Kimhub Forschungslink ist
+   * das besser geloest?!"
+   *
+   * Er hat recht, und der Hinweis auf die Forschungsseite ist der richtige:
+   * die legt lange Inhalte hinter `<details><summary>… (N)</summary>`.
+   * KOPIERT, nicht neu erfunden — dieselbe Regel wie ueberall im Netz.
+   *
+   * ⚠ GEKUERZT WIRD DIE ANZEIGE, NICHT DER TEXT. Der volle Wortlaut steht
+   * einen Klick weit weg; ein abgeschnittener waere ein stiller Datenverlust,
+   * und gerade der Auftragstext ist das, wonach man spaeter sucht.
+   */
+  var LANG_AB = 140;
+
+  function langerText(text, klasse) {
+    var t = String(text == null ? "" : text);
+    if (t.length <= LANG_AB) return el("div", klasse || null, t);
+    var d = el("details", "langtext");
+    d.setAttribute("data-langtext", String(t.length));
+    var s = el("summary", klasse || null,
+      t.slice(0, LANG_AB).replace(/\s+\S*$/, "") + " … (" + t.length + " Zeichen)");
+    d.appendChild(s);
+    d.appendChild(el("div", klasse || null, t));
+    return d;
+  }
+
   function eur(z) { return (Math.round(z * 100) / 100).toFixed(2).replace(".", ",") + " €"; }
   /* Wie eur(), aber die Währung steht am Beleg. Euro und Dollar zu addieren
      hieße, einen Wechselkurs zu erfinden, der morgen falsch ist. */
@@ -2002,7 +2038,7 @@
       r.appendChild(el("td", null, x.tag));
       var was = el("td");
       was.appendChild(el("div", null, x.artText + (x.echt ? "" : "  · trocken, nichts bezahlt")));
-      if (x.titel) was.appendChild(el("small", "leise", x.titel));
+      if (x.titel) was.appendChild(langerText(x.titel, "leise"));
       if (x.besetzung && x.besetzung.length)
         was.appendChild(el("small", "leise", "  " + x.besetzung.join(", ")));
       r.appendChild(was);
@@ -2664,6 +2700,24 @@
     if (c) f.appendChild(el("td", "zahl", eur(zeitkostenCent(gesamt, c) / 100)));
     koerper.appendChild(f);
     t.appendChild(koerper);
+
+    /*
+     * ⚠ ZWEI ZAHLEN AUF EINER SEITE, BEIDE RICHTIG (Klaus 2026-09-08). Seine
+     * Kachel stand auf 25:18:32, diese Tabelle auf 24:19:33 — untereinander,
+     * ohne ein Wort dazwischen. Die Differenz war eine laufende Uhr.
+     *
+     * Beides ist richtig: die Kachel zeigt den Stand JETZT, die Monatssummen
+     * nur abgeschlossene Abschnitte, weil die Dauer einer laufenden noch
+     * nicht feststeht. Der Satz steht seit demselben Tag auch in der
+     * Uebergabe — hier fehlte er, und das ist die Stelle, an der man es SIEHT.
+     */
+    var hin = $("#monate-laeuft");
+    if (hin) {
+      var satz = zeitApi().laufendeUhrSatz(uhrLaeuft);
+      hin.textContent = satz ? "Die Uhr laeuft gerade: " + satz : "";
+      hin.setAttribute("data-monate-laeuft", satz ? "ja" : "nein");
+      hin.hidden = !satz;
+    }
   }
 
   function uhrZeichnen() {
@@ -2761,7 +2815,13 @@
       if (e.feierabend) r.className += " uhr-schluss";
       if (e.automatisch) r.setAttribute("data-herkunft", "fahrt");
       r.appendChild(el("td", null, new Date(e.von).toLocaleString("de-DE")));
-      var woran = el("td", null, e.was || "—");
+      /* ⚠ NUR DER TEXT WIRD GEFALTET, NICHT DIE ZELLE. Der ✎-Knopf und die
+         Zusatz-Angaben ("ausgecheckt", "aus dem Fahrtenbuch") bleiben
+         draussen — ein Knopf in einem geschlossenen Aufklapper ist
+         unsichtbar, und das hat in dieser Sitzung schon zweimal Zeit
+         gekostet. */
+      var woran = el("td");
+      woran.appendChild(langerText(e.was || "—"));
       /* Der Schlussstrich steht IN der Zeile — man sieht, wo ein Arbeitstag
          zu Ende war und wo nur eine Pause lag. */
       if (e.feierabend) woran.appendChild(el("small", "leise", "  — ausgecheckt"));
@@ -2972,6 +3032,8 @@
     if (ohne)
       z.push(ohne + " Fahrt(en) ohne gemessene Spanne zaehlen nicht mit " +
         "(vor dem 2026-08-24 eingetragen).");
+    var lauf = zeitApi().laufendeUhrSatz(uhrLaeuft);
+    if (lauf) { z.push(lauf); }
     z.push("Gemessen wird vom Start des Befehls bis zu seinem Ende. Die Zeit davor");
     z.push("(Depot holen, Schluessel bereitlegen, Auftrag aussuchen) misst niemand.");
     if (mitKosten && c) {
@@ -3142,6 +3204,8 @@
       z.push("  \"keine Kosten\" - es heisst, hier steht nichts.");
     }
     z.push("");
+    var lauf2 = zeitApi().laufendeUhrSatz(uhrLaeuft);
+    if (lauf2) { z.push(lauf2); z.push(""); }
     z.push("Die beiden Bloecke werden NICHT addiert: eine Fahrt laeuft oft,");
     z.push("waehrend die Stechuhr laeuft. Die Ueberschneidung steht oben.");
     return z.join("\n");
