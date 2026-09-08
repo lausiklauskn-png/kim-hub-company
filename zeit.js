@@ -463,6 +463,40 @@
     return Math.round((Number(sek) || 0) / 3600 * cent);
   }
 
+  /*
+   * ⚠ ZWEI ZEITEN, DIE NICHT DASSELBE MESSEN (Klaus 2026-09-08: "fuer die
+   * Agententaetigkeit die Stunden auch da einen Gesamtdashboard").
+   *
+   * Klaus' Stechuhr misst, wie lange ER an der Werkstatt war. Das Fahrtenbuch
+   * misst, wie lange die AGENTEN gefahren sind — und was das gekostet hat.
+   * Beide zusammenzuzaehlen waere falsch: eine Fahrt laeuft haeufig, waehrend
+   * die Stechuhr laeuft, und die Ueberschneidung ist in `gesamt.doppeltSek`
+   * schon behandelt. Sie stehen deshalb NEBENEINANDER, nicht addiert.
+   *
+   * Trockenlaeufe zaehlen bei der Dauer mit und beim Geld NICHT — sie sind
+   * Arbeit, aber keine Ausgabe. Ein Buch, das nur die teuren Tage kennt,
+   * beantwortet "wurde hier gearbeitet?" falsch.
+   */
+  function agentenSummen(fahrten) {
+    var f = (fahrten || []).filter(function (x) { return x && typeof x === "object"; });
+    var s = { fahrten: f.length, echte: 0, trocken: 0, abbrueche: 0,
+              minuten: 0, kostenCent: 0, aufrufe: 0, tage: 0 };
+    var tage = {};
+    f.forEach(function (x) {
+      var art = String(x.art || "");
+      if (art === "trocken") s.trocken++;
+      else { s.echte++; s.kostenCent += Math.round((Number(x.eur) || 0) * 100); }
+      if (art === "abbruch") s.abbrueche++;
+      s.minuten += Number(x.minuten) || 0;
+      s.aufrufe += Number(x.aufrufe) || 0;
+      var t = String(x.tag || "").slice(0, 10);
+      if (t) tage[t] = true;
+    });
+    s.minuten = Math.round(s.minuten * 10) / 10;
+    s.tage = Object.keys(tage).length;
+    return s;
+  }
+
   function dashboardPaket(abschnitte, opts) {
     var o = opts || {};
     var liste = (abschnitte || []).filter(function (e) { return e && !e.laeuft; });
@@ -515,6 +549,17 @@
       ]
     };
     if (satz) paket.satzCent = satz;
+    /* NUR wenn ein Buch uebergeben wurde. Ein leerer Block sähe aus wie
+       "null Fahrten" — und das ist etwas anderes als "kein Buch hier". */
+    if (o.fahrten) {
+      paket.agenten = agentenSummen(o.fahrten);
+      paket.hinweise.push(
+        "agenten und gesamt sind NICHT zu addieren: eine Fahrt laeuft oft, " +
+        "waehrend die Stechuhr laeuft. Die Ueberschneidung steht in " +
+        "gesamt.doppeltSek.",
+        "agenten.kostenCent zaehlt nur echte Fahrten - Trockenlaeufe stehen " +
+        "in fahrten und trocken, kosten aber nichts.");
+    }
     return paket;
   }
 
@@ -545,6 +590,55 @@
    * haben nie denselben; ein Abschnitt, der aus derselben Sicherung zweimal
    * kommt, sehr wohl.
    */
+  /*
+   * ⚠ EINE SICHERUNG, DIE NUR IHREN DATEINAMEN MELDET, IST KEINE AUSKUNFT
+   * (Klaus 2026-09-08, an zwei heruntergeladenen Paketen gemessen). Er hat
+   * zweimal abgelegt und beide fuer leer gehalten: ein verschluesseltes Paket
+   * sieht bei jedem Lauf voellig anders aus (frisches salt + iv), und im
+   * Dateinamen steht nicht, ob etwas drin ist. Gemessen trugen beide 702 Byte
+   * verschluesselt — rund 686 Zeichen Klartext, also echte Zeilen; eine leere
+   * Liste waere rund 32 Byte gewesen. Der Unterschied war da, nur nicht zu
+   * sehen. Die Zahl wird deshalb VOR dem Verschluessen gezaehlt und in die
+   * Meldung geschrieben.
+   *
+   * Die Regel steht hier statt in der Ansicht, weil sie nachrechenbar ist —
+   * dieselbe Naht wie bei den Monatssummen.
+   */
+  /*
+   * ⚠ ZWEI DATEIEN MIT DEMSELBEN NAMEN SIND NICHT ZU UNTERSCHEIDEN (Klaus
+   * 2026-09-08: "den json Dateinamen bitte etwas genauer benennen, damit er
+   * leichter unterschieden und am Namen besser geordnet werden kann"). Er hat
+   * zweimal abgelegt und bekam "stechuhr.enc.json" und "stechuhr.enc_1.json" —
+   * die Nummer haengt Chrome an, sie sagt nichts ueber den Inhalt.
+   *
+   * Das Datum steht VORNE nach Jahr-Monat-Tag-Stunde-Minute: so ordnet jede
+   * Dateiliste sie von selbst chronologisch. Ein Datum am Ende oder in
+   * deutscher Schreibweise (08.09.2026) sortiert nach Tag, nicht nach Zeit.
+   */
+  function dateiName(art, endung, jetzt) {
+    var d = jetzt instanceof Date ? jetzt : (jetzt ? new Date(jetzt) : new Date());
+    if (isNaN(d.getTime())) d = new Date();
+    var zz = function (n) { return (n < 10 ? "0" : "") + n; };
+    var stempel = d.getFullYear() + "-" + zz(d.getMonth() + 1) + "-" + zz(d.getDate())
+      + "_" + zz(d.getHours()) + zz(d.getMinutes());
+    var sauber = String(art || "datei").replace(/[^A-Za-z0-9_-]+/g, "-");
+    var e = String(endung || "").replace(/^\.+/, "");
+    return "kimhub_" + stempel + "_" + sauber + (e ? "." + e : "");
+  }
+
+  function paketInhalt(name, obj) {
+    if (!obj || typeof obj !== "object") return null;
+    var n, ein, viele;
+    /* Die Mehrzahl wird GENANNT, nicht angehaengt. Ein "n" hinter jedes Wort
+       zu haengen ergab "2 Belegn" — gefunden beim ersten Lauf. */
+    if (Array.isArray(obj.stechuhr)) { n = obj.stechuhr.length; ein = "Abschnitt"; viele = "Abschnitte"; }
+    else if (Array.isArray(obj.belege)) { n = obj.belege.length; ein = "Beleg"; viele = "Belege"; }
+    else if (Array.isArray(obj.zeiten)) { n = obj.zeiten.length; ein = "Zeile"; viele = "Zeilen"; }
+    else if (Array.isArray(obj)) { n = obj.length; ein = "Eintrag"; viele = "Eintraege"; }
+    else return null;
+    return n + " " + (n === 1 ? ein : viele);
+  }
+
   function stechuhrZusammenfuehren(vorhanden, neu) {
     var raus = [], kenne = {}, dazu = 0, schonDa = 0;
     (Array.isArray(vorhanden) ? vorhanden : []).forEach(function (e) {
@@ -576,7 +670,9 @@
     startSetztNeuAn: startSetztNeuAn,
     monatsSummen: monatsSummen, monatsSchluessel: monatsSchluessel,
     dashboardPaket: dashboardPaket, kostenCent: kostenCent, PAKET_FASSUNG: PAKET_FASSUNG,
-    stechuhrZusammenfuehren: stechuhrZusammenfuehren
+    stechuhrZusammenfuehren: stechuhrZusammenfuehren,
+    paketInhalt: paketInhalt, agentenSummen: agentenSummen,
+    dateiName: dateiName
   };
 })(typeof window !== "undefined" ? window
    : (typeof globalThis !== "undefined" ? globalThis : null));
