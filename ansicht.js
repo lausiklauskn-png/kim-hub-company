@@ -5924,7 +5924,12 @@
    * bleibt der Schimmer in der Mitte und der Knopf sieht trotzdem richtig aus.
    */
   document.addEventListener("pointermove", function (ev) {
-    var k = ev.target && ev.target.closest && ev.target.closest("button");
+    /* ⚠ UND DIE ZUGEKLAPPTEN KARTEN AUCH (Klaus 2026-09-08 spät): sie tragen
+       seitdem dieselben Knopf-Regeln, also braucht ihr `::before` dieselben
+       Zeiger-Werte. Ohne diese Zeile saehe die Karte aus wie ein Knopf und
+       verhielte sich nicht so — genau die halbe Sache, die auffaellt. */
+    var k = ev.target && ev.target.closest
+      && ev.target.closest("button, details.falt > summary");
     if (!k) return;
     var r = k.getBoundingClientRect();
     k.style.setProperty("--mx", Math.round(((ev.clientX - r.left) / r.width) * 100) + "%");
