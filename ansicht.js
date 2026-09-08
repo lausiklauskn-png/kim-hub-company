@@ -4287,10 +4287,37 @@
 
     // Aktualisieren: nur eine GEÄNDERTE Adresse ist für den Cache eine andere
     // Datei. location.reload() genügt nicht, reload(true) ignorieren die Browser.
+    //
+    // ⚠ NUR DIE EIGENEN VORRÄTE. `caches` gehört dem URSPRUNG, nicht dem Pfad —
+    // und auf `lausiklauskn-png.github.io` liegen rund dreissig Apps. Bis zum
+    // 2026-09-08 löschte diese Zeile JEDEN Vorrat des Ursprungs: ein ⟳ hier nahm
+    // dem Rezeptbuch, dem Mixarium und allen anderen ihren Offline-Vorrat.
+    // Gemessen und netzweit repariert — `Sage-Protokol/docs/BEFUND_geteilter-vorrat.md`.
+    //
+    // DER PRÄFIX KOMMT VOM WIRT, nicht aus dieser Datei. `ansicht.js` ist in
+    // Kimhub und in kim-hub-company byte-1:1 dieselbe Datei (Drift-Guard), und
+    // die beiden tragen verschiedene Vorräte: `kimhub-werkstatt-` bzw.
+    // `kim-hub-company-`. Ein hier eingetragener Name wäre für eine der beiden
+    // Apps falsch — und zwar still, denn gelöscht würde trotzdem.
+    //
+    // `SBKIM_VORRAT_PRAEFIX` heisst so, weil es die NETZWEITE Marke ist: Modul 22
+    // liest sie genauso, und Sages Scanner (`tools/vorrat-scan.mjs`) erkennt sie.
+    // Kimhub trägt kein SBKIM-Modul; ein zweiter Name für dieselbe Sache liefe
+    // trotzdem auseinander, und der Scanner meldete diese Stelle als „unklar".
+    //
+    // OHNE die Marke wird NICHTS gelöscht (fail-soft: lieber ein eigener Vorrat
+    // zu viel als dreissig fremde zu wenig). Der ⟳ wirkt auch dann — die
+    // geänderte Adresse ist für den Cache eine andere Datei.
     $("#frisch").addEventListener("click", function () {
       var weg = location.pathname + "?frisch=" + Date.now();
-      if (window.caches && caches.keys) {
-        caches.keys().then(function (n) { return Promise.all(n.map(function (x) { return caches.delete(x); })); })
+      var praefixe = [].concat(window.SBKIM_VORRAT_PRAEFIX || [])
+        .filter(function (p) { return typeof p === "string" && p; });
+      var eigener = function (k) {
+        return praefixe.some(function (p) { return k.indexOf(p) === 0; });
+      };
+      if (praefixe.length && window.caches && caches.keys) {
+        caches.keys()
+          .then(function (n) { return Promise.all(n.filter(eigener).map(function (x) { return caches.delete(x); })); })
           .then(function () { location.replace(weg); }, function () { location.replace(weg); });
       } else location.replace(weg);
     });
