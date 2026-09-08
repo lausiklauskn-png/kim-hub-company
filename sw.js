@@ -20,7 +20,7 @@
  * die der Drift-Guard NICHT pinnt. Und er heisst `sw.js`, weil `ansicht.js`
  * genau diesen Namen registriert: eine Naht weniger.
  */
-var CACHE_VERSION = "kim-hub-company-v35";
+var CACHE_VERSION = "kim-hub-company-v36";
 var SCHALE = [
   "./", "./index.html", "./company.webmanifest", "./version.json",
   "./idb.js", "./schluesseltresor.js", "./zeit.js", "./kassen.js", "./ansicht.js", "./company.js",

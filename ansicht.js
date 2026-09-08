@@ -4693,6 +4693,22 @@
       var wohin = function (o) {
         if (o && o.belege) return "belege";
         if (o && o.tage) return "zeiten";
+        /*
+         * ⚠ DIE STECHUHR GEHOERTE HIER VON ANFANG AN HIN (Klaus 2026-09-08,
+         * beim ersten Versuch, seine 469 Minuten zurueckzuholen).
+         *
+         * Am selben Tag habe ich den Tresor gelehrt, die Stechuhr ABZULEGEN —
+         * und den Einlese-Zweig dafuer in den ANDEREN Weg gebaut ("⭱ Lauf
+         * laden"). Der Tresor konnte sie damit hineinlegen und nicht wieder
+         * herausholen: genau das, was die Verfassung schon einmal gelernt hat
+         * ("ein Tresor, aus dem man nichts herausholen kann, ist ein
+         * Briefkasten"), nur an einer neuen Datei.
+         *
+         * Und die Meldung darauf war die irrefuehrende Sorte: "Darin steht
+         * weder eine Beleg- noch eine Zeiten-Liste" — wahr fuer das, was der
+         * Code kannte, und falsch fuer das, was in der Datei stand.
+         */
+        if (o && Array.isArray(o.stechuhr)) return "stechuhr";
         return null;
       };
       tresorSagen("Wird gelesen …", "rechnet");
@@ -4709,6 +4725,22 @@
       }).then(function (o) {
         var ziel = wohin(o);
         if (!ziel) throw new Error("unbekannt");
+        /*
+         * ⚠ ZUSAMMENGEFUEHRT, NICHT ERSETZT — und deshalb ein eigener Zweig.
+         * Die Stechuhr wohnt im localStorage, nicht in IndexedDB, und ein
+         * Import, der ersetzt, loescht den Bestand des Ziel-Browsers still.
+         * Genau darum geht es bei Klaus: zwei Browser, zwei Zeitbestaende.
+         */
+        if (ziel === "stechuhr") {
+          var zus = zeitApi().stechuhrZusammenfuehren(uhrAbschnitte(), o.stechuhr);
+          schreib("stechuhr", zus.liste);
+          uhrZeichnen(); zeichneProtokoll(); tresorZeichnen();
+          tresorSagen("Stechuhr eingelesen — " + zus.dazu + " Abschnitt(e) dazu"
+            + (zus.schonDa ? ", " + zus.schonDa + " waren schon da" : "")
+            + ". Deine hiesigen Zeilen bleiben; zusammengefuehrt wird ueber den"
+            + " Beginn, dieselbe Zeile kommt also nur einmal an.", "eingelesen");
+          return;
+        }
         return idbSchreib(BH_SCHLUESSEL[ziel], JSON.stringify(o))
           .then(speicherDauerhaft).then(function () {
             daten[ziel] = o; delete verschlossen[ziel]; woher[ziel] = "eingelesen";
@@ -4722,7 +4754,7 @@
           grund === "alt-fehlt" ? "Die Datei ist verschlossen — das Passwort fehlt (Feld darueber)."
           : grund === "fassung" ? "Diese Sicherung stammt aus einer neueren Fassung —"
             + " diese Seite kann sie nicht oeffnen. Am Passwort liegt es nicht."
-          : grund === "unbekannt" ? "Darin steht weder eine Beleg- noch eine Zeiten-Liste."
+          : grund === "unbekannt" ? "Darin steht keine Beleg-, Zeiten- oder Stechuhr-Liste."
           : "Ging nicht: falsches Passwort, oder die Datei ist kein JSON.",
           grund === "unbekannt" ? "unbekannt" : grund === "fassung" ? "fassung" : "fehler");
       });
