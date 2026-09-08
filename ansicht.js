@@ -2522,6 +2522,80 @@
     try { feld.focus(); } catch (ignoriert) {}
   }
 
+  /*
+   * ══ DIE MONATSTABELLE ══════════════════════════════════════════════════════
+   *
+   * Klaus 2026-09-08: „die stunden trotzdem erfassen immer für den jeweiligen
+   * Monat am Ende zusammengefasst, damit es später in einem Dashboard erfasst
+   * werden kann."
+   *
+   * Die Rechnung liegt in `zeit.js` (`monatsSummen`) — dort ist sie ohne
+   * Browser messbar. Hier steht nur die Darstellung.
+   *
+   * ⚠ DER BETRAG NUR MIT SATZ. Ohne hinterlegten Stundensatz steht kein
+   * „0,00 €" da: die Stunden sind gemessen, der Betrag nicht. Eine geratene
+   * Zahl klingt genau wie eine gemessene.
+   */
+  var MONATSNAMEN = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli",
+                     "August", "September", "Oktober", "November", "Dezember"];
+
+  function monatName(schluessel) {
+    var t = String(schluessel).split("-");
+    var i = Number(t[1]) - 1;
+    return (MONATSNAMEN[i] || t[1]) + " " + t[0];
+  }
+
+  function zeichneMonate() {
+    var t = $("#uhr-monate");
+    if (!t) return;
+    var koerper = el("tbody"); leer(t);
+    var reihen = zeitApi().monatsSummen(alleAbschnitte());
+    t.setAttribute("data-monate", String(reihen.length));
+    if (!reihen.length) {
+      var z = el("tr"); z.appendChild(el("td", "leise", "Noch nichts zu summieren."));
+      koerper.appendChild(z); t.appendChild(koerper); return;
+    }
+    var c = satzCent();
+    var kopf = el("tr");
+    var spalten = ["Monat", "gestempelt", "gefahren", "zusammen"];
+    if (c) spalten.push("Betrag");
+    spalten.forEach(function (h, i) { kopf.appendChild(el("th", i === 0 ? null : "zahl", h)); });
+    koerper.appendChild(kopf);
+
+    var gesamt = 0;
+    reihen.forEach(function (m) {
+      gesamt += m.sekunden;
+      var r = el("tr");
+      r.setAttribute("data-monat", m.monat);
+      r.setAttribute("data-sekunden", String(Math.round(m.sekunden)));
+      r.appendChild(el("td", null, monatName(m.monat)));
+      r.appendChild(el("td", "zahl", uhrzeit(m.gestempeltSek)));
+      r.appendChild(el("td", "zahl", uhrzeit(m.gefahrenSek)));
+      var zus = el("td", "zahl", uhrzeit(m.sekunden));
+      /* Was doppelt dalag, steht IN der Zeile — sonst rechnet der Leser
+         gestempelt + gefahren zusammen und findet einen Fehler, der keiner
+         ist. Dieselbe Regel wie in der Kachel oben. */
+      if (m.doppeltSek >= 1)
+        zus.appendChild(el("small", "leise", " (davon " + uhrzeit(m.doppeltSek) + " doppelt)"));
+      r.appendChild(zus);
+      if (c) r.appendChild(el("td", "zahl", eur(zeitkostenCent(m.sekunden, c) / 100)));
+      koerper.appendChild(r);
+    });
+
+    /* Die Fusszeile ist die Gegenprobe zur Kachel oben: beide muessen dieselbe
+       Gesamtzeit nennen. Steht sie nicht da, kann niemand nachrechnen, ob die
+       Monatsaufteilung vollstaendig ist. */
+    var f = el("tr");
+    f.setAttribute("data-monate-gesamt", String(Math.round(gesamt)));
+    f.appendChild(el("td", null, "zusammen"));
+    f.appendChild(el("td", "zahl", ""));
+    f.appendChild(el("td", "zahl", ""));
+    f.appendChild(el("td", "zahl", uhrzeit(gesamt)));
+    if (c) f.appendChild(el("td", "zahl", eur(zeitkostenCent(gesamt, c) / 100)));
+    koerper.appendChild(f);
+    t.appendChild(koerper);
+  }
+
   function uhrZeichnen() {
     var t = $("#uhr-liste"), koerper = el("tbody"); leer(t);
     var gesamt = uhrGesamt();
@@ -2697,6 +2771,7 @@
       o.appendChild(ot); koerper.appendChild(o);
     }
     t.appendChild(koerper);
+    zeichneMonate();
   }
 
   /* Die große Anzeige — der STAND der Stoppuhr, nicht der laufende Abschnitt.
@@ -2719,7 +2794,7 @@
     var lage = $("#uhr-lage");
     if (lage) {
       var aus = !uhrLaeuft && zeitApi().standAusgecheckt(uhrAbschnitte(), uhrNull());
-      lage.textContent = aus ? "ausgecheckt \u2014 \u27f2 beginnt eine neue Z\u00e4hlung" : "";
+      lage.textContent = aus ? "ausgecheckt \u2014 \u25b6 beginnt eine neue Z\u00e4hlung" : "";
       lage.setAttribute("data-uhr-lage", aus ? "ausgecheckt" : (uhrLaeuft ? "laeuft" : "bereit"));
     }
     var st = $("#uhr-start");
@@ -2737,8 +2812,13 @@
       st.setAttribute("aria-pressed", uhrLaeuft ? "true" : "false");
       st.setAttribute("data-uhr", uhrLaeuft ? "laeuft" : "bereit");
       st.textContent = uhrLaeuft ? "❚❚ Pause" : "▶ Start";
+      /* Der Knopf sagt selbst, was er als Naechstes tut — nach einem
+         Feierabend ist das etwas anderes als nach einer Pause. */
+      var neuAn = zeitApi().startSetztNeuAn(!!uhrLaeuft, uhrAbschnitte(), uhrNull());
       st.title = uhrLaeuft ? "Pause — ▶ zählt danach weiter"
-                           : "Start — und beim zweiten Druck Pause";
+               : neuAn ? "Start — beginnt eine neue Zählung; der Verlauf bleibt vollständig"
+                       : "Start — und beim zweiten Druck Pause";
+      st.setAttribute("data-uhr-neu-an", neuAn ? "ja" : "nein");
     }
   }
 
@@ -2835,6 +2915,48 @@
       z.push("Geld, wenn sie produktiv bzw. abrechenbar genutzt wird.");
     } else if (mitKosten) {
       z.push("Arbeitskosten: nicht gerechnet - kein Stundensatz hinterlegt.");
+    }
+
+    /*
+     * ⚠ DIE MONATE REISEN MIT (Klaus 2026-09-08): „damit es später in einem
+     * Dashboard erfasst werden kann." Ein Dashboard bekommt seine Zahlen aus
+     * DIESEM Block — die Seite kann nicht selbst ins Depot schreiben.
+     *
+     * Feste Feldliste wie die Zeilen darueber: was hier nicht ausdruecklich
+     * steht, kann nicht hinaus, auch wenn morgen ein Feld dazukommt. Der
+     * Betrag nur, wenn der Satz ausdruecklich mitgegeben wird — er ist eine
+     * INTERNE Kalkulationszahl.
+     */
+    var monate = zeitApi().monatsSummen(liste);
+    if (monate.length) {
+      z.push("");
+      z.push("Monatssummen");
+      z.push(new Array(50).join("-"));
+      z.push("Monat    |  gestempelt  |  gefahren  |  zusammen (min)" +
+             (mitKosten && c ? "  |  Betrag" : ""));
+      var summeMonate = 0;
+      monate.forEach(function (m) {
+        summeMonate += m.sekunden;
+        var teile = [m.monat,
+                     minuten(m.gestempeltSek).toFixed(1).replace(".", ",") + " min",
+                     minuten(m.gefahrenSek).toFixed(1).replace(".", ",") + " min",
+                     minuten(m.sekunden).toFixed(1).replace(".", ",") + " min"];
+        if (mitKosten && c) teile.push(eur(zeitkostenCent(m.sekunden, c) / 100));
+        z.push(teile.join("  |  "));
+      });
+      z.push(new Array(50).join("-"));
+      /*
+       * ⚠ DIE PROBE AUFS EXEMPEL STEHT DABEI. Die Summe der Monate MUSS die
+       * Gesamtzeit sein — dafuer wird ein Abschnitt an der Monatsgrenze
+       * geteilt. Wer die Zahl nicht danebenschreibt, laesst den Leser raten,
+       * ob die Aufteilung vollstaendig ist; und eine unvollstaendige sieht
+       * genauso aus wie eine vollstaendige.
+       */
+      z.push("Summe der Monate: " + minuten(summeMonate).toFixed(1).replace(".", ",") +
+             " min - dieselbe Gesamtzeit wie oben.");
+      z.push("Ein Abschnitt ueber den Monatswechsel wird geteilt, nicht seinem");
+      z.push("Startmonat zugeschlagen. Jeder Monat ist fuer sich vereinigt:");
+      z.push("doppelt Erfasstes zaehlt auch dort nur einmal.");
     }
     z.push("");
     return z.join("\n");
@@ -3828,7 +3950,25 @@
         zeichneProtokoll();
         return;
       }
-      uhrLaeuft = { von: Date.now(), was: $("#uhr-was").value.trim() };
+      /*
+       * ⚠ NACH DEM AUSCHECKEN BEGINNT ▶ NEU (Klaus 2026-09-08: „ja, ▶ soll
+       * nach dem Auschecken neu zählen"). Nach einer PAUSE nicht — das ist
+       * seine erste Beschwerde in die andere Richtung, und sie gilt weiter.
+       * Die Unterscheidung steht in `zeit.js` (`startSetztNeuAn`), damit sie
+       * ohne Browser messbar ist.
+       *
+       * Neu gezählt wird über die ⟲-Marke, genau wie beim ⟲-Knopf: keine
+       * Zeile geht verloren, und die Kachel oben zählt weiter alles.
+       *
+       * ⚠ EIN Zeitstempel für beides. Zwei getrennte `Date.now()` könnten die
+       * Marke eine Millisekunde HINTER den Beginn legen — dann fiele der
+       * frisch gestartete Abschnitt aus seiner eigenen Zählung.
+       */
+      var jetzt = Date.now();
+      if (zeitApi().startSetztNeuAn(false, uhrAbschnitte(), uhrNull())) {
+        schreib("uhrNull", jetzt);
+      }
+      uhrLaeuft = { von: jetzt, was: $("#uhr-was").value.trim() };
       /* IN DEN SPEICHER, SOFORT. Das ist der eigentliche Fix (Klaus: „Nach
          jedem Aktualisieren startet es wieder bei null") — und die Zeile, die
          WorkFloh mit `persist()` seit jeher hat. Ohne sie lebt der laufende
