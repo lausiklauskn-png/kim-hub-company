@@ -518,6 +518,56 @@
     return paket;
   }
 
+
+  /*
+   * ══ ZWEI STECHUHREN ZUSAMMENFUEHREN (Klaus 2026-09-08) ═════════════════════
+   *
+   * Sein Befund: „im Prinzip die Daten, die ich für meinen Stundennachweis
+   * benötige" — er wollte sie sichern und bekam nichts.
+   *
+   * ⚠ DER GRUND WAR SCHLIMMER ALS DAS FEHLENDE SIGNAL: die Stechuhr war in der
+   * Sicherung ueberhaupt nicht drin. Der Tresor packte `belege` (die
+   * Anthropic-Rechnungen) und `zeiten` (die BAUZEITEN aus der Git-Historie) —
+   * die gestempelten Abschnitte leben im `localStorage` und hatten keinen
+   * einzigen Weg nach draussen. Klaus' Stundennachweis war unsicherbar, und
+   * ich hatte ihm am selben Morgen das Gegenteil gesagt.
+   *
+   * ⚠ EINGELESEN WIRD ZUSAMMENGEFUEHRT, NIE ERSETZT. Er hat zwei Browser mit
+   * je eigenen Zeiten (990 min und 469 min). Ein Import, der ersetzt, loescht
+   * einen davon — und zwar still, denn danach sieht die Liste vollstaendig
+   * aus. Dieselbe Regel wie bei ⟲: es geht keine Zeile verloren.
+   *
+   * ⚠ UND DER VORHANDENE EINTRAG GEWINNT. Wer eine Zeile hier beschriftet hat
+   * und danach eine aeltere Sicherung einliest, soll seine Beschriftung
+   * behalten. Ein Import, der zurueckschreibt, waere eine Zeitmaschine.
+   *
+   * Erkannt wird an `von` — dem Beginn in Millisekunden. Zwei echte Abschnitte
+   * haben nie denselben; ein Abschnitt, der aus derselben Sicherung zweimal
+   * kommt, sehr wohl.
+   */
+  function stechuhrZusammenfuehren(vorhanden, neu) {
+    var raus = [], kenne = {}, dazu = 0, schonDa = 0;
+    (Array.isArray(vorhanden) ? vorhanden : []).forEach(function (e) {
+      if (!e || typeof e !== "object") return;
+      var k = String(Number(e.von) || 0);
+      if (kenne[k]) { schonDa++; return; }
+      kenne[k] = true; raus.push(e);
+    });
+    (Array.isArray(neu) ? neu : []).forEach(function (e) {
+      if (!e || typeof e !== "object") return;
+      var von = Number(e.von) || 0;
+      /* Eine Zeile ohne Beginn hat keinen Platz in der Zeitrechnung — sie
+         waere weder zu ordnen noch von einer zweiten zu unterscheiden. */
+      if (!von) return;
+      var k = String(von);
+      if (kenne[k]) { schonDa++; return; }
+      kenne[k] = true; raus.push(e);
+      dazu++;
+    });
+    raus.sort(function (a, b) { return (Number(a.von) || 0) - (Number(b.von) || 0); });
+    return { liste: raus, dazu: dazu, schonDa: schonDa };
+  }
+
   if (welt) welt.WERKSTATT_ZEIT = {
     fahrtAbschnitte: fahrtAbschnitte, vereinigt: vereinigt, dauerText: dauerText,
     tagOrt: tagOrt, aufteilung: aufteilung,
@@ -525,7 +575,8 @@
     dauerLang: dauerLang, standAusgecheckt: standAusgecheckt,
     startSetztNeuAn: startSetztNeuAn,
     monatsSummen: monatsSummen, monatsSchluessel: monatsSchluessel,
-    dashboardPaket: dashboardPaket, kostenCent: kostenCent, PAKET_FASSUNG: PAKET_FASSUNG
+    dashboardPaket: dashboardPaket, kostenCent: kostenCent, PAKET_FASSUNG: PAKET_FASSUNG,
+    stechuhrZusammenfuehren: stechuhrZusammenfuehren
   };
 })(typeof window !== "undefined" ? window
    : (typeof globalThis !== "undefined" ? globalThis : null));
