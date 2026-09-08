@@ -1298,6 +1298,41 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
         </div>
       </div>
 
+      <!-- ══ ÄNDERN — jederzeit, aber NUR mit dem alten Code ═══════════════
+           Klaus 2026-09-08: „Das Chefpasswort sollte noch änderbar sein,
+           jederzeit … also aktualisiert werden können oder geändert werden
+           können mit dem alten Passwort natürlich."
+
+           ⚠ DAS IST NICHT DAS ZURÜCKSETZEN, DAS HIER BEWUSST FEHLT. Ein Knopf,
+           der den Code von innen löscht, nähme ihm jede Wirkung — wer die
+           Zahlen nicht sehen soll, drückte einfach ihn. Ein Wechsel MIT dem
+           alten Code schwächt nichts: wer den alten nicht kennt, kommt auch
+           hier nicht durch.
+
+           ⚠ UND DER ALTE CODE WIRD AUCH IM ZUSTAND „OFFEN" VERLANGT. „Offen"
+           ist ein Fenster-Zustand, kein Beweis: wer an ein entsperrtes Tablet
+           tritt, auf dem die Zahlen gerade sichtbar sind, könnte sonst den Code
+           umsetzen und Klaus aus seinen eigenen Zahlen aussperren. -->
+      <div id="chef-aendern" hidden data-chef-aendern="">
+        <h4 style="margin:14px 0 6px">Chef-Code ändern</h4>
+        <div class="pult">
+          <input id="chef-alt" type="password" autocomplete="current-password"
+                 placeholder="alter Chef-Code" style="flex:1 1 200px">
+        </div>
+        <div class="pult" style="margin-top:8px">
+          <input id="chef-wechsel" type="password" autocomplete="new-password"
+                 placeholder="neuer Chef-Code" style="flex:1 1 200px">
+          <input id="chef-wechsel2" type="password" autocomplete="new-password"
+                 placeholder="noch einmal" style="flex:1 1 200px">
+        </div>
+        <div class="pult" style="margin-top:8px">
+          <button id="chef-wechseln" type="button">🔁 Code ändern</button>
+        </div>
+        <p class="merkmale">
+          <span class="merkmal" data-chef-wechsel-regel="">ohne den alten Code geht es nicht — auch nicht bei offenen Zahlen</span>
+        </p>
+      </div>
+
       <p class="leise" id="chef-lage" data-chef-sagt="" style="margin:6px 0 0"></p>
 
       <!-- ⚠ DIESER ABSATZ IST DER WICHTIGSTE AUF DER KARTE. Ohne ihn verspricht
@@ -1311,10 +1346,18 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
           <b>keine Verschlüsselung</b>: wer die Entwickler-Werkzeuge des Browsers
           öffnet, kommt an den Speicher heran und liest sie doch. Das Schloss, das
           wirklich schützt, ist die verschlüsselte Sicherung im Tresor darunter.</p>
-        <p class="leise"><b>Es gibt kein Zurücksetzen.</b> Vergisst du den Code,
-          bleiben die Zahlen in diesem Browser verborgen. Der Weg zurück ist deine
-          Sicherung, eingelesen in einen frischen Browser — dort ist noch kein Code
-          gesetzt.</p>
+        <!-- ⚠ ZWEI AUSSAGEN, ZWEI MARKEN. Der erste Waechter hier suchte
+             „ändern" im ganzen Absatz — und fand es in der Ueberschrift
+             „Ändern ja", also auch dann noch, wenn der Satz darunter das
+             Gegenteil sagte. Der Gegenprobe-Fall rutschte genau so durch.
+             Dieselbe Falle wie bei `data-wo-grund`: eine Textsuche in der
+             eigenen Nachbarschaft misst die Nachbarschaft. -->
+        <p class="leise" data-chef-zurueck=""><b>Ändern ja, zurücksetzen nein.</b>
+          <span data-chef-wechsel-moeglich="">Mit dem alten Code lässt sich der
+          Chef-Code jederzeit wechseln.</span> <b>Ohne ihn gibt es keinen Weg
+          zurück</b>: vergisst du ihn, bleiben die Zahlen in diesem Browser
+          verborgen. Dann hilft nur deine Sicherung, eingelesen in einen frischen
+          Browser — dort ist noch kein Code gesetzt.</p>
       </details>
     </div>
 

@@ -20,7 +20,7 @@
  * die der Drift-Guard NICHT pinnt. Und er heisst `sw.js`, weil `ansicht.js`
  * genau diesen Namen registriert: eine Naht weniger.
  */
-var CACHE_VERSION = "kim-hub-company-v42";
+var CACHE_VERSION = "kim-hub-company-v43";
 
 /* ⚠ NUR EIGENE VORRAETE AUFRAEUMEN — `caches` gehoert dem URSPRUNG, nicht dem
  * Pfad. Auf lausiklauskn-png.github.io liegen rund zwanzig Apps; ein Filter,
