@@ -429,13 +429,103 @@
     });
   }
 
+
+  /*
+   * ══ DAS JSON FUER DAS DASHBOARD (Klaus 2026-09-08: „JSON für das Dashboard") ══
+   *
+   * Die Textfassung ist zum Lesen, diese hier zum Weiterverarbeiten. Beide
+   * kommen aus DENSELBEN Zahlen (`monatsSummen`) — zwei Rechenwege liefen
+   * auseinander, und dann saehe das Dashboard etwas anderes als der Mensch.
+   *
+   * ⚠ FESTE FELDLISTE, NICHT DER EINTRAG. Gebaut wird aus einer Positivliste;
+   * was hier nicht ausdruecklich steht, kann nicht hinaus, auch wenn morgen
+   * ein Feld dazukommt. Das ist die PRIME DIRECTIVE aus BookLedgerPro und der
+   * Grund, aus dem der interne Stundensatz nicht versehentlich mitreist.
+   *
+   * ⚠ DER BETRAG NUR AUF AUSDRUECKLICHE ANSAGE. `satzCent` ist eine INTERNE
+   * Kalkulationszahl. Ohne sie stehen im Paket keine Geldfelder — nicht
+   * `null`, nicht `0`: ein Feld, das immer dasteht und manchmal null ist,
+   * laedt ein Dashboard dazu ein, die Null zu zeichnen.
+   *
+   * ⚠ DIE ZEITZONE GEHOERT INS PAKET. Die Monate sind in ORTSZEIT gerechnet —
+   * „2026-09" heisst September DORT, wo gestempelt wurde. Ein Dashboard, das
+   * die Zone nicht kennt, verschiebt an jedem Monatswechsel Stunden.
+   *
+   * ⚠ UND WAS NICHT DRIN IST, STEHT DRIN. Die einzelnen Abschnitte reisen
+   * NICHT mit: Klaus hat Monatssummen bestellt. Eine stille Luecke wirft
+   * Fragen auf, eine benannte beantwortet sie — und wer die Zeilen braucht,
+   * nimmt die Textfassung daneben.
+   */
+  var PAKET_FASSUNG = 1;
+
+  function kostenCent(sek, cent) {
+    if (!cent) return null;
+    return Math.round((Number(sek) || 0) / 3600 * cent);
+  }
+
+  function dashboardPaket(abschnitte, opts) {
+    var o = opts || {};
+    var liste = (abschnitte || []).filter(function (e) { return e && !e.laeuft; });
+    var monate = monatsSummen(liste);
+    var v = vereinigt(liste);
+    var satz = Number(o.satzCent) || 0;
+
+    var runde = function (s) { return Math.round((Number(s) || 0) * 1000) / 1000; };
+    var minuten = function (s) { return Math.round((Number(s) || 0) / 6) / 10; };
+
+    var gesamt = {
+      sekunden: runde(v.sekunden),
+      minuten: minuten(v.sekunden),
+      gestempeltSek: runde(vereinigt(liste.filter(function (e) { return !e.automatisch; })).sekunden),
+      gefahrenSek: runde(vereinigt(liste.filter(function (e) { return e.automatisch; })).sekunden),
+      doppeltSek: runde(v.ueberlappungSek)
+    };
+    if (satz) gesamt.betragCent = kostenCent(v.sekunden, satz);
+
+    var paket = {
+      fassung: PAKET_FASSUNG,
+      art: "kimhub-stechuhr",
+      erzeugt: String(o.erzeugt || new Date().toISOString()),
+      zeitzone: String(o.zeitzone || ""),
+      gesamt: gesamt,
+      monate: monate.map(function (m) {
+        var z = {
+          monat: m.monat,
+          sekunden: runde(m.sekunden),
+          minuten: minuten(m.sekunden),
+          gestempeltSek: runde(m.gestempeltSek),
+          gefahrenSek: runde(m.gefahrenSek),
+          doppeltSek: runde(m.doppeltSek),
+          stuecke: m.stuecke
+        };
+        if (satz) z.betragCent = kostenCent(m.sekunden, satz);
+        return z;
+      }),
+      hinweise: [
+        "Die Summe der Monate IST die Gesamtzeit: ein Abschnitt ueber den " +
+          "Monatswechsel wird geteilt, nicht seinem Startmonat zugeschlagen.",
+        "Jeder Monat ist fuer sich vereinigt - doppelt Erfasstes (Stechuhr " +
+          "laeuft, waehrend eine Schicht faehrt) zaehlt nur einmal. " +
+          "gestempeltSek + gefahrenSek ist deshalb groesser als sekunden.",
+        "Die Monate sind in Ortszeit gerechnet, siehe Feld zeitzone.",
+        "Die einzelnen Abschnitte sind NICHT enthalten - dieses Paket traegt " +
+          "Monatssummen. Die Zeilen stehen in der Textfassung daneben.",
+        "Gemessen wird vom Start des Befehls bis zu seinem Ende; die Zeit " +
+          "davor misst niemand."
+      ]
+    };
+    if (satz) paket.satzCent = satz;
+    return paket;
+  }
+
   if (welt) welt.WERKSTATT_ZEIT = {
     fahrtAbschnitte: fahrtAbschnitte, vereinigt: vereinigt, dauerText: dauerText,
     tagOrt: tagOrt, aufteilung: aufteilung,
     zweckNachtragen: zweckNachtragen, ZEITFELDER: ZEITFELDER,
     dauerLang: dauerLang, standAusgecheckt: standAusgecheckt,
     startSetztNeuAn: startSetztNeuAn,
-    monatsSummen: monatsSummen, monatsSchluessel: monatsSchluessel
+    monatsSummen: monatsSummen, monatsSchluessel: monatsSchluessel,
+    dashboardPaket: dashboardPaket, kostenCent: kostenCent, PAKET_FASSUNG: PAKET_FASSUNG
   };
 })(typeof window !== "undefined" ? window
    : (typeof globalThis !== "undefined" ? globalThis : null));

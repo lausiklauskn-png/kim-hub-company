@@ -1080,8 +1080,12 @@
   var BOM = "\uFEFF";
   function alsDatei(text, typ) {
     /* Nicht bei HTML: das oeffnet der Browser selbst und liest den MIME-Typ —
-       dort waere der BOM ein Zeichen zu viel im Dokument. */
-    return /html/i.test(String(typ || "")) ? text : BOM + text;
+       dort waere der BOM ein Zeichen zu viel im Dokument.
+       ⚠ UND NICHT BEI JSON. `JSON.parse` bricht an einem BOM ab — eine Datei,
+       die aussieht wie Daten und beim Oeffnen scheitert. Dieselbe Lehre wie
+       beim Tresor-Paket am 2026-08-22; der BOM ist fuer MENSCHEN da, die eine
+       Textdatei auf dem Tablet oeffnen, nicht fuer einen Parser. */
+    return /html|json/i.test(String(typ || "")) ? text : BOM + text;
   }
 
   function mitnehmKnoepfe(wo, name, text, typ) {
@@ -2408,9 +2412,12 @@
     var c = Number(lies("stundensatzCent", null));
     return (isFinite(c) && c > 0) ? Math.round(c) : null;
   }
+  /* ⚠ EINE Rechnung, EINE Stelle. Sie liegt seit dem 2026-09-08 in `zeit.js`,
+     weil das Dashboard-Paket sie auch braucht — zwei Abschriften derselben
+     Geldrechnung liefen auseinander, und dann naennte die Datei einen anderen
+     Betrag als die Seite darueber. */
   function zeitkostenCent(sek, cent) {
-    if (!cent) return null;
-    return Math.round((sek / 3600) * cent);
+    return zeitApi().kostenCent(sek, cent);
   }
 
   /*
@@ -2979,6 +2986,34 @@
       return;
     }
     mitnehmKnoepfe(ziel, "klaus-zeit.txt", protokollText(), "text/plain");
+
+    /*
+     * ⚠ UND DAS JSON DANEBEN (Klaus 2026-09-08: „JSON für das Dashboard").
+     *
+     * Zwei Fassungen, EINE Quelle: beide rechnen aus `monatsSummen`. Die
+     * Textfassung ist zum Lesen, diese zum Weiterverarbeiten. Zwei Rechenwege
+     * liefen auseinander, und dann saehe das Dashboard etwas anderes als der
+     * Mensch daneben.
+     *
+     * Der Stundensatz reist nur mit, wenn er ausdruecklich mitgegeben wird —
+     * dieselbe Whitelist-Regel wie im Text.
+     */
+    var mitKosten = lies("satzMitgeben", false) === true;
+    var zone = "";
+    try { zone = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) { zone = ""; }
+    var paket = zeitApi().dashboardPaket(liste, {
+      erzeugt: new Date().toISOString(),
+      zeitzone: zone,
+      satzCent: mitKosten ? satzCent() : 0
+    });
+    var erklaerung = el("p", "leise");
+    erklaerung.setAttribute("data-json-erklaerung", "");
+    erklaerung.textContent = "Die JSON-Datei traegt die Monatssummen fuer ein " +
+      "Dashboard — dieselben Zahlen wie oben, nur maschinenlesbar. Die " +
+      "einzelnen Zeilen stehen nur in der Textfassung.";
+    ziel.appendChild(erklaerung);
+    mitnehmKnoepfe(ziel, "klaus-zeit.json",
+      JSON.stringify(paket, null, 2), "application/json");
   }
 
   // ── Abspielen ───────────────────────────────────────────────────────────
