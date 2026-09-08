@@ -21,6 +21,15 @@
  * genau diesen Namen registriert: eine Naht weniger.
  */
 var CACHE_VERSION = "kim-hub-company-v39";
+
+/* ⚠ NUR EIGENE VORRAETE AUFRAEUMEN — `caches` gehoert dem URSPRUNG, nicht dem
+ * Pfad. Auf lausiklauskn-png.github.io liegen rund zwanzig Apps; ein Filter,
+ * der nur "ist nicht meiner" fragt, laesst ALLE fremden durch und loescht sie.
+ * Gemessen am 2026-09-08 an zwei echten Apps
+ * (Sage-Protokol/tests/vorrat_wirkung.mjs). Praefix ABGELESEN aus der
+ * Vorrat-Konstante, nicht geraten. Muster aus Tomys-Hub/bookledger/sw.js.
+ * Es muss BEIDES tun: fremde stehen lassen UND eigene alte weiter wegraeumen. */
+var VORRAT_PRAEFIX = "kim-hub-company-";
 var SCHALE = [
   "./", "./index.html", "./company.webmanifest", "./version.json",
   "./idb.js", "./schluesseltresor.js", "./zeit.js", "./kassen.js", "./ansicht.js", "./company.js",
@@ -47,7 +56,7 @@ self.addEventListener("install", function (e) {
 
 self.addEventListener("activate", function (e) {
   e.waitUntil(caches.keys().then(function (n) {
-    return Promise.all(n.filter(function (k) { return k !== CACHE_VERSION; })
+    return Promise.all(n.filter(function (k) { return k.startsWith(VORRAT_PRAEFIX) && k !== CACHE_VERSION; })
       .map(function (k) { return caches.delete(k); }));
   }).then(function () { return self.clients.claim(); }));
 });
