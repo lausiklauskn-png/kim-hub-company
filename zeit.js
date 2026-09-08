@@ -464,38 +464,31 @@
   }
 
   /*
-   * ⚠ ZWEI ZEITEN, DIE NICHT DASSELBE MESSEN (Klaus 2026-09-08: "fuer die
-   * Agententaetigkeit die Stunden auch da einen Gesamtdashboard").
+   * ⚠ DIE RECHNUNG UEBER DIE FAHRTEN STEHT NICHT HIER — sie steht in
+   * `kassen.js` als `fahrtSummen()`, und dort bleibt sie.
    *
-   * Klaus' Stechuhr misst, wie lange ER an der Werkstatt war. Das Fahrtenbuch
-   * misst, wie lange die AGENTEN gefahren sind — und was das gekostet hat.
-   * Beide zusammenzuzaehlen waere falsch: eine Fahrt laeuft haeufig, waehrend
-   * die Stechuhr laeuft, und die Ueberschneidung ist in `gesamt.doppeltSek`
-   * schon behandelt. Sie stehen deshalb NEBENEINANDER, nicht addiert.
+   * Am 2026-09-08 habe ich sie hier ein zweites Mal gebaut, und sie ist
+   * SOFORT auseinandergelaufen. Klaus' Seite zeigte nebeneinander:
    *
-   * Trockenlaeufe zaehlen bei der Dauer mit und beim Geld NICHT — sie sind
-   * Arbeit, aber keine Ausgabe. Ein Buch, das nur die teuren Tage kennt,
-   * beantwortet "wurde hier gearbeitet?" falsch.
+   *   Fahrtenbuch-Kachel   1,63 EUR   ·  7 mit Kosten (11 echt gemeint)
+   *   mein Gesamt-Blatt    1,75 EUR   ·  12 (echt 12)
+   *
+   * Zwei Zahlen fuer dasselbe, beide sahen richtig aus. Die Ursache war ein
+   * Feld, das ich mir ausgedacht hatte: ich fragte `art === "trocken"`, das
+   * Buch fuehrt aber `echt: false`. Damit zaehlte der Trockenlauf als echt
+   * UND seine GERECHNETEN Euro flossen ins Geld — eine zu hohe Zahl in einer
+   * Buchhaltung, und die sieht genauso aus wie eine gemessene.
+   *
+   * ⚠ UND DER GEGENPROBE-FALL DAZU WAR BLIND, obwohl er lief und fing: er
+   * speiste `art: "trocken"` ein, also MEINE erfundene Form. Eine Probe, die
+   * ihre Ausgangslage selbst erfindet, misst ihre eigene Erfindung — eine
+   * achte Art, wie ein Fall nichts misst.
+   *
+   * Die Lehre steht netzweit schon da ("zwei Stellen, die dasselbe behaupten,
+   * laufen auseinander"), nur hatte ich nicht nachgesehen, ob es die Stelle
+   * schon gibt. Deshalb: `dashboardPaket` NIMMT die fertigen Summen entgegen
+   * (`opts.agenten`), statt sie selbst zu rechnen.
    */
-  function agentenSummen(fahrten) {
-    var f = (fahrten || []).filter(function (x) { return x && typeof x === "object"; });
-    var s = { fahrten: f.length, echte: 0, trocken: 0, abbrueche: 0,
-              minuten: 0, kostenCent: 0, aufrufe: 0, tage: 0 };
-    var tage = {};
-    f.forEach(function (x) {
-      var art = String(x.art || "");
-      if (art === "trocken") s.trocken++;
-      else { s.echte++; s.kostenCent += Math.round((Number(x.eur) || 0) * 100); }
-      if (art === "abbruch") s.abbrueche++;
-      s.minuten += Number(x.minuten) || 0;
-      s.aufrufe += Number(x.aufrufe) || 0;
-      var t = String(x.tag || "").slice(0, 10);
-      if (t) tage[t] = true;
-    });
-    s.minuten = Math.round(s.minuten * 10) / 10;
-    s.tage = Object.keys(tage).length;
-    return s;
-  }
 
   function dashboardPaket(abschnitte, opts) {
     var o = opts || {};
@@ -551,8 +544,8 @@
     if (satz) paket.satzCent = satz;
     /* NUR wenn ein Buch uebergeben wurde. Ein leerer Block sähe aus wie
        "null Fahrten" — und das ist etwas anderes als "kein Buch hier". */
-    if (o.fahrten) {
-      paket.agenten = agentenSummen(o.fahrten);
+    if (o.agenten) {
+      paket.agenten = o.agenten;
       paket.hinweise.push(
         "agenten und gesamt sind NICHT zu addieren: eine Fahrt laeuft oft, " +
         "waehrend die Stechuhr laeuft. Die Ueberschneidung steht in " +
@@ -671,7 +664,7 @@
     monatsSummen: monatsSummen, monatsSchluessel: monatsSchluessel,
     dashboardPaket: dashboardPaket, kostenCent: kostenCent, PAKET_FASSUNG: PAKET_FASSUNG,
     stechuhrZusammenfuehren: stechuhrZusammenfuehren,
-    paketInhalt: paketInhalt, agentenSummen: agentenSummen,
+    paketInhalt: paketInhalt,
     dateiName: dateiName
   };
 })(typeof window !== "undefined" ? window

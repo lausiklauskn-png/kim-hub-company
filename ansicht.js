@@ -1012,8 +1012,23 @@
     leer(z);
     z.setAttribute("data-sicherungen", String(l.length));
     if (!l.length) {
-      z.appendChild(el("p", "leise fehlt",
-        "Noch keine Sicherung angelegt. Der Knopf darüber legt eine an."));
+      /*
+       * ⚠ ZWEI AUSKUENFTE, DIE SICH WIDERSPRECHEN (gefunden an Klaus' Seite,
+       * 2026-09-08). Hier stand "noch keine Sicherung angelegt" — und eine
+       * Zeile darunter "Letzte Sicherung: 2026-09-08 11:27". Beides stimmt:
+       * das Datum wird seit langem gefuehrt, die LISTE erst seit heute. Aber
+       * wer das nicht weiss, liest einen Fehler.
+       */
+      idbLies(BH_SICHERUNG).then(function (letzte) {
+        z.appendChild(el("p", "leise fehlt", letzte
+          ? "In dieser Liste steht noch nichts — sie wird erst seit dem "
+            + "2026-09-08 gefuehrt. Die letzte Sicherung war am " + letzte
+            + "; sie ist deshalb hier nicht aufgeführt."
+          : "Noch keine Sicherung angelegt. Der Knopf darüber legt eine an."));
+      }).catch(function () {
+        z.appendChild(el("p", "leise fehlt",
+          "Noch keine Sicherung angelegt. Der Knopf darüber legt eine an."));
+      });
       return;
     }
     l.forEach(function (e) {
@@ -3049,10 +3064,13 @@
     var mitKosten = lies("satzMitgeben", false) === true;
     var zone = "";
     try { zone = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) { zone = ""; }
+    var buchFuerPaket = daten.fahrten && daten.fahrten.fahrten;
     var paket = zeitApi().dashboardPaket(liste, {
       erzeugt: new Date().toISOString(),
       zeitzone: zone,
-      satzCent: mitKosten ? satzCent() : 0
+      satzCent: mitKosten ? satzCent() : 0,
+      agenten: buchFuerPaket && buchFuerPaket.length
+        ? window.WERKSTATT_KASSEN.fahrtSummen(buchFuerPaket) : null
     });
     var erklaerung = el("p", "leise");
     erklaerung.setAttribute("data-json-erklaerung", "");
@@ -3071,7 +3089,8 @@
    * laesst sich das ja so und so runterladen").
    *
    * Es rechnet NICHTS eigenes. Klaus' Zahlen kommen aus demselben Paket, das
-   * "klaus-zeit.json" traegt, die Agenten-Zahlen aus `agentenSummen` — zwei
+   * "klaus-zeit.json" traegt, die Agenten-Zahlen aus `fahrtSummen()` in
+   * `kassen.js` — DERSELBEN Funktion, aus der die Kachel oben rechnet. Zwei
    * Stellen, die dasselbe behaupten, laufen auseinander, und dann sagte das
    * Blatt unten etwas anderes als die Tabelle oben.
    *
@@ -3079,6 +3098,19 @@
    * ueberschneiden sich; eine Summe daraus waere eine Zahl, die es an keinem
    * Tag gab.
    */
+  /*
+   * ⚠ EIN DEUTSCHES BLATT SCHREIBT 929,8 — NICHT 929.8 (Klaus 2026-09-08, an
+   * seiner heruntergeladenen gesamt.txt gesehen). Der Punkt kommt aus
+   * JavaScript, nicht aus einer Entscheidung.
+   *
+   * Sie steht an EINER Stelle. Fuenf `replace(".", ",")` im Text waeren fuenf
+   * Stellen, an denen die naechste vergessen wird — und die JSON-Fassung
+   * daneben MUSS den Punkt behalten, sonst liest sie kein Programm mehr.
+   */
+  function deZahl(n) {
+    return String(n == null ? "" : n).replace(".", ",");
+  }
+
   function gesamtText(paket, ag) {
     var z = [], zeitApi_ = zeitApi();
     z.push("Gesamt - Klaus und die Agenten");
@@ -3086,24 +3118,23 @@
     z.push("");
     z.push("KLAUS (Stechuhr + Fahrtenbuch-Zeilen)");
     z.push("  zusammen        " + zeitApi_.dauerLang(paket.gesamt.sekunden)
-      + "  (" + paket.gesamt.minuten + " min)");
+      + "  (" + deZahl(paket.gesamt.minuten) + " min)");
     z.push("  davon gestempelt " + zeitApi_.dauerLang(paket.gesamt.gestempeltSek));
     z.push("  davon gefahren   " + zeitApi_.dauerLang(paket.gesamt.gefahrenSek));
     z.push("  doppelt erfasst, EINMAL gezaehlt: " + zeitApi_.dauerLang(paket.gesamt.doppeltSek));
     if (paket.gesamt.betragCent != null)
-      z.push("  Betrag          " + (paket.gesamt.betragCent / 100).toFixed(2) + " EUR");
+      z.push("  Betrag          " + deZahl((paket.gesamt.betragCent / 100).toFixed(2)) + " EUR");
     z.push("  Monate: " + (paket.monate.length
-      ? paket.monate.map(function (m) { return m.monat + " " + m.minuten + " min"; }).join(", ")
+      ? paket.monate.map(function (m) { return m.monat + " " + deZahl(m.minuten) + " min"; }).join(", ")
       : "keine"));
     z.push("");
     if (ag) {
       z.push("AGENTEN (Fahrtenbuch)");
-      z.push("  Fahrten         " + ag.fahrten + "  (echt " + ag.echte
-        + ", trocken " + ag.trocken + ", Abbrueche " + ag.abbrueche + ")");
+      z.push("  Fahrten         " + ag.fahrten + "  (echt gemeint " + ag.echte
+        + ", davon mit Kosten " + ag.bezahlte + ")");
       z.push("  an Tagen        " + ag.tage);
-      z.push("  Fahrzeit        " + ag.minuten + " min");
-      z.push("  Aufrufe         " + ag.aufrufe);
-      z.push("  Kosten          " + (ag.kostenCent / 100).toFixed(2)
+      z.push("  Fahrzeit        " + deZahl(ag.minuten) + " min  (Trockenlaeufe zaehlen mit)");
+      z.push("  Kosten          " + deZahl(ag.eur.toFixed(2))
         + " EUR  (nur echte Fahrten; Trockenlaeufe kosten nichts)");
     } else {
       z.push("AGENTEN (Fahrtenbuch)");
@@ -3120,7 +3151,15 @@
     var t = $("#gesamt"), m = $("#gesamt-mitnehmen");
     if (!t || !m) return;                       // alte Seite im Vorrat
     var buch = daten.fahrten && daten.fahrten.fahrten;
-    var ag = buch && buch.length ? zeitApi().agentenSummen(buch) : null;
+    /*
+     * ⚠ DIESELBE FUNKTION WIE DIE KACHEL OBEN, nicht eine zweite daneben.
+     * Am 2026-09-08 stand hier ein eigenes `agentenSummen`, und Klaus' Seite
+     * zeigte 1,63 EUR in der Kachel und 1,75 EUR im Blatt darunter — beide
+     * sahen richtig aus. Ursache war ein Feld, das ich mir ausgedacht hatte
+     * (`art === "trocken"` statt `echt: false`): der Trockenlauf zaehlte als
+     * echt, und seine GERECHNETEN Euro flossen ins Geld.
+     */
+    var ag = buch && buch.length ? window.WERKSTATT_KASSEN.fahrtSummen(buch) : null;
     /* Dasselbe Paket wie oben, nur mit dem Buch daran. Nicht neu gerechnet. */
     var voll = paket;
     if (ag) {
@@ -3142,14 +3181,18 @@
       k.appendChild(r);
     };
     var d = zeitApi().dauerLang;
-    zeile("Zeit", d(paket.gesamt.sekunden), ag ? ag.minuten + " min" : "–");
+    zeile("Zeit", d(paket.gesamt.sekunden), ag ? deZahl(ag.minuten) + " min" : "–");
     zeile("davon gestempelt", d(paket.gesamt.gestempeltSek), "–");
     zeile("davon gefahren", d(paket.gesamt.gefahrenSek), "–");
-    zeile("Fahrten", "–", ag ? ag.fahrten + " (echt " + ag.echte + ")" : "–");
-    zeile("Aufrufe", "–", ag ? String(ag.aufrufe) : "–");
+    /* ⚠ OHNE DIESE ZEILE SIEHT DIE SPALTE WIE EIN RECHENFEHLER AUS:
+       15:29:48 + 7:47:24 sind 23:17:12, oben stehen 16:30:25. Die Kachel
+       nennt die Ueberschneidung, das Blatt tat es nicht. */
+    zeile("doppelt, zählt einmal", d(paket.gesamt.doppeltSek), "–");
+    zeile("Fahrten", "–", ag ? ag.fahrten + " (echt gemeint " + ag.echte
+      + ", mit Kosten " + ag.bezahlte + ")" : "–");
     zeile("Kosten", paket.gesamt.betragCent != null
       ? (paket.gesamt.betragCent / 100).toFixed(2).replace(".", ",") + " €" : "–",
-      ag ? (ag.kostenCent / 100).toFixed(2).replace(".", ",") + " €" : "–");
+      ag ? ag.eur.toFixed(2).replace(".", ",") + " €" : "–");
     t.appendChild(k);
     t.setAttribute("data-gesamt-agenten", ag ? "ja" : "nein");
 
