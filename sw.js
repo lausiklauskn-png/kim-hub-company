@@ -25,7 +25,7 @@
    nur noch die eigenen Vorräte weg. Ohne den Bump lieferte der Worker die
    alte `ansicht.js` weiter — und die löscht jeden Vorrat des Ursprungs,
    also auch den der Werkstatt und der dreissig Geschwister-Apps. */
-var CACHE_VERSION = "kim-hub-company-v48";
+var CACHE_VERSION = "kim-hub-company-v49";
 
 /* ⚠ NUR EIGENE VORRAETE AUFRAEUMEN — `caches` gehoert dem URSPRUNG, nicht dem
  * Pfad. Auf lausiklauskn-png.github.io liegen rund zwanzig Apps; ein Filter,
@@ -48,7 +48,12 @@ var SCHALE = [
   "./schicht/plan-form.mjs",
   "./schicht/umfang.mjs",
   "./schicht/grundsaetze.md", "./schicht/mitarbeiter.json",
-  "./icons/kimhub-96.png", "./icons/kimhub-192.png", "./icons/kimhub-512.png",
+  /* ⚠ NUR DIE KLEINEN (2026-09-08). Die 512er stehen im Manifest, aber NICHT
+     hier: sie werden ausschliesslich beim Installieren gebraucht, und dabei
+     ist das Geraet ohnehin online. Als RGBA wiegen sie zusammen 660 KB — das
+     holte jeder Besucher beim ersten Aufruf mit, fuer ein Bild, das im
+     laufenden Betrieb niemand sieht. */
+  "./icons/kimhub-96.png", "./icons/kimhub-192.png",
 ];
 
 self.addEventListener("install", function (e) {

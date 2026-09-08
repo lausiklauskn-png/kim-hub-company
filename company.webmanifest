@@ -13,6 +13,6 @@
     { "src": "icons/kimhub-96.png",  "sizes": "96x96",   "type": "image/png" },
     { "src": "icons/kimhub-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icons/kimhub-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icons/kimhub-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "icons/kimhub-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
