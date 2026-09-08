@@ -46,9 +46,9 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
  * Fingerabdrücke unten nachzieht und das hier vergisst, wird rot.
  */
 export const HERKUNFT = {
-  commit: "b26abf9",
-  datum:  "2026-09-08T23:38:29+02:00",
-  betreff: "Die Kopfmarke ist das App-Icon — und der Vorrat findet es auch mit ?v= (#171)",
+  commit: "0367acc",
+  datum:  "2026-09-08T23:57:22+02:00",
+  betreff: "Die Symbole sind wieder RGBA — eine Farbpalette hat die Installation gekostet (#172)",
 };
 
 export const ERWARTET = [
