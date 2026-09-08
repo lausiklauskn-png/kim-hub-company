@@ -20,7 +20,7 @@
  * die der Drift-Guard NICHT pinnt. Und er heisst `sw.js`, weil `ansicht.js`
  * genau diesen Namen registriert: eine Naht weniger.
  */
-var CACHE_VERSION = "kim-hub-company-v39";
+var CACHE_VERSION = "kim-hub-company-v40";
 
 /* ⚠ NUR EIGENE VORRAETE AUFRAEUMEN — `caches` gehoert dem URSPRUNG, nicht dem
  * Pfad. Auf lausiklauskn-png.github.io liegen rund zwanzig Apps; ein Filter,
@@ -31,7 +31,7 @@ var CACHE_VERSION = "kim-hub-company-v39";
  * Es muss BEIDES tun: fremde stehen lassen UND eigene alte weiter wegraeumen. */
 var VORRAT_PRAEFIX = "kim-hub-company-";
 var SCHALE = [
-  "./", "./index.html", "./company.webmanifest", "./version.json",
+  "./", "./index.html", "./company.webmanifest", "./version.json", "./impressum.html", "./datenschutz.html",
   "./idb.js", "./schluesseltresor.js", "./zeit.js", "./kassen.js", "./ansicht.js", "./company.js",
   "./buehne.js",
     "./schicht/schicht.mjs", "./schicht/api.mjs", "./schicht/transport-netz.mjs",
