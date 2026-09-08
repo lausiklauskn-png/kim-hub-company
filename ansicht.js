@@ -766,6 +766,10 @@
 
   var BH_SCHLUESSEL = { belege: "bh_belege", zeiten: "bh_zeiten" };
   var BH_SICHERUNG = "bh_letzte_sicherung";
+  /* Das Verzeichnis dessen, was die Seite herausgegeben hat. Nicht die Dateien
+     selbst — die liegen im Download-Ordner, und dahin sieht kein Browser. */
+  var BH_JOURNAL = "bh_sicherungen";
+  var SICHERUNGEN_MAX = 12;
 
   /* ══ DER CHEF-CODE ══════════════════════════════════════════════════════
    *
@@ -988,6 +992,45 @@
    * Ergebnis hingeschrieben, auch das schlechte. Genau wie im Rezeptbuch
    * (`bvStoreProt` / `bvStoreUnprot`).
    */
+  /*
+   * Die Liste der angelegten Sicherungen — Vorbild ist der Backup-Tresor in
+   * Mein Rezeptbuch (Klaus 2026-09-08: "im Prinzip ist der Tresor von KHC der
+   * Gleiche wie in Mein Rezeptbuch nur sehr umstaendlich"). Dort steht jede
+   * Sicherung mit Datum und "52 Rezepte" da, und genau daran sieht man, dass
+   * etwas passiert ist.
+   *
+   * ⚠ DER UNTERSCHIED, DER BENANNT WERDEN MUSS: Rezeptbuch listet Sicherungen,
+   * die IM BROWSER liegen und sich zurueckholen lassen. Diese hier liegen im
+   * Download-Ordner, und dahin sieht kein Browser. Die Liste sagt deshalb
+   * "das wurde herausgegeben", nicht "diese Datei liegt dort" — sonst waere
+   * sie eine Auskunft, die sie nicht geben kann.
+   */
+  function zeichneSicherungen(liste) {
+    var z = $("#tresor-sicherungen");
+    if (!z) return;                            // alte Seite im Vorrat
+    var l = Array.isArray(liste) ? liste : [];
+    leer(z);
+    z.setAttribute("data-sicherungen", String(l.length));
+    if (!l.length) {
+      z.appendChild(el("p", "leise fehlt",
+        "Noch keine Sicherung angelegt. Der Knopf darüber legt eine an."));
+      return;
+    }
+    l.forEach(function (e) {
+      var r = el("div", "sich-zeile");
+      var d = new Date(e.wann);
+      var wann = isNaN(d.getTime()) ? "?" : d.toLocaleString("de-DE",
+        { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+      var kopf = el("div", null, wann + "  ·  " + (e.inhalt || "Inhalt nicht gezaehlt"));
+      kopf.appendChild(el("span", e.art === "offen" ? "warn" : "gut",
+        e.art === "offen" ? "  offen" : "  🔒 verschlossen"));
+      r.appendChild(kopf);
+      var n = el("div", "leise mono", e.datei || "");
+      r.appendChild(n);
+      z.appendChild(r);
+    });
+  }
+
   function tresorWoZeichnen() {
     var w = $("#tresor-wo");
     if (!w) return;
@@ -1043,6 +1086,11 @@
   function tresorZeichnen() {
     var kasten = $("#tresor"), n = tresorGesperrt().length;
     tresorWoZeichnen();
+    /* Die Liste ueberlebt das Neuladen — sie liegt neben den Zahlen im
+       Browser-Speicher. Ohne das waere sie nach jedem Besuch leer, und genau
+       dann braucht man sie: "habe ich das schon gesichert?" */
+    idbLies(BH_JOURNAL).then(zeichneSicherungen)
+      .catch(function () { zeichneSicherungen([]); });
     if (!kasten) return;
     kasten.setAttribute("data-tresor-zu", String(n));
     var auf = $("#tresor-auf-block");
@@ -3014,6 +3062,102 @@
     ziel.appendChild(erklaerung);
     mitnehmKnoepfe(ziel, "klaus-zeit.json",
       JSON.stringify(paket, null, 2), "application/json");
+    zeichneGesamt(liste, paket);
+  }
+
+  /*
+   * ⚠ DAS GESAMT-BLATT (Klaus 2026-09-08: "am Ende auch fuer die
+   * Agententaetigkeit die Stunden auch da einen Gesamtdashboard und als Text
+   * laesst sich das ja so und so runterladen").
+   *
+   * Es rechnet NICHTS eigenes. Klaus' Zahlen kommen aus demselben Paket, das
+   * "klaus-zeit.json" traegt, die Agenten-Zahlen aus `agentenSummen` — zwei
+   * Stellen, die dasselbe behaupten, laufen auseinander, und dann sagte das
+   * Blatt unten etwas anderes als die Tabelle oben.
+   *
+   * Und es addiert die beiden Spalten NICHT. Sie messen verschiedene Dinge und
+   * ueberschneiden sich; eine Summe daraus waere eine Zahl, die es an keinem
+   * Tag gab.
+   */
+  function gesamtText(paket, ag) {
+    var z = [], zeitApi_ = zeitApi();
+    z.push("Gesamt - Klaus und die Agenten");
+    z.push("Erzeugt: " + new Date().toLocaleString("de-DE"));
+    z.push("");
+    z.push("KLAUS (Stechuhr + Fahrtenbuch-Zeilen)");
+    z.push("  zusammen        " + zeitApi_.dauerLang(paket.gesamt.sekunden)
+      + "  (" + paket.gesamt.minuten + " min)");
+    z.push("  davon gestempelt " + zeitApi_.dauerLang(paket.gesamt.gestempeltSek));
+    z.push("  davon gefahren   " + zeitApi_.dauerLang(paket.gesamt.gefahrenSek));
+    z.push("  doppelt erfasst, EINMAL gezaehlt: " + zeitApi_.dauerLang(paket.gesamt.doppeltSek));
+    if (paket.gesamt.betragCent != null)
+      z.push("  Betrag          " + (paket.gesamt.betragCent / 100).toFixed(2) + " EUR");
+    z.push("  Monate: " + (paket.monate.length
+      ? paket.monate.map(function (m) { return m.monat + " " + m.minuten + " min"; }).join(", ")
+      : "keine"));
+    z.push("");
+    if (ag) {
+      z.push("AGENTEN (Fahrtenbuch)");
+      z.push("  Fahrten         " + ag.fahrten + "  (echt " + ag.echte
+        + ", trocken " + ag.trocken + ", Abbrueche " + ag.abbrueche + ")");
+      z.push("  an Tagen        " + ag.tage);
+      z.push("  Fahrzeit        " + ag.minuten + " min");
+      z.push("  Aufrufe         " + ag.aufrufe);
+      z.push("  Kosten          " + (ag.kostenCent / 100).toFixed(2)
+        + " EUR  (nur echte Fahrten; Trockenlaeufe kosten nichts)");
+    } else {
+      z.push("AGENTEN (Fahrtenbuch)");
+      z.push("  Auf dieser Maschine liegt kein Fahrtenbuch. Das heisst NICHT");
+      z.push("  \"keine Kosten\" - es heisst, hier steht nichts.");
+    }
+    z.push("");
+    z.push("Die beiden Bloecke werden NICHT addiert: eine Fahrt laeuft oft,");
+    z.push("waehrend die Stechuhr laeuft. Die Ueberschneidung steht oben.");
+    return z.join("\n");
+  }
+
+  function zeichneGesamt(liste, paket) {
+    var t = $("#gesamt"), m = $("#gesamt-mitnehmen");
+    if (!t || !m) return;                       // alte Seite im Vorrat
+    var buch = daten.fahrten && daten.fahrten.fahrten;
+    var ag = buch && buch.length ? zeitApi().agentenSummen(buch) : null;
+    /* Dasselbe Paket wie oben, nur mit dem Buch daran. Nicht neu gerechnet. */
+    var voll = paket;
+    if (ag) {
+      voll = {}; for (var f in paket) if (Object.prototype.hasOwnProperty.call(paket, f)) voll[f] = paket[f];
+      voll.agenten = ag;
+      voll.art = "kimhub-gesamt";
+    }
+    var k = el("tbody"); leer(t);
+    var kopf = el("tr");
+    ["", "Klaus", "Agenten"].forEach(function (h, i) {
+      kopf.appendChild(el("th", i ? "zahl" : null, h));
+    });
+    k.appendChild(kopf);
+    var zeile = function (was, a, b) {
+      var r = el("tr");
+      r.appendChild(el("td", null, was));
+      r.appendChild(el("td", "zahl", a));
+      r.appendChild(el("td", "zahl", b));
+      k.appendChild(r);
+    };
+    var d = zeitApi().dauerLang;
+    zeile("Zeit", d(paket.gesamt.sekunden), ag ? ag.minuten + " min" : "–");
+    zeile("davon gestempelt", d(paket.gesamt.gestempeltSek), "–");
+    zeile("davon gefahren", d(paket.gesamt.gefahrenSek), "–");
+    zeile("Fahrten", "–", ag ? ag.fahrten + " (echt " + ag.echte + ")" : "–");
+    zeile("Aufrufe", "–", ag ? String(ag.aufrufe) : "–");
+    zeile("Kosten", paket.gesamt.betragCent != null
+      ? (paket.gesamt.betragCent / 100).toFixed(2).replace(".", ",") + " €" : "–",
+      ag ? (ag.kostenCent / 100).toFixed(2).replace(".", ",") + " €" : "–");
+    t.appendChild(k);
+    t.setAttribute("data-gesamt-agenten", ag ? "ja" : "nein");
+
+    leer(m);
+    if (!ag) m.appendChild(el("p", "leise",
+      "Ohne Fahrtenbuch trägt das Blatt nur Klaus' Zeit — das steht auch darin."));
+    mitnehmKnoepfe(m, "gesamt.txt", gesamtText(voll, ag), "text/plain");
+    mitnehmKnoepfe(m, "gesamt.json", JSON.stringify(voll, null, 2), "application/json");
   }
 
   // ── Abspielen ───────────────────────────────────────────────────────────
@@ -4326,6 +4470,41 @@
       return was;
     }
 
+    /*
+     * ⚠ DER DATEINAME SAGT NICHT, OB ETWAS DRIN IST (Klaus 2026-09-08). Er hat
+     * zweimal abgelegt und beide Pakete fuer leer gehalten — ein verschlossenes
+     * Paket sieht bei jedem Lauf anders aus, und "stechuhr.enc.json abgelegt"
+     * beantwortet die Frage nicht, die er hatte. Gezaehlt wird deshalb VOR dem
+     * Verschluessen, an demselben Objekt, das gleich hineingeht: eine Zahl aus
+     * dem Paket selbst kann nicht von ihm abweichen.
+     */
+    function tresorNamenMitInhalt(was, endung, jetzt) {
+      return was.map(function (x) {
+        var i = zeitApi().paketInhalt(x[0], x[1]);
+        return zeitApi().dateiName(x[0], endung, jetzt) + (i ? " (" + i + ")" : "");
+      }).join(" + ");
+    }
+
+    /*
+     * ⚠ EINE SICHERUNG, DIE MAN NICHT WIEDERFINDET, IST KEINE (Klaus
+     * 2026-09-08, am Muster von Mein Rezeptbuch: dort steht jede Sicherung in
+     * einer Liste mit Datum und "52 Rezepte").
+     *
+     * Die Seite kann den Download-Ordner NICHT lesen — dieselbe Familie von
+     * Grenzen wie NETZWEIT § 6b. Sie fuehrt deshalb ein eigenes Verzeichnis
+     * dessen, was sie HERAUSGEGEBEN hat: Datum, Dateiname, Inhalt. Das ist
+     * ehrlicher als eine Dateiliste zu behaupten — es sagt "das wurde
+     * abgelegt", nicht "diese Datei liegt dort".
+     */
+    function sicherungMerken(eintraege) {
+      idbLies(BH_JOURNAL).then(function (alt) {
+        var liste = Array.isArray(alt) ? alt.slice() : [];
+        eintraege.forEach(function (e) { liste.unshift(e); });
+        if (liste.length > SICHERUNGEN_MAX) liste = liste.slice(0, SICHERUNGEN_MAX);
+        return idbSchreib(BH_JOURNAL, liste).then(function () { zeichneSicherungen(liste); });
+      }).catch(function () { /* fail-soft: eine Liste ist kein Grund, den Weg zu blockieren */ });
+    }
+
     function tresorAblegen(name, paket) {
       var a = el("a");
       a.href = URL.createObjectURL(new Blob([JSON.stringify(paket, null, 2)],
@@ -4376,6 +4555,10 @@
           : "Es ist nichts geladen, was verschlossen werden koennte.", "nichts-geladen");
         return;
       }
+      /* ⚠ EINE ZEIT FUER DIE GANZE ABLAGE. Wird je Datei neu gefragt, tragen
+         zwei Pakete aus demselben Druck verschiedene Minuten — und sehen dann
+         aus wie zwei Sicherungen. */
+      var jetztAblage = new Date();
       tresorSagen("Wird verschlossen — 600 000 Runden je Datei, das dauert einen Moment.", "rechnet");
       Promise.all(was.map(function (x) {
         return tresorZu(neu, JSON.stringify(x[1], null, 2)).then(function (p) { return [x[0], p]; });
@@ -4383,7 +4566,9 @@
         fertig.forEach(function (f, i) {
           /* Nacheinander: zwei Downloads im selben Augenblick verschluckt
              Chrome gern den zweiten. */
-          setTimeout(function () { tresorAblegen(f[0] + ".enc.json", f[1]); }, i * 400);
+          setTimeout(function () {
+            tresorAblegen(zeitApi().dateiName(f[0], "enc.json", jetztAblage), f[1]);
+          }, i * 400);
         });
         /*
          * ⚠ WAS UEBERSPRUNGEN WURDE, WIRD GENANNT — gefunden von der eigenen
@@ -4398,9 +4583,14 @@
         /* Wann zuletzt gesichert wurde, ist die Auskunft, die bei einem
            Browser-Speicher zählt — er ist der einzige Ort, an dem die Zahlen
            stehen. Ohne sie wüsste niemand, wie alt der Rückweg ist. */
-        idbSchreib(BH_SICHERUNG, new Date().toISOString().slice(0, 16).replace("T", " "))
+        idbSchreib(BH_SICHERUNG, jetztAblage.toISOString().slice(0, 16).replace("T", " "))
           .then(tresorWoZeichnen).catch(function () { /* fail-soft */ });
-        tresorSagen(fertig.map(function (f) { return f[0] + ".enc.json"; }).join(" + ")
+        sicherungMerken(was.map(function (x) {
+          return { wann: jetztAblage.toISOString(),
+                   datei: zeitApi().dateiName(x[0], "enc.json", jetztAblage),
+                   inhalt: zeitApi().paketInhalt(x[0], x[1]), art: "verschlossen" };
+        }));
+        tresorSagen(tresorNamenMitInhalt(was, "enc.json", jetztAblage)
           + " abgelegt — sie liegen in deinem Download-Ordner. Diese Dateien kommen "
           + "ins Depot, die offenen nicht."
           + (zu.length ? "  ⚠ UEBERSPRUNGEN, weil noch verschlossen: " + zu.join(" + ")
@@ -4419,6 +4609,7 @@
      */
     var tKlar = $("#tresor-klartext");
     if (tKlar) tKlar.addEventListener("click", function () {
+      var jetztAblage = new Date();
       var was = tresorWasAblegen();
       if (!was.length) {
         tresorSagen(tresorGesperrt().length
@@ -4429,11 +4620,16 @@
       was.forEach(function (x, i) {
         setTimeout(function () {
           /* Auch hier KEIN BOM: das liest ein Parser, kein Mensch. */
-          tresorAblegen(x[0] + ".json", x[1]);
+          tresorAblegen(zeitApi().dateiName(x[0], "json", jetztAblage), x[1]);
         }, i * 400);
       });
+      sicherungMerken(was.map(function (x) {
+        return { wann: jetztAblage.toISOString(),
+                 datei: zeitApi().dateiName(x[0], "json", jetztAblage),
+                 inhalt: zeitApi().paketInhalt(x[0], x[1]), art: "offen" };
+      }));
       var zu = tresorGesperrt();
-      tresorSagen(was.map(function (x) { return x[0] + ".json"; }).join(" + ")
+      tresorSagen(tresorNamenMitInhalt(was, "json", jetztAblage)
         + " offen abgelegt — im Download-Ordner, unverschluesselt."
         + (zu.length ? "  ⚠ UEBERSPRUNGEN, weil noch verschlossen: " + zu.join(" + ") + "." : "")
         + "  Diese Dateien gehoeren NICHT ins Depot.",

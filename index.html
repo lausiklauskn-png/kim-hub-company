@@ -594,6 +594,10 @@ footer{padding:18px 16px 40px;color:var(--leise);font-size:.87rem}
 /* Der Stift zum Nachtragen des Zwecks. Klein, aber nicht kleiner als ein
    Finger: 44 px ist das Mass, unter dem ein Knopf auf dem Tablet danebengeht —
    dieselbe Groesse wie ueberall sonst in dieser Seite. */
+.sich-zeile{padding:7px 9px;margin:5px 0;border:1px solid var(--rand);border-radius:8px;
+  background:var(--karte2,transparent);font-size:.92em}
+.sich-zeile .mono{font-family:ui-monospace,monospace;font-size:.85em;word-break:break-all}
+.sich-zeile .gut{color:var(--gut,#4caf50)} .sich-zeile .warn{color:var(--warn,#e0a030)}
 #uhr-liste button.mini {
   min-width: 44px; min-height: 44px; margin-left: 6px; padding: 4px 8px;
   font-size: 1rem; line-height: 1; cursor: pointer;
@@ -1239,16 +1243,19 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
       <!-- ⚠ DIESER ABSATZ IST DER WICHTIGSTE AUF DER KARTE. Ohne ihn verspricht
            das Schloss etwas, das es nicht hält — und das ist genau der Fehler,
            den Klaus an der Tresor-Beschriftung gefunden hat. -->
-      <p class="leise" data-chef-reichweite="" style="margin:8px 0 0">
-        <b>Was der Code kann und was nicht.</b> Er nimmt die Zahlen aus dem Blick.
-        Gegen jemanden, der das Tablet in die Hand nimmt, hilft das. Es ist
-        <b>keine Verschlüsselung</b>: wer die Entwickler-Werkzeuge des Browsers
-        öffnet, kommt an den Speicher heran und liest sie doch. Das Schloss, das
-        wirklich schützt, ist die verschlüsselte Sicherung im Tresor darunter.</p>
-      <p class="leise"><b>Es gibt kein Zurücksetzen.</b> Vergisst du den Code,
-        bleiben die Zahlen in diesem Browser verborgen. Der Weg zurück ist deine
-        Sicherung, eingelesen in einen frischen Browser — dort ist noch kein Code
-        gesetzt.</p>
+      <details class="erklaer" data-erklaer="bh-chefcode">
+        <summary>Was der Chef-Code kann — und was nicht</summary>
+        <p class="leise" data-chef-reichweite="" style="margin:8px 0 0">
+          <b>Was der Code kann und was nicht.</b> Er nimmt die Zahlen aus dem Blick.
+          Gegen jemanden, der das Tablet in die Hand nimmt, hilft das. Es ist
+          <b>keine Verschlüsselung</b>: wer die Entwickler-Werkzeuge des Browsers
+          öffnet, kommt an den Speicher heran und liest sie doch. Das Schloss, das
+          wirklich schützt, ist die verschlüsselte Sicherung im Tresor darunter.</p>
+        <p class="leise"><b>Es gibt kein Zurücksetzen.</b> Vergisst du den Code,
+          bleiben die Zahlen in diesem Browser verborgen. Der Weg zurück ist deine
+          Sicherung, eingelesen in einen frischen Browser — dort ist noch kein Code
+          gesetzt.</p>
+      </details>
     </div>
 
     <div class="kacheln" id="kacheln">
@@ -1325,13 +1332,16 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
               style="flex:0 1 auto"></span>
         <input id="uhr-was" type="text" placeholder="woran? (z. B. Sichttest)" style="flex:1 1 200px">
       </div>
-      <p class="leise" style="margin:6px 0 0"><b>Pause</b> unterbricht —
-        ▶ zählt danach weiter. <b>Auschecken</b> beendet die Arbeit; die Zeile
-        im Verlauf bekommt einen Schlussstrich, und ▶ beginnt danach eine
-        <b>neue Zählung</b>. Beides verliert keine Zeit.</p>
-      <p class="leise" style="margin:6px 0 0">Die große Zahl ist der Stand
-        <b>seit dem letzten ⟲ oder Auschecken</b>. Die Kachel oben zählt
-        <b>alles</b>, was je gestempelt wurde — zwei Zahlen, zwei Fragen.</p>
+      <details class="erklaer" data-erklaer="bh-uhr-knoepfe">
+        <summary>Was Pause, Auschecken und ⟲ unterscheidet</summary>
+        <p class="leise" style="margin:6px 0 0"><b>Pause</b> unterbricht —
+          ▶ zählt danach weiter. <b>Auschecken</b> beendet die Arbeit; die Zeile
+          im Verlauf bekommt einen Schlussstrich, und ▶ beginnt danach eine
+          <b>neue Zählung</b>. Beides verliert keine Zeit.</p>
+        <p class="leise" style="margin:6px 0 0">Die große Zahl ist der Stand
+          <b>seit dem letzten ⟲ oder Auschecken</b>. Die Kachel oben zählt
+          <b>alles</b>, was je gestempelt wurde — zwei Zahlen, zwei Fragen.</p>
+      </details>
       <div class="rollt" style="margin-top:10px">
         <table id="uhr-liste"><tbody><tr><td class="leise">Noch nichts gestempelt.</td></tr></tbody></table>
       </div>
@@ -1386,14 +1396,17 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
 
     <div class="karte" data-chef="geld">
       <h3>Fahrtenbuch — was die Werkstatt wirklich gearbeitet hat</h3>
-      <p class="leise">Jede Fahrt trägt sich beim Feierabend selbst ein: Tag,
-        Art, Besetzung, Dauer, Kosten. <b>Trockenläufe stehen mit drin</b> und
-        sind als solche gekennzeichnet — sie kosten nichts, aber sie sind Arbeit,
-        und ein Buch, das nur die teuren Tage kennt, beantwortet die Frage
-        „wurde hier gearbeitet?" falsch.</p>
-      <p class="leise"><b>Die gelaufene Zeit und die erlaubte Zeit sind zwei
-        Zahlen.</b> „höchstens 2 h" ist ein Deckel, keine Dauer — die Schicht
-        endet, sobald sie fertig ist. Hier steht, wie lange sie wirklich lief.</p>
+      <details class="erklaer" data-erklaer="bh-fahrtenbuch">
+        <summary>Was im Buch steht — Trockenläufe, Deckel, gelaufene Zeit</summary>
+        <p class="leise">Jede Fahrt trägt sich beim Feierabend selbst ein: Tag,
+          Art, Besetzung, Dauer, Kosten. <b>Trockenläufe stehen mit drin</b> und
+          sind als solche gekennzeichnet — sie kosten nichts, aber sie sind Arbeit,
+          und ein Buch, das nur die teuren Tage kennt, beantwortet die Frage
+          „wurde hier gearbeitet?" falsch.</p>
+        <p class="leise"><b>Die gelaufene Zeit und die erlaubte Zeit sind zwei
+          Zahlen.</b> „höchstens 2 h" ist ein Deckel, keine Dauer — die Schicht
+          endet, sobald sie fertig ist. Hier steht, wie lange sie wirklich lief.</p>
+      </details>
       <div class="rollt"><table id="fahrten"><tbody><tr><td class="leise">Noch nicht geladen.</td></tr></tbody></table></div>
       <p id="fahrten-hinweis" class="leise" style="margin-top:10px"></p>
     </div>
@@ -1440,6 +1453,11 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
         <b>nicht im Depot</b> — sie wohnen im Speicher dieses Browsers. Was
         nicht im Depot liegt, kann auch keine Seite ausliefern.</p>
       <p class="leise" id="tresor-wo" data-wo="" data-dauerhaft="">Wird geprüft …</p>
+
+      <h4 style="margin:14px 0 4px">Angelegte Sicherungen</h4>
+      <p class="leise" data-sicherungen-grenze="">Was diese Seite herausgegeben hat.
+        <b>Es ist keine Dateiliste</b> — in deinen Download-Ordner kann kein Browser sehen.</p>
+      <div id="tresor-sicherungen" data-sicherungen="0"></div>
       <p class="leise" id="tresor-sicherung" data-sicherung="">Wird geprüft …</p>
 
       <!-- ══ DER RÜCKWEG (Klaus 2026-08-22, Befund A) ═══════════════════════
@@ -1472,12 +1490,15 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
         <p class="leise" id="tresor-rueckweg-lage" data-rueckweg-lage=""
            style="margin:6px 0 0"></p>
       </div>
-      <p class="leise"><b>Der Preis:</b> dieser Speicher hängt am Browser. Wer
-        die Browserdaten löscht oder das Gerät wechselt, hat die Zahlen
-        verloren — dann ist die verschlüsselte Sicherung der Rückweg, kein
-        Luxus. AES-256-GCM, Schlüssel aus dem Passwort über 600 000
-        PBKDF2-Runden, dasselbe Verfahren wie in BookLedgerPro und
-        Mein-Tresor.</p>
+      <details class="erklaer" data-erklaer="bh-tresor-preis">
+        <summary>Der Preis des Browser-Speichers, und wie verschlüsselt wird</summary>
+        <p class="leise"><b>Der Preis:</b> dieser Speicher hängt am Browser. Wer
+          die Browserdaten löscht oder das Gerät wechselt, hat die Zahlen
+          verloren — dann ist die verschlüsselte Sicherung der Rückweg, kein
+          Luxus. AES-256-GCM, Schlüssel aus dem Passwort über 600 000
+          PBKDF2-Runden, dasselbe Verfahren wie in BookLedgerPro und
+          Mein-Tresor.</p>
+      </details>
 
       <div id="tresor-auf-block" hidden>
         <div class="pult">
@@ -1510,17 +1531,20 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
              der Chef-Code vor Raum 4 kommt, und das ist ein echtes Schloss vor
              der Ansicht. Zwei Passwörter, die dasselbe zu sein scheinen, wären
              die nächste Verwechslung. -->
-        <p data-passwort-rolle="datei" style="margin:0 0 6px"><b>Das ist kein Schloss vor dieser Seite.</b>
-          Hier entsteht eine <b>Sicherungsdatei</b>, und das Passwort gehört zu
-          dieser Datei.</p>
-        <p class="leise">Wer an diesem Browser sitzt, sieht die Zahlen in der
-          Tabelle darüber — dafür braucht es kein Passwort. Geschützt ist nur
-          die Datei, die das Gerät verlässt. Ein <b>neues</b> Passwort öffnet
-          also nichts, es legt eine <b>neue Sicherung</b> an; die alte bleibt
-          bei ihrem alten Passwort, bis du sie ersetzt.</p>
-        <p class="leise">Alles passiert <b>in diesem Browser</b>. Keine Datei
-          und kein Passwort gehen ins Netz, und keine Sitzung sieht sie. Ins
-          Depot kommt die <code>.enc.json</code>, die offene <b>nicht</b>.</p>
+        <details class="erklaer" data-erklaer="bh-tresor-schloss">
+          <summary>Was das Passwort schützt — und was nicht</summary>
+          <p data-passwort-rolle="datei" style="margin:0 0 6px"><b>Das ist kein Schloss vor dieser Seite.</b>
+            Hier entsteht eine <b>Sicherungsdatei</b>, und das Passwort gehört zu
+            dieser Datei.</p>
+          <p class="leise">Wer an diesem Browser sitzt, sieht die Zahlen in der
+            Tabelle darüber — dafür braucht es kein Passwort. Geschützt ist nur
+            die Datei, die das Gerät verlässt. Ein <b>neues</b> Passwort öffnet
+            also nichts, es legt eine <b>neue Sicherung</b> an; die alte bleibt
+            bei ihrem alten Passwort, bis du sie ersetzt.</p>
+          <p class="leise">Alles passiert <b>in diesem Browser</b>. Keine Datei
+            und kein Passwort gehen ins Netz, und keine Sitzung sieht sie. Ins
+            Depot kommt die <code>.enc.json</code>, die offene <b>nicht</b>.</p>
+        </details>
 
         <!-- ⚠ DER WEG, DER AUF DEM TABLET WIRKLICH GEHT (2026-08-22).
              Der Dateiwähler darunter nützt dort nichts: Chrome kommt an
@@ -1571,10 +1595,11 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
                Tablet in Termux. 📥 Einlesen bleibt überall.
                (Auf Klaus' Tablet ungeprüft — die Unterscheidung folgt aus
                Androids Dateiauswahl, nicht aus einer Messung an seinem Gerät.) -->
-          <p class="leise"><b>📥 Einlesen</b> ist der Weg zurück: eine
-            gesicherte <code>.enc.json</code> aus dem Download-Ordner wieder in
-            diesen Browser holen. Das geht auf dem Tablet genauso wie am
-            Rechner.</p>
+          <p class="leise" data-einlesen-wirkung=""><b>📥 Einlesen</b> holt eine gesicherte
+            <code>.enc.json</code> aus dem Download-Ordner zurück in diesen Browser —
+            auch nach einem Gerätewechsel und vom einen Browser in den anderen.
+            <b>Stechuhr-Abschnitte werden zusammengeführt</b> (deine hiesigen bleiben,
+            fehlende kommen dazu); Belege und Zeiten werden <b>ersetzt</b>.</p>
           <div class="pult">
             <input id="tresor-datei" type="file" accept=".json,application/json" style="flex:1 1 240px">
           </div>
@@ -1587,9 +1612,6 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
           <div class="pult">
             <button id="tresor-einlesen" type="button">📥 In den Browser einlesen</button>
           </div>
-          <p class="leise"><b>📥</b> ist der Rückweg nach einem Gerätewechsel und
-            der Weg vom einen Browser in den anderen: die gewählte Sicherung
-            zieht hier ein und ersetzt, was in diesem Browser steht.</p>
 
           <!-- ⚠ Auf Android versteckt (Befund C). Dieser Knopf nimmt eine Datei
                AUS DEM ORDNER — auf Klaus' Tablet läge sie in Termux, und dorthin
@@ -1646,6 +1668,16 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
         Das ist eine <b>Untergrenze</b>, kein Aufwand: Lesen und Verwerfen vor dem
         ersten Commit fehlen darin, Pausen dazwischen zählen voll mit.</p>
       <div class="rollt"><table id="zeiten"><tbody><tr><td class="leise">Noch nicht geladen.</td></tr></tbody></table></div>
+    </div>
+
+    <div class="karte" id="gesamt-karte">
+      <h3>Gesamt — Klaus und die Agenten auf einem Blatt</h3>
+      <p class="leise" data-gesamt-erklaerung="">Beides nebeneinander, <b>nicht addiert</b>:
+        die Stechuhr misst Klaus' Zeit an der Werkstatt, das Fahrtenbuch die der Agenten.
+        Eine Fahrt läuft oft, während die Stechuhr läuft — was sich überschneidet, steht
+        oben unter „doppelt erfasst" und zählt dort schon nur einmal.</p>
+      <div class="rollt"><table id="gesamt"><tbody><tr><td class="leise">Noch nicht geladen.</td></tr></tbody></table></div>
+      <div id="gesamt-mitnehmen"></div>
     </div>
   </section>
 
