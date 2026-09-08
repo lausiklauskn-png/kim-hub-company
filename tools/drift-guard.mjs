@@ -46,15 +46,15 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
  * Fingerabdrücke unten nachzieht und das hier vergisst, wird rot.
  */
 export const HERKUNFT = {
-  commit: "9f9f422",
-  datum:  "2026-09-08T14:16:25+02:00",
-  betreff: "Drei Widersprüche auf Klaus' Seite — der teuerste war eine zweite Rechnung (#143)",
+  commit: "a9bc0cc",
+  datum:  "2026-09-08T14:43:26+02:00",
+  betreff: "Der Tresor konnte die Stechuhr ablegen, aber nicht wieder einlesen (#144)",
 };
 
 export const ERWARTET = [
   { datei: "index.html",                herkunft: "start.html",              sha: "e57f51d779d05ca487c0f45a5baf994b9c39bd2613bbda81f84b34306999cd7a" },
   { datei: "company.js",                herkunft: "company.js",              sha: "8225958ef89441c83cceb7265c4f17423017f24fb8bc61c2f9e218e587629870" },
-  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "214cc1e061352f5bf08f87032c4d46507a9ce37efaa92789d820aa7c2441ed71" },
+  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "83298065bb8d4e12f708c1a263bb6dd448aabf267ff72994464c1185db1ab0a9" },
   { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "2b55844be02df209c8f18d7f8434b4a39bebe2621b7720a3e2b725bfdecaee9c" },
   { datei: "zeit.js",                   herkunft: "zeit.js",                 sha: "e0e0d467da0ed678b87347bcb600a25725c2bafa7e7e001c937d188d30b5985a" },
   /* ⚠ NEU AM 2026-09-07. `zusammen()` ist aus `schicht/kosten.mjs` hierher
