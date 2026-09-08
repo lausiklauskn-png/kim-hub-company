@@ -262,10 +262,76 @@
      ergaenzt, das eine Zeit traegt, traegt es hier nach. */
   var ZEITFELDER = ["von", "sekunden", "feierabend", "automatisch", "ohneZeit"];
 
+
+  /*
+   * ══ DIE GROSSE ZAHL IST EINE DAUER, KEINE UHRZEIT ══════════════════════════
+   *
+   * Klaus am 2026-09-08, 12:09 Uhr, vor der Stechuhr: „ich sehe, dass die Uhr
+   * noch auf fünfzehn Uhr gestellt ist. Jetzt ist es zwölf Uhr neun … Das ist
+   * natürlich falsch."
+   *
+   * Es war nicht falsch, und er hat trotzdem recht. Dastand `15:29:48`, und
+   * das war die GESAMMELTE Arbeitszeit seit dem letzten ⟲ — fünfzehn Stunden,
+   * neunundzwanzig Minuten. Gelesen hat er eine Uhrzeit, und zwar zu Recht:
+   * `h:mm:ss` IST die Form, in der Uhrzeiten dastehen.
+   *
+   * ⚠ UND IM SELBEN CODE STEHT `uhrzeitJetzt()`, das echte Uhrzeiten in
+   * EXAKT dieser Form ausgibt. Zwei Bedeutungen, ein Format — die Verwechslung
+   * war eingebaut, nicht seine Unachtsamkeit.
+   *
+   * Die Abhilfe ist NICHT, das Verhalten zu ändern. ▶ zählt bewusst weiter, wo
+   * die Uhr stehen geblieben ist; auf null setzt nur ⟲. Das war Klaus' ERSTE
+   * Beschwerde in die andere Richtung („nach jedem Aktualisieren startet es
+   * wieder bei null"), und sie ist teuer bezahlt. Geändert wird, was man
+   * SIEHT.
+   *
+   * ⚠ DIE EINHEITEN BLEIBEN AUFGEFUELLT, sobald eine groessere daneben steht:
+   * `15 h 09 min 08 s` statt `15 h 9 min 8 s`. Eine Anzeige, die im Sekunden-
+   * takt die Breite wechselt, springt — und eine springende Zahl liest sich
+   * schlechter als eine ruhige. Vorn wird NICHT aufgefuellt: `09 h` sähe
+   * wieder nach Uhrzeit aus, und genau darum geht es hier.
+   */
+  function dauerLang(sek) {
+    var s = Math.max(0, Math.floor(Number(sek) || 0));
+    var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
+    var zz = function (n) { return (n < 10 ? "0" : "") + n; };
+    if (h > 0) return h + " h " + zz(m) + " min " + zz(r) + " s";
+    if (m > 0) return m + " min " + zz(r) + " s";
+    return r + " s";
+  }
+
+  /*
+   * ⚠ UND DIE ZWEITE HAELFTE SEINES BEFUNDS: „wenn ich jetzt wieder starte,
+   * startet das bei 15:29:48."
+   *
+   * Ja — weil er am Morgen AUSGECHECKT hat und die Zaehlung seitdem
+   * abgeschlossen dasteht. Der Knopf dafuer ist ⟲, und das stand nur im
+   * Kleingedruckten unter den Knoepfen. Wer eine abgeschlossene Zaehlung vor
+   * sich hat, soll das AN DER ZAHL sehen, nicht drei Zeilen tiefer.
+   *
+   * Gemessen wird der JUENGSTE gestempelte Abschnitt seit dem letzten ⟲ —
+   * nicht irgendeiner: ein Feierabend von vorgestern sagt nichts darueber, ob
+   * die Zaehlung von heute abgeschlossen ist.
+   *
+   * Fahrten bleiben aussen vor. Sie kommen aus dem Fahrtenbuch und haben
+   * keinen Feierabend; sie wuerden hier nur die Reihenfolge verfaelschen.
+   */
+  function standAusgecheckt(abschnitte, nullZeit) {
+    var n = Number(nullZeit) || 0;
+    var seit = (abschnitte || []).filter(function (e) {
+      return e && !e.automatisch && !e.laeuft && (Number(e.von) || 0) >= n;
+    });
+    if (!seit.length) return false;
+    var juengste = seit[0];
+    seit.forEach(function (e) { if ((Number(e.von) || 0) >= (Number(juengste.von) || 0)) juengste = e; });
+    return juengste.feierabend === true;
+  }
+
   if (welt) welt.WERKSTATT_ZEIT = {
     fahrtAbschnitte: fahrtAbschnitte, vereinigt: vereinigt, dauerText: dauerText,
     tagOrt: tagOrt, aufteilung: aufteilung,
-    zweckNachtragen: zweckNachtragen, ZEITFELDER: ZEITFELDER
+    zweckNachtragen: zweckNachtragen, ZEITFELDER: ZEITFELDER,
+    dauerLang: dauerLang, standAusgecheckt: standAusgecheckt
   };
 })(typeof window !== "undefined" ? window
    : (typeof globalThis !== "undefined" ? globalThis : null));
