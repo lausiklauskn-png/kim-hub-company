@@ -2,6 +2,13 @@
    Die Liste unten nennt genau die vier Dateien, die es gibt.
    Wer eine Datei ergänzt, trägt sie hier nach UND erhöht VORRAT. */
 const VORRAT = 'buendel-pruefer-v1';
+/* ⚠ NUR EIGENE VORRAETE AUFRAEUMEN — `caches` gehoert dem URSPRUNG, nicht dem
+ * Pfad. Auf lausiklauskn-png.github.io liegen rund zwanzig Apps; ein Filter,
+ * der nur "ist nicht meiner" fragt, laesst ALLE fremden durch und loescht sie.
+ * Genau HIER ist das am 2026-09-08 aufgefallen (Sage-Protokol/tests/vorrat_wirkung.mjs).
+ * Praefix ABGELESEN aus VORRAT, nicht geraten. Muster aus Tomys-Hub/bookledger/sw.js.
+ * Es muss BEIDES tun: fremde stehen lassen UND eigene alte weiter wegraeumen. */
+const VORRAT_PRAEFIX = 'buendel-pruefer-';
 
 const DATEIEN = [
   './',
@@ -20,7 +27,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(namen => Promise.all(namen.map(n => n === VORRAT ? null : caches.delete(n))))
+      .then(namen => Promise.all(namen.map(n => (n.startsWith(VORRAT_PRAEFIX) && n !== VORRAT) ? caches.delete(n) : null)))
       .then(() => self.clients.claim())
   );
 });
