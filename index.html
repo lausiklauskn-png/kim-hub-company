@@ -1305,12 +1305,27 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
       </div>
       <p class="leise" style="margin:6px 0 0"><b>Pause</b> unterbricht —
         ▶ zählt danach weiter. <b>Auschecken</b> beendet die Arbeit; die Zeile
-        im Verlauf bekommt einen Schlussstrich. Beides verliert keine Zeit.</p>
+        im Verlauf bekommt einen Schlussstrich, und ▶ beginnt danach eine
+        <b>neue Zählung</b>. Beides verliert keine Zeit.</p>
       <p class="leise" style="margin:6px 0 0">Die große Zahl ist der Stand
-        <b>seit dem letzten ⟲</b>. Die Kachel oben zählt <b>alles</b>, was je
-        gestempelt wurde — zwei Zahlen, zwei Fragen.</p>
+        <b>seit dem letzten ⟲ oder Auschecken</b>. Die Kachel oben zählt
+        <b>alles</b>, was je gestempelt wurde — zwei Zahlen, zwei Fragen.</p>
       <div class="rollt" style="margin-top:10px">
         <table id="uhr-liste"><tbody><tr><td class="leise">Noch nichts gestempelt.</td></tr></tbody></table>
+      </div>
+      <!-- ⚠ MONATSSUMMEN (Klaus 2026-09-08): „die stunden trotzdem erfassen
+           immer für den jeweiligen Monat am Ende zusammengefasst, damit es
+           später in einem Dashboard erfasst werden kann."
+           Ein Abschnitt über eine Monatsgrenze wird GETEILT, nicht seinem
+           Startmonat zugeschlagen — sonst wäre die Summe der Monate nicht die
+           Gesamtzeit, und das fällt erst auf, wenn jemand nachrechnet. -->
+      <h4 style="margin:14px 0 4px">Monate</h4>
+      <p class="leise" style="margin:0 0 6px">Jeder Monat für sich zusammengefasst
+        — gestempelt und gefahren, doppelt Erfasstes zählt einmal. Ein Abschnitt
+        über den Monatswechsel wird geteilt, damit die Summe der Monate die
+        Gesamtzeit ist.</p>
+      <div class="rollt">
+        <table id="uhr-monate"><tbody><tr><td class="leise">Noch nichts zu summieren.</td></tr></tbody></table>
       </div>
       <!-- ⚠ DER STUNDENSATZ STEHT IN DER STECHUHR UND GEHOERT TROTZDEM ZU DEN
            ZAHLEN. „Stechuhr für alle, Zahlen nur für mich" — Start, Pause und

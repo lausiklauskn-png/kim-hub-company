@@ -327,11 +327,115 @@
     return juengste.feierabend === true;
   }
 
+
+  /*
+   * ══ ▶ BEGINNT NACH DEM AUSCHECKEN EINE NEUE ZAEHLUNG (Klaus 2026-09-08) ════
+   *
+   * Er hat es ausdruecklich entschieden: „ja, ▶ soll nach dem Auschecken neu
+   * zählen." Vorher zaehlte ▶ immer weiter, und auf null setzte nur ⟲.
+   *
+   * ⚠ DAS KEHRT EINE TAFEL UM, UND ZWAR NUR ZUR HAELFTE. Die alte Regel kam
+   * aus Klaus' erster Beschwerde in die ANDERE Richtung — „nach jedem
+   * Aktualisieren startet es wieder bei null" —, und die galt der PAUSE und
+   * dem Neuladen. Genau die bleibt: wer pausiert, kommt zurueck und zaehlt
+   * weiter. Ein Feierabend sagt „hier war Schluss", eine Pause sagt „ich komme
+   * gleich wieder" — der Unterschied ist der ganze Grund, aus dem es zwei
+   * Knoepfe gibt.
+   *
+   * Deshalb steht hier eine EIGENE Funktion und nicht ein `&&` im Aufrufer:
+   * die Zusicherung ist „nur nach Feierabend, nie nach Pause", und die
+   * gehoert an eine Stelle, an der man sie ohne Browser messen kann.
+   *
+   * ⚠ ES GEHT DABEI KEINE SEKUNDE VERLOREN. Neu gezaehlt wird, indem die
+   * ⟲-Marke gesetzt wird — genau wie beim ⟲-Knopf. Der Verlauf behaelt jede
+   * Zeile, und die Kachel oben zaehlt weiter alles, was je gestempelt wurde.
+   * Zwei Zahlen, zwei Fragen; nur die Antwort auf die erste faengt neu an.
+   */
+  function startSetztNeuAn(laeuft, abschnitte, nullZeit) {
+    if (laeuft) return false;
+    return standAusgecheckt(abschnitte, nullZeit);
+  }
+
+
+  /*
+   * ══ MONATSSUMMEN — fuer ein spaeteres Dashboard (Klaus 2026-09-08) ═════════
+   *
+   * „aber die stunden trotzdem erfassen immer für den jeweiligen Monat am Ende
+   * zusammengefasst, damit es später in einem Dashboard erfasst werden kann."
+   *
+   * ⚠ EIN ABSCHNITT WIRD AN DER MONATSGRENZE GETEILT, nicht seinem Startmonat
+   * zugeschlagen. Der bequeme Weg waere, ihn ganz dem Monat zu geben, in dem er
+   * beginnt — dann waere die Summe der Monate aber NICHT die Gesamtzeit, und
+   * genau das faellt in einem Dashboard erst auf, wenn jemand nachrechnet.
+   * Klaus' eigener Verlauf hat einen Abschnitt von 15 Stunden; ueber einen
+   * Monatswechsel gelegt waere das ein ganzer Arbeitstag im falschen Monat.
+   *
+   * ⚠ UND JEDER MONAT WIRD FUER SICH VEREINIGT. Laeuft die Stechuhr, waehrend
+   * eine Schicht faehrt, ist das EINE Stunde und nicht zwei — dieselbe Regel
+   * wie ueberall sonst. Wer die Monate stattdessen aus den Zeilen aufaddierte,
+   * bekaeme eine zu hohe Zahl, und die ist bei einem Stundennachweis der
+   * teuerste Fehler, weil sie niemandem auffaellt.
+   *
+   * Rueckgabe: aufsteigend nach Monat — eine Zeitreihe liest sich vorwaerts.
+   */
+  function monatsSchluessel(d) {
+    var m = d.getMonth() + 1;
+    return d.getFullYear() + "-" + (m < 10 ? "0" : "") + m;
+  }
+
+  /** Zerlegt einen Abschnitt an jeder Monatsgrenze, die er ueberquert. */
+  function inMonatsstuecke(e) {
+    var von = Number(e && e.von) || 0;
+    var sek = Math.max(0, Number(e && e.sekunden) || 0);
+    if (!von || !isFinite(von)) return [];
+    var ende = von + sek * 1000, stuecke = [], lauf = von, wache = 0;
+    /* Die Wache ist kein Misstrauen gegen die Schleife, sondern gegen die
+       DATEN: eine kaputte Dauer (Jahre) wuerde hier sonst tausende Stuecke
+       erzeugen. 600 Monate sind fuenfzig Jahre. */
+    while (lauf < ende && wache++ < 600) {
+      var d = new Date(lauf);
+      var grenze = new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime();
+      var bis = Math.min(ende, grenze);
+      stuecke.push({ monat: monatsSchluessel(d), von: lauf,
+                     sekunden: (bis - lauf) / 1000, automatisch: !!e.automatisch });
+      lauf = bis;
+    }
+    /* Ein Abschnitt ohne Dauer (eine trockene Fahrt) verschwindet sonst ganz —
+       er steht im Verlauf, also gehoert er auch in seinen Monat, mit null. */
+    if (!stuecke.length) stuecke.push({ monat: monatsSchluessel(new Date(von)),
+                                        von: von, sekunden: 0, automatisch: !!e.automatisch });
+    return stuecke;
+  }
+
+  function monatsSummen(abschnitte) {
+    var nach = {};
+    (abschnitte || []).forEach(function (e) {
+      if (!e || e.laeuft || e.ohneZeit) return;
+      inMonatsstuecke(e).forEach(function (s) {
+        (nach[s.monat] = nach[s.monat] || []).push(s);
+      });
+    });
+    return Object.keys(nach).sort().map(function (m) {
+      var liste = nach[m];
+      var alles = vereinigt(liste);
+      return {
+        monat: m,
+        sekunden: alles.sekunden,
+        doppeltSek: alles.ueberlappungSek,
+        gestempeltSek: vereinigt(liste.filter(function (s) { return !s.automatisch; })).sekunden,
+        gefahrenSek: vereinigt(liste.filter(function (s) { return s.automatisch; })).sekunden,
+        stuecke: liste.length
+      };
+    });
+  }
+
   if (welt) welt.WERKSTATT_ZEIT = {
     fahrtAbschnitte: fahrtAbschnitte, vereinigt: vereinigt, dauerText: dauerText,
     tagOrt: tagOrt, aufteilung: aufteilung,
     zweckNachtragen: zweckNachtragen, ZEITFELDER: ZEITFELDER,
-    dauerLang: dauerLang, standAusgecheckt: standAusgecheckt
+    dauerLang: dauerLang, standAusgecheckt: standAusgecheckt,
+    startSetztNeuAn: startSetztNeuAn,
+    monatsSummen: monatsSummen, monatsSchluessel: monatsSchluessel
   };
 })(typeof window !== "undefined" ? window
    : (typeof globalThis !== "undefined" ? globalThis : null));
