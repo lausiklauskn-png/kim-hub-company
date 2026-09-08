@@ -13,11 +13,88 @@ Bau aus `Kimhub/docs/sessions/BAUPLAN_kimhub-company.md`, Scheibe S4/S5.
 **Hier wird nicht entwickelt, hier wird ausgeliefert.** Die Werkstatt ist
 [Kimhub](https://github.com/lausiklauskn-png/Kimhub).
 
+## Seit 2026-09-08 auch ein SBKIM-Endknoten
+
+Klaus, wörtlich: *„Beide Tools, Company und das Ausliefer-Tool, sollen als
+eigenständige Knoten agieren … mit Zelle und auch dem Siegel. Und zwar nach dem
+Bauplan von Sage-Protokoll."*
+
+Eigene Identität, eigene Spore, eigenes Siegel mit dem Andock-Werkzeug darin,
+eigene Schublade **`sbkim_kimhubcompany`**. Die 13 Kanon-Module und die fünf
+app-eigenen Klebstoff-Dateien liegen unter `sbkim/`.
+
+⚠ **DER EINBAU STEHT IN KIMHUB, NICHT HIER.** `index.html` ist eine byte-gleiche
+Kopie der abgeleiteten `start.html`. Wer die Modul-Zeilen hier hineinschreibt,
+bricht die Kopie — der Drift-Guard wird zu Recht rot, und die nächste Sitzung
+sucht an der falschen Stelle. Der Weg:
+
+```
+Kimhub/tools/company-schale-bauen.mjs   ← die Kette + die Schublade im <head>
+Kimhub/tools/company-steuerung.html     ← der Weg zur eigenen Kennung
+        ↓  node tools/company-schale-bauen.mjs
+Kimhub/start.html  →  byte-gleich hierher als index.html
+```
+
+⚠ **DIE MODUL-DATEIEN LIEGEN NUR HIER, und daraus folgt die Arbeitsteilung beim
+Prüfen.** Kimhub hat sie nicht (die Werkstatt wird kein Knoten) und kann sie
+deshalb nicht messen:
+
+| wo | was gemessen wird |
+|---|---|
+| Kimhub, `tests/smoke_company_form.mjs` | die **Kette** in der abgeleiteten Seite: alle 13 namentlich, Reihenfolge, Schublade im Kopf — reiner Text, ohne Browser |
+| hier, `tests/smoke_knoten.mjs` | die **Dateien**: byte-1:1 aus Sage, im Offline-Vorrat, von git geführt, und ob die app-eigenen Werte zueinander passen |
+
+Keines ersetzt das andere. Eine Kette mit richtigen Namen kann auf fehlende
+Dateien zeigen, und Dateien, die daliegen, können ungenannt bleiben — zwei
+Fehler mit derselben Wirkung.
+
+**Zwei Drift-Guards, zwei Fragen.** `tools/drift-guard.mjs` fragt „ist diese
+Kopie noch die Kopie **aus Kimhub**?", `tools/sbkim-drift.mjs` fragt „ist der
+Knoten noch der Knoten **aus Sage**?" Zusammengeworfen wüsste bei einer
+Abweichung niemand, in welchem Depot nachzuziehen ist.
+
+⚠ **Die fünf Klebstoff-Dateien werden BEWUSST nicht gepinnt** — sie *müssen* pro
+App verschieden sein (Suffix, Knoten-Name, Bedeutungs-Beschreibung). Sages
+`docs/PFLICHT_MODULE.md` nennt sie ausdrücklich „kein Kanon, kein Drift-Guard".
+Dass sie zueinander passen, misst `tests/smoke_knoten.mjs`.
+
+⚠ **Und die Bedeutungs-Beschreibung ist keine Zierde.** Modul 03 rechnet daraus
+den Domänen-Vektor, Modul 04 vergleicht damit. Sie steht an **zwei** Stellen
+(`sbkim/rendezvous-init.js` und `sbkim/siegel-inhalt.js`), weil es zwei Wege zur
+Spore gibt — das Verbinden-Fenster und den Andock-Wizard im Siegel. Zwei
+verschiedene Texte ergäben zwei verschiedene Vektoren für denselben Knoten. Ein
+Wächter vergleicht sie wortgleich.
+
+⚠ **Im Depot liegt KEINE `spore.json`, und das bleibt so.** Sie entsteht in
+Klaus' Browser, der private Schlüssel bleibt dort. Eine Datei, die aussieht wie
+eine Identität, ist schlimmer als keine.
+
+## Prüfen
+
+```bash
+npm test              # tests/alle.mjs — Kopie, Schale, Knoten
+npm run drift         # ist die Kopie noch die Kopie aus Kimhub?
+npm run sbkim-drift   # ist der Knoten noch der Knoten aus Sage?
+npm run gegenprobe    # baut Fehler ein — jeder MUSS eine Probe umwerfen
+```
+
+Zuletzt gemessen (2026-09-08): **50 grün · 0 ROT · 0 nicht lauffähig** ·
+Gegenprobe **21 gefangen · 0 durchgerutscht**.
+
+⚠ **`npm test` allein ist nicht „die Prüfung".** Ein Wächter ohne Gegenprobe ist
+nur ein grüner Haken — beim Bau des Knotens waren **acht** eigene Wächter blind,
+und gefunden hat sie nicht das Nachdenken, sondern die Gegenprobe: fünf suchten
+Namen, die in dieser Datei nur im **Kopf-Kommentar** stehen, zwei fanden ihren
+Namen im Erklär-Kommentar daneben, einer verwechselte
+`switchWizardIdentityAbgeschaltet` mit `switchWizardIdentity`. Behoben wurden
+die **Wächter**, nicht die Fälle.
+
 ## Die eine Regel, auf die es hier ankommt
 
 **Kopieren, nicht klonen.** Was `tools/drift-guard.mjs` pinnt, wird hier
 **nicht** abgewandelt — es wird in Kimhub gepflegt und neu kopiert, dann der
-Fingerabdruck nachgezogen.
+Fingerabdruck nachgezogen. Dasselbe gilt für `sbkim/`, nur ist die Quelle dort
+**Sage-Protokol/src/modules/** und der Wächter `tools/sbkim-drift.mjs`.
 
 ⚠ **Hier hängt mehr daran als sonst.** In Kimhub steht der ganze Prüfstand
 (1 293 Prüfungen, Gegenprobe mit über 460 eingebauten Fehlern). Dieses Depot hat
@@ -40,6 +117,14 @@ im Kopf des Workers.
 - **Cache-Bump:** wer eine Datei aus `SCHALE` in `sw.js` ändert, erhöht
   `CACHE_VERSION`. Sonst liefert der Service-Worker die alte Fassung weiter —
   und die App sähe aus, als wäre nichts passiert.
+- **Drei Schubladen, drei Aufgaben — nie verwechseln.** `__WERKSTATT_DB`
+  (`KimHubCompany1`) ist die Buchhaltung, `schluesseltresor.js` verwahrt den
+  KI-Zugang, `window.SBKIM_DB_SUFFIX` (`kimhubcompany`) ist die
+  Knoten-Identität. Wer sie zusammenlegt, baut die Verwechslung ein, vor der
+  Kimhubs Verfassung unter „Zwei Schlösser" warnt.
+- **`window.SBKIM_DB_SUFFIX` gehört in den `<head>`, vor jedes Modul.** Modul 01
+  liest es beim LADEN; steht es weiter unten, hat es die geteilte Schublade
+  `sbkim` längst geöffnet. Gesetzt wird es vom Ableiter in Kimhub, nicht hier.
 - **DB-Name `KimHubCompany1` nie ändern.** `github.io` ist eine **geteilte**
   Adresse: IndexedDB gehört dem Ursprung, nicht der App. Dieselbe Regel wie der
   DB-Suffix in den SBKIM-Apps — nur liegt hier ein **bezahlter Zugang** darin.

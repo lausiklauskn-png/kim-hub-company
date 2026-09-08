@@ -7,6 +7,8 @@
   "scripts": {
     "test": "node tests/alle.mjs",
     "drift": "node tools/drift-guard.mjs",
-    "serve": "python3 -m http.server 8000"
+    "serve": "python3 -m http.server 8000",
+    "sbkim-drift": "node tools/sbkim-drift.mjs",
+    "gegenprobe": "bash tests/gegenprobe.sh"
   }
 }
