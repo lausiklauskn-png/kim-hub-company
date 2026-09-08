@@ -178,9 +178,94 @@
              gehtAuf: Math.abs((a + b - Math.max(0, a + b - g)) - g) < 1 };
   }
 
+
+  /*
+   * ══ EINEN ZWECK NACHTRAGEN — NUR DEN ZWECK ═════════════════════════════════
+   *
+   * Klaus am 2026-09-08, nachdem er es vergeblich versucht hatte: „bau die
+   * Beschriftung, nur den Zweck, Zeiten fest."
+   *
+   * DER SCHADEN, DER DAHINTER STAND. Eine gestempelte Zeile bekam ihre
+   * Beschriftung an genau zwei Stellen — beim Start und beim Stoppen, beide aus
+   * dem Feld `#uhr-was`. Danach gab es keinen Weg mehr dorthin. Wer eine Uhr
+   * ohne Zweck losgeschickt hatte, konnte ihn nie nachtragen; die Zeile stand
+   * mit „—" da, endgültig. Am 2026-09-07 traf das die groesste Zeile der ganzen
+   * Aufstellung: 15:03:24 von 16:30:23, also 91 % der gezaehlten Zeit, ohne
+   * Angabe wofuer. Klaus' Ausweg war, einen NEUEN Abschnitt zu beginnen — die
+   * alte Zeile blieb blank.
+   *
+   * ⚠ WARUM NUR DER ZWECK, UND DIE ZEITEN NIE.
+   *
+   * Ein Stundennachweis, dessen Zeiten sich nachtraeglich aendern lassen, ist
+   * ein anderes Dokument als einer, dessen Zeiten feststehen — er belegt dann
+   * nicht mehr, was die Uhr gemessen hat, sondern was jemand spaeter dazu
+   * meinte. **Gemessen wird einmal.** Die Beschriftung dagegen ist keine
+   * Messung, sondern eine Angabe des Menschen darueber, woran er sass; sie
+   * nachzutragen faelscht nichts, sie fuellt eine Luecke.
+   *
+   * Deshalb ist die Grenze nicht Vorsicht, sondern Bauart: diese Funktion
+   * KOPIERT den Eintrag und ueberschreibt genau zwei Felder. `von`,
+   * `sekunden`, `feierabend`, `automatisch` gehen unveraendert durch, weil sie
+   * hier gar nicht angefasst werden. Wer sie aendern wollte, muesste diese
+   * Funktion umbauen — und dann faellt `smoke_zeit` um.
+   *
+   * ⚠ UND DIE AENDERUNG IST SICHTBAR. `wasVerlauf` haelt fest, was vorher
+   * dastand und wann es ersetzt wurde. Eine stille Aenderung an einem Nachweis
+   * ist von einer Faelschung nicht zu unterscheiden — auch dann nicht, wenn sie
+   * ehrlich gemeint war. Der Verlauf waechst an, er wird nie ueberschrieben:
+   * sonst verschluckte die zweite Korrektur die erste.
+   *
+   * ⚠ LEEREN IST KEIN AENDERN. Ein Zweck laesst sich berichtigen, nicht
+   * loeschen — sonst waere der Weg zurueck zu „—" ein Weg, eine Angabe
+   * spurlos verschwinden zu lassen. Dieselbe Richtungs-Regel wie bei der
+   * Sperr-Liste in Kimboard: aus der Oberflaeche geht es nur nach oben.
+   *
+   * ⚠ UND EINE FAHRT WIRD NICHT BESCHRIFTET. Ihre Zeile kommt aus dem
+   * Fahrtenbuch, nicht aus dem Browser-Speicher; die Seite besitzt sie nicht.
+   * Sie hier zu aendern hiesse, in ein fremdes Buch zu schreiben — und beim
+   * naechsten Laden staende wieder der alte Text da, ohne dass jemand wuesste
+   * warum.
+   *
+   * Rueckgabe: `{ok:true, eintrag}` oder `{ok:false, grund}` mit einem der
+   * Gruende `fahrt` · `laeuft` · `leer` · `unveraendert`. Unterschieden statt
+   * geraten: ein `null` fuer alle vier Faelle liesse die Oberflaeche raten,
+   * was sie dem Nutzer sagen soll.
+   */
+  function zweckNachtragen(eintrag, neuerText, jetztIso) {
+    if (!eintrag || typeof eintrag !== "object") return { ok: false, grund: "leer" };
+    if (eintrag.automatisch) return { ok: false, grund: "fahrt" };
+    if (eintrag.laeuft) return { ok: false, grund: "laeuft" };
+    var neu = String(neuerText == null ? "" : neuerText).trim();
+    if (!neu) return { ok: false, grund: "leer" };
+    var alt = String(eintrag.was == null ? "" : eintrag.was).trim();
+    if (neu === alt) return { ok: false, grund: "unveraendert" };
+
+    /* Der Eintrag wird KOPIERT, nicht am Original geaendert: der Aufrufer haelt
+       dieselbe Liste in der Hand, und eine Aenderung im Vorbeigehen waere von
+       aussen nicht zu sehen. */
+    var k = {};
+    for (var f in eintrag) if (Object.prototype.hasOwnProperty.call(eintrag, f)) k[f] = eintrag[f];
+
+    /* Ein vorhandener Verlauf wird fortgeschrieben, nie ersetzt. Ist das Feld
+       kaputt (kein Feld), faengt der Verlauf hier an — das ist ehrlicher als
+       ein Abbruch, denn die Zeile selbst ist in Ordnung. */
+    var verlauf = Array.isArray(eintrag.wasVerlauf) ? eintrag.wasVerlauf.slice() : [];
+    verlauf.push({ zuvor: alt, geaendert: String(jetztIso || new Date().toISOString()) });
+
+    k.was = neu;
+    k.wasVerlauf = verlauf;
+    return { ok: true, eintrag: k };
+  }
+
+  /* Die Zeitfelder einer Zeile — an EINER Stelle benannt, damit die Probe und
+     die Funktion oben nicht zwei verschiedene Listen meinen. Wer ein Feld
+     ergaenzt, das eine Zeit traegt, traegt es hier nach. */
+  var ZEITFELDER = ["von", "sekunden", "feierabend", "automatisch", "ohneZeit"];
+
   if (welt) welt.WERKSTATT_ZEIT = {
     fahrtAbschnitte: fahrtAbschnitte, vereinigt: vereinigt, dauerText: dauerText,
-    tagOrt: tagOrt, aufteilung: aufteilung
+    tagOrt: tagOrt, aufteilung: aufteilung,
+    zweckNachtragen: zweckNachtragen, ZEITFELDER: ZEITFELDER
   };
 })(typeof window !== "undefined" ? window
    : (typeof globalThis !== "undefined" ? globalThis : null));

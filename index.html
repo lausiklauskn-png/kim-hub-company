@@ -591,6 +591,21 @@ footer{padding:18px 16px 40px;color:var(--leise);font-size:.87rem}
    eine Stechuhr, die beides gleich aufschreibt, beantwortet die Frage nicht,
    fuer die es sie gibt. */
 #uhr-liste tr.uhr-schluss td { border-bottom: 2px solid var(--kante); }
+/* Der Stift zum Nachtragen des Zwecks. Klein, aber nicht kleiner als ein
+   Finger: 44 px ist das Mass, unter dem ein Knopf auf dem Tablet danebengeht —
+   dieselbe Groesse wie ueberall sonst in dieser Seite. */
+#uhr-liste button.mini {
+  min-width: 44px; min-height: 44px; margin-left: 6px; padding: 4px 8px;
+  font-size: 1rem; line-height: 1; cursor: pointer;
+  background: transparent; color: var(--leise);
+  border: 1px solid var(--kante); border-radius: 6px;
+}
+#uhr-liste button.mini:hover { color: var(--akzent); border-color: var(--akzent); }
+#uhr-liste input.zweck-feld {
+  width: 100%; max-width: 34rem; padding: 8px; font: inherit;
+  background: var(--grund); color: var(--text);
+  border: 1px solid var(--akzent); border-radius: 6px;
+}
 /* Das Blatt LESBAR — Klaus 2026-08-22: „nicht lesbar, weil sie noch als Code
    zu sehen sind." Gerendert wird zum Lesen; die Datei zum Herunterladen bleibt
    Zeichen fuer Zeichen die Datei. Eine Ansicht ist keine zweite Fassung. */

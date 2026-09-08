@@ -2444,6 +2444,84 @@
     return true;
   }
 
+  /*
+   * ══ DEN ZWECK EINER GESTEMPELTEN ZEILE NACHTRAGEN ══════════════════════════
+   *
+   * Die Regel steht in `zeit.js` (`zweckNachtragen`) — dort, weil sie sich
+   * nachrechnen laesst und die Gegenprobe ohne Browser faehrt. Hier steht nur
+   * die Bedienung.
+   *
+   * ⚠ KEIN `prompt()`. Auf Klaus' Tablet ist ein Systemdialog das Gegenteil von
+   * einem benannten Knopf in der Seite, und Chrome darf ihn unterdruecken —
+   * dann waere es ein toter Knopf, der aussieht, als haette man ihn nicht
+   * gedrueckt. Bearbeitet wird IN der Zeile.
+   */
+  function zweckSpeichern(von, text) {
+    var liste = uhrAbschnitte();
+    /* Gesucht wird ueber den BEGINN, und es muss genau einer sein. Zwei Treffer
+       hiessen, dass die Identitaet der Zeile nicht eindeutig ist — dann lieber
+       gar nichts aendern als die falsche. */
+    var treffer = [];
+    liste.forEach(function (e, i) { if ((e.von || 0) === von) treffer.push(i); });
+    if (treffer.length !== 1) return { ok: false, grund: "nicht_eindeutig" };
+    var r = zeitApi().zweckNachtragen(liste[treffer[0]], text, new Date().toISOString());
+    if (!r.ok) return r;
+    liste[treffer[0]] = r.eintrag;
+    schreib("stechuhr", liste);
+    return r;
+  }
+
+  var ZWECK_GRUND = {
+    leer: "Ein Zweck laesst sich berichtigen, nicht loeschen — schreib hinein, woran du sassest.",
+    unveraendert: "Da steht schon dasselbe.",
+    fahrt: "Diese Zeile kommt aus dem Fahrtenbuch, nicht aus der Stechuhr — sie wird dort gefuehrt.",
+    laeuft: "Die Uhr laeuft noch. Beschrifte sie im Feld ueber der Liste.",
+    nicht_eindeutig: "Diese Zeile ist im Speicher nicht eindeutig zu finden. Nichts geaendert."
+  };
+
+  /** Tauscht die Zelle gegen ein Feld mit ✓ und ✗. */
+  function zweckBearbeiten(zelle, e) {
+    if (zelle.getAttribute("data-bearbeitet") === "ja") return;
+    zelle.setAttribute("data-bearbeitet", "ja");
+    var vorher = zelle.innerHTML;
+    leer(zelle);
+    var feld = document.createElement("input");
+    feld.type = "text";
+    feld.className = "zweck-feld";
+    feld.value = e.was || "";
+    feld.setAttribute("data-zweck-feld", String(e.von));
+    feld.placeholder = "Woran hast du gesessen?";
+    var meldung = el("small", "leise", "");
+    meldung.setAttribute("data-zweck-meldung", "");
+
+    function zurueck() { zelle.innerHTML = vorher; zelle.removeAttribute("data-bearbeitet"); }
+    function sichern() {
+      var r = zweckSpeichern(e.von, feld.value);
+      if (!r.ok) { meldung.textContent = ZWECK_GRUND[r.grund] || r.grund; return; }
+      /* Neu zeichnen statt die Zelle von Hand nachzuziehen: sonst stuenden zwei
+         Wege nebeneinander, die dasselbe darstellen, und liefen auseinander. */
+      zelle.removeAttribute("data-bearbeitet");
+      uhrZeichnen();
+    }
+    var ja = el("button", "mini", "✓");
+    ja.setAttribute("data-zweck-sichern", String(e.von));
+    ja.title = "Zweck uebernehmen";
+    ja.onclick = sichern;
+    var nein = el("button", "mini", "✗");
+    nein.setAttribute("data-zweck-abbrechen", String(e.von));
+    nein.title = "Abbrechen";
+    nein.onclick = zurueck;
+    feld.onkeydown = function (ev) {
+      if (ev.key === "Enter") { ev.preventDefault(); sichern(); }
+      if (ev.key === "Escape") { ev.preventDefault(); zurueck(); }
+    };
+    zelle.appendChild(feld);
+    zelle.appendChild(ja);
+    zelle.appendChild(nein);
+    zelle.appendChild(meldung);
+    try { feld.focus(); } catch (ignoriert) {}
+  }
+
   function uhrZeichnen() {
     var t = $("#uhr-liste"), koerper = el("tbody"); leer(t);
     var gesamt = uhrGesamt();
@@ -2549,6 +2627,37 @@
       if (e.automatisch)
         woran.appendChild(el("small", "leise", "  — aus dem Fahrtenbuch" +
           (e.echt ? "" : ", trocken") + (e.wer ? ", " + e.wer : "")));
+      /*
+       * ⚠ EINE NACHGETRAGENE ANGABE SIEHT MAN AN. Ohne diesen Zusatz waere eine
+       * spaeter beschriftete Zeile von einer sofort beschrifteten nicht zu
+       * unterscheiden — und ein Nachweis, dem man die Aenderung nicht ansieht,
+       * ist von einer Faelschung nicht zu unterscheiden. Genannt wird, WANN und
+       * WAS vorher dastand; „(vorher leer)" ist dabei eine Auskunft, kein
+       * Platzhalter.
+       */
+      if (!e.automatisch && Array.isArray(e.wasVerlauf) && e.wasVerlauf.length) {
+        var letzte = e.wasVerlauf[e.wasVerlauf.length - 1];
+        var wann = String(letzte.geaendert || "").slice(0, 10);
+        var zuvor = String(letzte.zuvor || "").trim();
+        var hinweis = el("small", "leise", "  — Zweck nachgetragen" +
+          (wann ? " am " + wann : "") +
+          (zuvor ? " (vorher: „" + zuvor + "\u201c)" : " (vorher leer)") +
+          (e.wasVerlauf.length > 1 ? ", " + e.wasVerlauf.length + "\u00d7 geaendert" : ""));
+        hinweis.setAttribute("data-zweck-verlauf", String(e.wasVerlauf.length));
+        woran.appendChild(hinweis);
+      }
+      /* Der Knopf steht NUR an gestempelten Zeilen. Eine Fahrt gehoert dem
+         Fahrtenbuch; ein Knopf daran versprache eine Aenderung, die beim
+         naechsten Laden wieder weg waere. */
+      if (!e.automatisch) {
+        var stift = el("button", "mini", "\u270e");
+        stift.setAttribute("data-zweck-knopf", String(e.von));
+        stift.title = "Zweck nachtragen \u2014 die Zeiten bleiben, wie gemessen";
+        stift.onclick = (function (zelle, eintrag) {
+          return function () { zweckBearbeiten(zelle, eintrag); };
+        })(woran, e);
+        woran.appendChild(stift);
+      }
       r.appendChild(woran);
       /* ⚠ KEINE ERFUNDENE NULL. Eine alte Fahrt ohne Beginn hat keine messbare
          Spanne — dann steht das da, nicht „0:00". */
