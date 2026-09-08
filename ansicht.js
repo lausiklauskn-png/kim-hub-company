@@ -4464,14 +4464,21 @@
         lage.textContent = t;
         lage.setAttribute("data-rueckweg-lage", m);
       };
-      var werk = document.querySelector('details[data-erklaer="tresor-werk"]');
       var datei = document.querySelector('details[data-erklaer="tresor-datei"]');
       var feld = $("#tresor-datei");
-      if (!werk || !datei || !feld) {
+      if (!datei || !feld) {
         sag("Der Einlese-Weg ist auf dieser Seite nicht zu finden.", "fehlt");
         return;
       }
-      werk.open = true;
+      /* ⚠ SEIT DEM 2026-09-08 REICHT EINER. Bis dahin steckte „tresor-datei"
+         IN „tresor-werk", also musste der Knopf BEIDE aufklappen, sonst blieb
+         das Feld verborgen. Jetzt sind es Geschwister — „tresor-werk" ist die
+         andere Richtung (anlegen), und sie hier mit aufzureissen waere Laerm
+         vor jemandem, der zurueckholen will.
+         Die Zusicherung hat sich damit geaendert, nicht nur der Code: gemessen
+         wird nicht mehr „beide sind offen", sondern das, worauf es ankommt —
+         das Feld steht wirklich da. Ein Waechter, der aus einem nicht mehr
+         gueltigen Grund gruen bleibt, misst die Sabotage und nicht die Sache. */
       datei.open = true;
       /* Erst nach dem Aufklappen hat das Feld eine Lage — vorher zeigte
          scrollIntoView auf ein Element ohne Höhe. */
