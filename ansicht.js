@@ -1082,6 +1082,57 @@
     });
   }
 
+  /*
+   * DER SPEICHERBALKEN (Klaus 2026-09-08): „und den Speichernutzungs balken wo
+   * steht dauerhaft gesichert, der zeigt den Browserspeicher an."
+   *
+   * ⚠ ER ZEIGT, WAS DER BROWSER SAGT — `navigator.storage.estimate()`, nicht
+   * unsere Schaetzung. Aeltere Fassungen kennen `estimate` nicht; dann steht
+   * das da, statt einer erfundenen Null. Eine geratene Zahl klingt genau wie
+   * eine gemessene.
+   *
+   * ⚠ UND `frei` IST EIN KONTINGENT, KEIN PLATZ AUF DER PLATTE. Der Browser
+   * nennt dort, was er dieser Adresse zugesteht — auf einem halbleeren Geraet
+   * kann das klein sein und auf einem vollen gross. Deshalb steht der Prozent
+   * neben den Zahlen und nicht allein: 90 % von 60 MB ist etwas anderes als
+   * 90 % von 6 GB.
+   */
+  function mib(n) {
+    var m = n / 1048576;
+    return (m >= 10 ? Math.round(m) : Math.round(m * 10) / 10) + " MB";
+  }
+  function speicherBalken(lage) {
+    var kasten = $("#tresor-speicher");
+    if (!kasten) return;
+    var hat = typeof lage.benutzt === "number" && typeof lage.frei === "number"
+      && lage.frei > 0;
+    var teil = hat ? Math.min(100, Math.round(lage.benutzt / lage.frei * 100)) : 0;
+    kasten.setAttribute("data-speicher", hat ? String(teil) : "unbekannt");
+    var f = $("#tresor-sp-fuellung");
+    if (f) {
+      f.style.width = teil + "%";
+      /* Die Farben kommen aus den Marken, nicht als feste Werte — wer das
+         Thema wechselt, bekommt sie mit. */
+      f.style.background = teil >= 90 ? "var(--rot)"
+        : (teil >= 70 ? "var(--warn)" : "var(--gut)");
+    }
+    var m = $("#tresor-sp-mass");
+    if (m) m.textContent = hat
+      ? mib(lage.benutzt) + " / " + mib(lage.frei) + "  (" + teil + " %)"
+      : "Dieser Browser nennt seinen Füllstand nicht.";
+    var u = $("#tresor-sp-urteil");
+    if (u) {
+      /* ⚠ BEIDE ANTWORTEN SIND ERLAUBT, KEINE IST GERATEN. „Dauerhaft" ist
+         eine Zusicherung des BROWSERS; wer sie schreibt, ohne gefragt zu
+         haben, beruhigt ueber etwas, das er nicht halten kann. */
+      u.textContent = lage.dauerhaft
+        ? "🔒 Dauerhaft gesichert"
+        : "⚠ KEINE Dauerhaftigkeit zugesagt — sichere regelmäßig";
+      u.style.color = lage.dauerhaft ? "var(--gut)" : "var(--warn)";
+      u.setAttribute("data-sp-urteil", lage.dauerhaft ? "dauerhaft" : "nicht");
+    }
+  }
+
   function tresorWoZeichnen() {
     var w = $("#tresor-wo");
     if (!w) return;
@@ -1112,17 +1163,18 @@
          Wort, also wäre er auch ohne den Grund grün gewesen. Bewacht wird die
          Aussage „im Leerzustand steht der Grund dabei", nicht ihr Wortlaut. */
       w.setAttribute("data-wo-grund", leer ? "einzelner-browser" : "");
+      speicherBalken(lage);
       var rueck = $("#tresor-rueckweg");
       if (rueck) {
         rueck.hidden = !leer;
         rueck.setAttribute("data-rueckweg", leer ? "noetig" : "unnoetig");
       }
-      /* Der Browser sagt sein Urteil, nicht wir. Ein „geschützt", das niemand
-         gefragt hat, ist eine Behauptung. */
-      satz += lage.dauerhaft
-        ? "  🔒 Der Browser hat den Speicher als dauerhaft zugesagt."
-        : "  ⚠ Der Browser hat KEINE Dauerhaftigkeit zugesagt — er darf bei"
-          + " Speicherdruck aufräumen. Sichere regelmäßig.";
+      /* ⚠ DER DAUERHAFTIGKEITS-SATZ STAND BIS ZUM 2026-09-08 HIER — jetzt
+         steht er im Speicherbalken darueber (`#tresor-sp-urteil`). Die
+         Zusicherung ist NICHT gefallen, sie ist umgezogen: der Browser wird
+         weiter gefragt (`data-dauerhaft` unten), und seine Antwort steht
+         weiter da. Zweimal denselben Satz zu schreiben waere genau der
+         Erklaertext, den Klaus beanstandet hat. */
       var sich = $("#tresor-sicherung");
       if (sich) idbLies(BH_SICHERUNG).then(function (d) {
         sich.textContent = d
@@ -4726,7 +4778,7 @@
           + " danach steht sie hier und ein Druck auf 🔄 holt sie zurück."));
         return;
       }
-      l.forEach(function (e) {
+      function vorratZeile(e) {
         var r = el("div", "sich-zeile vorrat-zeile");
         r.setAttribute("data-vorrat-id", e.id);
         var d = new Date(e.wann);
@@ -4782,14 +4834,46 @@
           }).catch(function (f) { vorratSagen("Ging nicht: " + String(f && f.message), "fehler"); });
         });
         mach("🗑", "Diese Sicherung aus dem Browser löschen", function () {
+          /* ⚠ ERST „rechnet", DANN LOESCHEN. Ohne diese Zeile stand hier
+             weiter die Meldung des vorigen Schrittes — und wer darauf wartet,
+             dass sie NICHT MEHR „rechnet" sagt, wartet auf etwas, das schon
+             vorher wahr war. Genau die Falle „eine Bedingung, die schon VOR
+             der Handlung wahr ist, ist kein Warten". Gefunden am 2026-09-08,
+             weil die Liste durch die Abschnitte etwas langsamer wurde und die
+             Probe das Rennen verlor, das sie vorher zufaellig gewann. */
+          vorratSagen("Wird gelöscht …", "rechnet");
           vorratLoeschen(e.id).then(function () {
             vorratSagen("Gelöscht. Eine heruntergeladene Datei ist davon nicht betroffen.",
               "geloescht");
+          }).catch(function (f) {
+            vorratSagen("Ging nicht: " + String(f && f.message), "fehler");
           });
         });
         r.appendChild(knoepfe);
-        z.appendChild(r);
-      });
+        return r;
+      }
+
+      /* ══ ZWEI ABSCHNITTE, WIE IM REZEPTBUCH ═══════════════════════════════
+       * „Eigene Backups" und „Automatische Backups (letzte 5)". Die Trennung
+       * ist nicht Zierde: die von Hand benannte Sicherung ist die, die jemand
+       * bewusst wollte — sie zwischen zwanzig automatischen zu suchen, macht
+       * sie wertlos. `vorratKuerzen` kuerzt aus demselben Grund je Sorte.
+       *
+       * ⚠ DIE ZAHL WIRD GERECHNET, NICHT GETIPPT. Stuende „(letzte 5)" als
+       * Text da, waere die Ueberschrift still falsch, sobald jemand
+       * `VORRAT_AUTO_MAX` dreht — und niemand saehe es.
+       */
+      var hand = [], auto = [];
+      l.forEach(function (e) { (e.art === "auto" ? auto : hand).push(e); });
+      if (hand.length) {
+        z.appendChild(el("div", "vorrat-sec", "Eigene Sicherungen"));
+        hand.forEach(function (e) { z.appendChild(vorratZeile(e)); });
+      }
+      if (auto.length) {
+        z.appendChild(el("div", "vorrat-sec",
+          "Automatisch (letzte " + VORRAT_AUTO_MAX + ")"));
+        auto.forEach(function (e) { z.appendChild(vorratZeile(e)); });
+      }
     }
 
     function vorratSagen(text, marke) {
@@ -4951,6 +5035,254 @@
        Browser-Speicher. Ohne diese Zeile stuende sie bei jedem Besuch leer da,
        und genau dann braucht man sie. */
     vorratLesen().then(zeichneVorrat);
+
+    /* ══ DAS AUTOMATISCHE BACKUP (Klaus 2026-09-08) ═══════════════════════
+     * „Im Mein Rezeptbuch ist ein automatisches Back-up. Das heisst, es wird
+     * immer ab einer bestimmten Zeit ein automatisches Back-up erstellen."
+     *
+     * ZWEI AUSLOESER, und keiner ersetzt den anderen:
+     *   · eine Uhr, solange die Seite offen ist — Klaus' eigenes Bild
+     *     („ab einer bestimmten Zeit"), und sie faengt die lange Sitzung.
+     *   · das VERLASSEN der Seite (`visibilitychange` → hidden), wie im
+     *     Rezeptbuch — das ist der Moment, in dem etwas verloren gehen kann.
+     * Nur die Uhr faenge den nicht, der nach 25 Minuten weggeht; nur das
+     * Verlassen faenge den nicht, der die Seite tagelang offen liegen laesst.
+     *
+     * ⚠ MIT EINEM MINDESTABSTAND — das ist der Unterschied zum Rezeptbuch.
+     * Wer auf dem Tablet zwischen zwei Apps springt, loest `visibilitychange`
+     * in einer Minute ein Dutzend Mal aus. Ohne Abstand waeren die fuenf
+     * Auto-Plaetze nach zwanzig Sekunden mit zwanzig Sekunden Geschichte
+     * gefuellt und die Sicherung von gestern weg. **Ein Vorrat, der sich
+     * selbst ueberschreibt, ist kein Vorrat.**
+     *
+     * ⚠ DER ZEITSTEMPEL LIEGT IN `localStorage`, NICHT IN IndexedDB. Beim
+     * Verlassen der Seite bleibt fuer eine asynchrone Antwort keine Zeit —
+     * `localStorage` schreibt sofort. Der Vorrat selbst geht weiter nach
+     * IndexedDB; geht das beim Weggehen einmal nicht durch, faengt es die Uhr
+     * beim naechsten Mal. Ein verpasstes Backup ist ein Aerger, ein
+     * verlorener Vorrat waere ein Schaden.
+     */
+    var AUTO_ABSTAND_MS = 20 * 60 * 1000;
+    var AUTO_ZULETZT = "bh_auto_zuletzt";
+
+    function autoName(d) {
+      return "Auto " + d.toLocaleDateString("de-DE",
+        { day: "2-digit", month: "2-digit", year: "2-digit" })
+        + " " + d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function autoSichern(grund) {
+      var jetzt = Date.now();
+      var vorher = Number(lies(AUTO_ZULETZT, 0)) || 0;
+      if (jetzt - vorher < AUTO_ABSTAND_MS) return Promise.resolve(null);
+      /* Nichts da heisst nichts sichern — ein leerer Eintrag saehe aus wie
+         eine Sicherung und waere keine. */
+      if (!tresorWasAblegen().length) return Promise.resolve(null);
+      schreib(AUTO_ZULETZT, jetzt);
+      return vorratAnlegen(autoName(new Date(jetzt)), "auto").then(function (e) {
+        if (e) e.grund = grund || "uhr";
+        return e;
+      }).catch(function () { return null; });
+    }
+    /* Ein Haken fuer die Proben — sie sollen den echten Weg gehen und nicht
+       zwanzig Minuten warten. Er ruft dieselbe Funktion, die auch die Uhr
+       ruft; ein zweiter Weg nur fuer Tests maesse einen zweiten Weg. */
+    window.__werkstatt = window.__werkstatt || {};
+    window.__werkstatt.autoSichern = autoSichern;
+    window.__werkstatt.autoAbstandMs = AUTO_ABSTAND_MS;
+
+    setInterval(function () { autoSichern("uhr"); }, AUTO_ABSTAND_MS);
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "hidden") autoSichern("weggegangen");
+    });
+
+    /* ══ DER GANZE INHALT — PER POSITIVLISTE ══════════════════════════════
+     *
+     * Klaus 2026-09-08: „der gesamte Inhalt der App … für QuickShare und
+     * Bluetooth zum direkten Versand an jemanden geschickt, der den Inhalt
+     * haben möchte. Also Forschungsdaten oder sonst irgendetwas."
+     *
+     * ⚠ AUFGEZAEHLT WIRD, WAS HINEIN DARF — nicht, was draussen bleibt. Das
+     * ist die PRIME DIRECTIVE aus `BookLedgerPro/src/domain/angebote.js`: was
+     * hier nicht steht, kann nicht hinaus, auch wenn morgen ein Feld dazukommt.
+     * Andersherum — „alles ausser dem Schluessel" — waere bei jedem neuen Feld
+     * eine neue Entscheidung, und die trifft irgendwann niemand.
+     *
+     * ⚠ DER BYOK-SCHLUESSEL STEHT NICHT DARIN UND KANN ES NICHT. Er liegt in
+     * derselben IndexedDB unter `byok_schluessel`. Eine Ablage, die „alles aus
+     * der Datenbank" naehme, haette ihn mitgeschickt — verschluesselt zwar,
+     * aber an einen Empfaenger, der beliebig lange raten darf. Ein Wächter in
+     * `tests/smoke_tresor.mjs` legt einen echten Schluessel ein und besteht
+     * darauf, dass keine seiner Zeichenketten in der Datei steht.
+     */
+    var GANZ_KOPF = ["art", "fassung", "wann", "woher"];
+    var GANZ_FELDER = ["belege", "zeiten", "stechuhr", "vorrat", "journal", "forschung"];
+
+    /*
+     * ⚠ DIE FORSCHUNGS-AUFZEICHNUNG LIEGT ALS DATEI IM DEPOT, NICHT IM
+     * BROWSER — und Klaus hat vorhergesagt, was daraus folgt: „das wird sich
+     * in Company mit der Forschung nicht funktionieren. Das müsste dann in
+     * KimHub sein." Er hat recht. Geloest wird es NICHT durch einen zweiten
+     * Knopf: derselbe fragt, und wo es die Datei nicht gibt, fehlt sie im
+     * Paket und das Ergebnis sagt das hin. Zwei Fassungen desselben Knopfes
+     * liefen auseinander, und dann behauptete die eine etwas ueber die andere.
+     */
+    function forschungHolen() {
+      try {
+        return fetch("forschung/sitzungen.json", { cache: "no-store" })
+          .then(function (a) { return a.ok ? a.json() : null; })
+          .catch(function () { return null; });
+      } catch (e) { return Promise.resolve(null); }
+    }
+
+    function ganzerInhalt() {
+      /* Auch der Kopf kommt aus einer Liste — sonst waere `GANZ_KOPF` eine
+         Regel, deren Fehlen nichts aendert, und das ist eine Behauptung. */
+      var kopf = {
+        art: "kimhub-inhalt",
+        fassung: 1,
+        wann: new Date().toISOString(),
+        woher: location.host + location.pathname
+      };
+      var paket = {};
+      GANZ_KOPF.forEach(function (k) { paket[k] = kopf[k]; });
+      var uhr = uhrAbschnitte();
+      return Promise.all([
+        idbLies(BH_VORRAT).catch(function () { return null; }),
+        idbLies(BH_JOURNAL).catch(function () { return null; }),
+        forschungHolen()
+      ]).then(function (x) {
+        /* ⚠ DIE LISTE BAUT DAS PAKET, SIE FILTERT ES NICHT NACHTRAEGLICH.
+           Der Unterschied ist der ganze Schutz: ein Filter laesst sich
+           entfernen, und dann ist alles drin, was vorher hineingeschrieben
+           wurde. Eine Liste, die KOPIERT, laesst sich nicht entfernen — ohne
+           sie ist das Paket leer, und das faellt sofort auf. Dasselbe Muster
+           wie `PROTOKOLL_FELDER` in BookLedgerPro. */
+        var quelle = {
+          belege: (daten.belege && !daten.belege._ausBeispiel) ? daten.belege : null,
+          zeiten: (daten.zeiten && !daten.zeiten._ausBeispiel) ? daten.zeiten : null,
+          stechuhr: uhr.length ? uhr : null,
+          vorrat: (Array.isArray(x[0]) && x[0].length) ? x[0] : null,
+          journal: (Array.isArray(x[1]) && x[1].length) ? x[1] : null,
+          forschung: x[2] || null
+        };
+        GANZ_FELDER.forEach(function (k) {
+          if (quelle[k] != null) paket[k] = quelle[k];
+        });
+        return paket;
+      });
+    }
+
+    function inhaltLeer(p) {
+      return !p.belege && !p.zeiten && !p.stechuhr && !p.vorrat && !p.forschung;
+    }
+
+    /* Was drin ist, wird GEZAEHLT statt behauptet — dieselbe Regel wie bei
+       `tresorNamenMitInhalt`: „stechuhr.enc.json abgelegt" beantwortet die
+       Frage nicht, die jemand hat. */
+    function inhaltZaehlen(p) {
+      var t = [];
+      if (p.belege) t.push("Belege");
+      if (p.zeiten) t.push("Zeiten");
+      if (p.stechuhr) t.push(p.stechuhr.length + " Stechuhr-Abschnitte");
+      if (p.vorrat) t.push(p.vorrat.length + " Sicherungen");
+      if (p.journal) t.push(p.journal.length + " Journal-Zeilen");
+      t.push(p.forschung
+        ? "Forschungs-Aufzeichnung"
+        : "ohne Forschungs-Aufzeichnung (die liegt nur in Kimhub)");
+      return t.join(" · ");
+    }
+
+    function inhaltDatei() {
+      return ganzerInhalt().then(function (p) {
+        return {
+          paket: p,
+          name: zeitApi().dateiName("kimhub-inhalt", "json", new Date()),
+          text: JSON.stringify(p, null, 2)
+        };
+      });
+    }
+    window.__werkstatt.ganzerInhalt = ganzerInhalt;
+    window.__werkstatt.autoDeckel = VORRAT_AUTO_MAX;
+
+    function lageSagen(wo, marke, text, wert) {
+      var n = $(wo);
+      if (!n) return;
+      n.textContent = text;
+      n.setAttribute(marke, wert || "");
+    }
+
+    // ── 💾 Datensicherung (JSON) — ein Knopf, eine Datei ────────────────────
+    var jSich = $("#bh-json-sichern");
+    if (jSich) jSich.addEventListener("click", function () {
+      lageSagen("#bh-json-lage", "data-json-lage", "Wird zusammengestellt …", "rechnet");
+      inhaltDatei().then(function (d) {
+        if (inhaltLeer(d.paket)) {
+          lageSagen("#bh-json-lage", "data-json-lage",
+            "Nichts zu sichern — in diesem Browser stehen keine Zahlen.", "leer");
+          return;
+        }
+        tresorAblegen(d.name, d.paket);
+        lageSagen("#bh-json-lage", "data-json-lage",
+          d.name + " heruntergeladen — " + inhaltZaehlen(d.paket), "fertig");
+      }).catch(function (f) {
+        lageSagen("#bh-json-lage", "data-json-lage",
+          "Ging nicht: " + String(f && f.message), "fehler");
+      });
+    });
+
+    // ── 📤 Teilen & Synchronisieren ────────────────────────────────────────
+    var tTeil = $("#bh-teilen");
+    if (tTeil) tTeil.addEventListener("click", function () {
+      lageSagen("#bh-teilen-lage", "data-teilen-lage", "Wird zusammengestellt …", "rechnet");
+      inhaltDatei().then(function (d) {
+        if (inhaltLeer(d.paket)) {
+          lageSagen("#bh-teilen-lage", "data-teilen-lage",
+            "Nichts zu teilen — in diesem Browser stehen keine Zahlen.", "leer");
+          return;
+        }
+        /*
+         * ⚠ DER RUECKFALL IST KEIN FEHLSCHLAG, SONDERN DER ZWEITE WEG. Quick
+         * Share und Bluetooth laufen ueber `navigator.share`; wo der Browser
+         * das nicht kann — jeder Rechner-Browser —, landet DIESELBE Datei im
+         * Download-Ordner, und von dort geht sie per E-Mail. Ein Knopf, der
+         * ohne `navigator.share` gar nichts taete, waere genau der tote Knopf
+         * mit Beschriftung, vor dem die Verfassung warnt.
+         */
+        var datei = null;
+        try {
+          datei = new File([new Blob([d.text], { type: "application/json" })],
+            d.name, { type: "application/json" });
+        } catch (e) { datei = null; }
+        var kann = !!(datei && navigator.canShare && navigator.canShare({ files: [datei] }));
+        var inDenOrdner = function (warum) {
+          tresorAblegen(d.name, d.paket);
+          lageSagen("#bh-teilen-lage", "data-teilen-lage",
+            warum + " — " + d.name + " liegt im Download-Ordner."
+            + " Von dort per E-Mail oder Quick Share senden. " + inhaltZaehlen(d.paket),
+            "datei");
+        };
+        if (!kann) { inDenOrdner("Dieser Browser kann keine Dateien teilen"); return; }
+        return navigator.share({ files: [datei], title: "Kimhub — Inhalt" })
+          .then(function () {
+            lageSagen("#bh-teilen-lage", "data-teilen-lage",
+              "Geteilt — " + inhaltZaehlen(d.paket), "geteilt");
+          })
+          .catch(function (f) {
+            /* Abgebrochen ist eine ENTSCHEIDUNG, kein Fehler — wer sie als
+               Fehlschlag meldet, laesst den Nutzer nach einem Problem suchen,
+               das er selbst gemacht hat. */
+            if (f && f.name === "AbortError") {
+              lageSagen("#bh-teilen-lage", "data-teilen-lage", "Abgebrochen.", "abgebrochen");
+              return;
+            }
+            inDenOrdner("Teilen ging nicht");
+          });
+      }).catch(function (f) {
+        lageSagen("#bh-teilen-lage", "data-teilen-lage",
+          "Ging nicht: " + String(f && f.message), "fehler");
+      });
+    });
 
     var tGeladen = $("#tresor-geladen");
     if (tGeladen) tGeladen.addEventListener("click", function () {
