@@ -201,6 +201,29 @@ input:focus-visible,textarea:focus-visible{outline:2px solid var(--akzent);outli
 .vorrat-name{font-weight:600;overflow-wrap:anywhere}
 .vorrat-knoepfe{display:flex;gap:6px;flex:0 0 auto;margin-left:auto}
 .vorrat-knoepfe button.mini{min-width:44px;min-height:44px;padding:4px 8px}
+
+/* ── Speichernutzung ────────────────────────────────────────────────────────
+   Klaus 2026-09-08: „und den Speichernutzungs balken wo steht dauerhaft
+   gesichert, der zeigt den Browserspeicher an". Gestalt aus dem Rezeptbuch
+   (`.bvault-store`), Farben aus KHC. Die Fuellung faerbt sich nach Fuellstand
+   — gruen/gelb/rot kommen aus `--gut`/`--warn`/`--rot`, nicht aus Zahlen. */
+.sp-kasten{background:var(--karte2);border:1px solid var(--kante);border-radius:10px;
+  padding:9px 12px;margin:8px 0 0}
+.sp-kopf{font-size:.78rem;margin:0 0 7px}
+.sp-balken{height:7px;border-radius:4px;background:var(--kante);overflow:hidden;margin-bottom:6px}
+.sp-fuellung{height:100%;border-radius:4px;transition:width .3s;background:var(--gut)}
+.sp-mass{font-size:.7rem;color:var(--leise);font-family:var(--mono)}
+.sp-urteil{font-size:.72rem;font-weight:600;margin-top:3px}
+
+/* Abschnitts-Marke ueber einer Liste — klein, gesperrt, ruhig. */
+.vorrat-sec{font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--leise);margin:12px 2px 5px}
+
+/* Der gestrichelte Kasten — Rezeptbuchs `.bvault-json`. Gestrichelt heisst
+   „hier kommt etwas herein", durchgezogen „hier steht etwas". */
+.tresor-kasten{border:1px dashed var(--kante);border-radius:10px;padding:11px 12px;margin:10px 0 0}
+.tresor-kasten>h4{margin:0 0 4px}
+.tresor-kasten>p{margin:0 0 8px}
 /* Der lange Text hinter einem Knopf (Klaus 2026-08-20): „die MD-Gesprächstexte
    sollen als Button zu öffnen sein". <details> statt eigener Klick-Logik — der
    Browser bringt Tastatur, Vorlese-Ansage und Aufklappen ohne Skript mit. */
@@ -1531,6 +1554,43 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
         ✓ Aufgeschlossen — nur in diesem Fenster. Das Passwort steht
         <b>nirgends gespeichert</b>; nach dem Neuladen fragt die Seite wieder.</p>
 
+      <!-- ══ SPEICHERNUTZUNG ═══════════════════════════════════════════════
+           Klaus 2026-09-08: „und den Speichernutzungs balken wo steht dauerhaft
+           gesichert, der zeigt den Browserspeicher an." Der Browser sagt sein
+           Urteil selbst (`navigator.storage.estimate` + `persisted`) — ein
+           „geschützt", das niemand gefragt hat, wäre eine Behauptung. -->
+      <div class="sp-kasten" id="tresor-speicher" data-speicher="">
+        <p class="sp-kopf">📊 <b>Speichernutzung</b></p>
+        <div class="sp-balken"><div class="sp-fuellung" id="tresor-sp-fuellung" style="width:0"></div></div>
+        <div class="sp-mass" id="tresor-sp-mass">wird geprüft …</div>
+        <div class="sp-urteil" id="tresor-sp-urteil" data-sp-urteil=""></div>
+      </div>
+
+      <!-- ══ EINLESEN — steht jetzt OBEN ════════════════════════════════════
+           ⚠ BEFUND C (Klaus 2026-08-22): 📥 Einlesen ist kein „stattdessen".
+           Es ist der EINZIGE Weg zurück, wenn der Browser-Speicher leer ist.
+           Im Rezeptbuch steht dieser Kasten deshalb ganz oben, gestrichelt —
+           gestrichelt heißt „hier kommt etwas herein". Übernommen. -->
+      <div class="tresor-kasten">
+        <h4>📂 JSON aus dem Download-Ordner laden</h4>
+        <p class="merkmale">
+          <span class="merkmal" data-einlesen-wirkung="">Stechuhr wird zusammengeführt · Belege und Zeiten ersetzt</span>
+        </p>
+        <div class="pult">
+          <input id="tresor-datei" type="file" accept=".json,application/json" style="flex:1 1 240px">
+        </div>
+        <!-- Erscheint erst, wenn die gewählte Datei schon ein Paket IST —
+             statt jeden zu fragen, der nur einmal verschließen will. -->
+        <div class="pult" id="tresor-alt-block" hidden style="margin-top:8px">
+          <input id="tresor-alt" type="password" autocomplete="off"
+                 placeholder="Passwort der Datei" style="flex:1 1 200px">
+        </div>
+        <div class="pult" style="margin-top:8px">
+          <button id="tresor-einlesen" type="button">📥 In den Browser einlesen</button>
+        </div>
+      </div>
+
+
       <!-- ══ 1 · SICHERN — ein Feld, ein Knopf ═════════════════════════════ -->
       <h4 style="margin:16px 0 6px">Sichern</h4>
       <div class="pult">
@@ -1541,7 +1601,6 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
       <p class="merkmale">
         <span class="merkmal">bleibt in diesem Browser</span>
         <span class="merkmal">kein Passwort nötig</span>
-        <span class="merkmal">nimmt, was in den Tabellen steht</span>
       </p>
       <p class="leise" id="tresor-vorrat-lage" data-vorrat-lage="" style="margin:6px 0 0"></p>
 
@@ -1550,7 +1609,6 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
            Vorher hatte KHC nur ein VERZEICHNIS dessen, was heruntergeladen
            wurde — eine Quittung. Zurückholen hieß: Dateidialog, Passwort,
            Knopf. Hier steht die Sicherung selbst, und 🔄 holt sie zurück. -->
-      <h4 style="margin:16px 0 6px">Sicherungen in diesem Browser</h4>
       <div id="tresor-vorrat" data-vorrat="0"></div>
 
       <!-- ══ DER RÜCKWEG (Klaus 2026-08-22, Befund A) ═══════════════════════
@@ -1573,27 +1631,48 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
            style="margin:6px 0 0"></p>
       </div>
 
-      <!-- ══ 3 · AUS EINER DATEI EINLESEN ═══════════════════════════════════
-           ⚠ BEFUND C (Klaus 2026-08-22): 📥 Einlesen ist kein „stattdessen".
-           Es ist der EINZIGE Weg zurück, wenn der Browser-Speicher leer ist.
-           Deshalb steht es hier offen und nicht hinter einem Aufklapper. -->
-      <h4 style="margin:16px 0 6px">Aus einer Datei einlesen</h4>
-      <p class="leise" data-einlesen-wirkung="" style="margin:0 0 6px">Holt eine gesicherte
-        <code>.enc.json</code> aus dem Download-Ordner zurück — auch vom anderen
-        Browser oder Gerät. <b>Stechuhr-Abschnitte werden zusammengeführt</b>,
-        Belege und Zeiten <b>ersetzt</b>.</p>
-      <div class="pult">
-        <input id="tresor-datei" type="file" accept=".json,application/json" style="flex:1 1 240px">
+
+      <!-- ══ DATENSICHERUNG (JSON) ══════════════════════════════════════════
+           Klaus 2026-09-08, nach dem Rezeptbuch: „Da wird eine JSON Datei
+           gespeichert, die ganz normal einfach nur runtergeladen wird als
+           Backup erstellen." Ein Knopf, eine Datei, kein Passwort.
+
+           ⚠ WAS HINEINGEHT, STEHT IN EINER POSITIVLISTE (`GANZ_FELDER` in
+           `ansicht.js`) — nicht in einer Ausschlussliste. Das ist dieselbe
+           PRIME DIRECTIVE wie beim Stundensatz in BookLedgerPro: was dort
+           nicht steht, kann nicht hinaus, auch wenn morgen ein Feld dazukommt.
+           Der BYOK-Schlüssel steht nicht darin und kann es nicht. -->
+      <h4 style="margin:16px 0 6px">💾 Datensicherung (JSON)</h4>
+      <p class="merkmale">
+        <span class="merkmal" data-ohne-schluessel="">🔒 ohne API-Schlüssel · sicher teilbar</span>
+        <span class="merkmal">offen lesbar · kein Passwort</span>
+      </p>
+      <div class="pult" style="margin-top:8px">
+        <button id="bh-json-sichern" type="button">💾 Backup erstellen</button>
       </div>
-      <!-- Erscheint erst, wenn die gewählte Datei schon ein Paket IST —
-           statt jeden zu fragen, der nur einmal verschließen will. -->
-      <div class="pult" id="tresor-alt-block" hidden>
-        <input id="tresor-alt" type="password" autocomplete="off"
-               placeholder="Passwort der Datei" style="flex:1 1 200px">
+      <p class="leise" id="bh-json-lage" data-json-lage="" style="margin:6px 0 0"></p>
+
+      <!-- ══ TEILEN & SYNCHRONISIEREN ═══════════════════════════════════════
+           Klaus 2026-09-08: „der gesamte Inhalt der App … für QuickShare und
+           Bluetooth zum direkten Versand an jemanden geschickt, der den Inhalt
+           haben möchte. Also Forschungsdaten oder sonst irgendetwas."
+
+           ⚠ UND SEIN EIGENER EINWAND DAZU: „das wird sich in Company mit der
+           Forschung nicht funktionieren. Das müsste dann in KimHub sein."
+           Er hat recht — die Forschungs-Aufzeichnung liegt als Datei im Depot,
+           und Company hat sie nicht. Gelöst wird das NICHT durch einen zweiten
+           Weg: derselbe Knopf holt sie, und wo es sie nicht gibt, steht das im
+           Ergebnis. Zwei Fassungen desselben Knopfes liefen auseinander. -->
+      <h4 style="margin:16px 0 6px">📤 Teilen &amp; Synchronisieren</h4>
+      <p class="merkmale">
+        <span class="merkmal">Quick Share · Bluetooth · E-Mail</span>
+        <span class="merkmal" data-teilen-forschung="">in Kimhub mit der Forschungs-Aufzeichnung</span>
+      </p>
+      <div class="pult" style="margin-top:8px">
+        <button id="bh-teilen" type="button">📤 Teilen / Sichern</button>
       </div>
-      <div class="pult">
-        <button id="tresor-einlesen" type="button">📥 In den Browser einlesen</button>
-      </div>
+      <p class="leise" id="bh-teilen-lage" data-teilen-lage="" style="margin:6px 0 0"></p>
+
 
       <!-- ══ 4 · AUS DEM BROWSER HERAUSGEBEN ════════════════════════════════
            ⚠ BEFUND B (Klaus 2026-08-22): DIE BESCHRIFTUNG LOG. Hier stand
@@ -1601,9 +1680,10 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
            jeder x-beliebige ein neues Passwort anlegen und kann in den Ordner
            rein." Es verschlüsselt die SICHERUNGSDATEI; wer am entsperrten
            Browser sitzt, sieht die Zahlen ohnehin in der Tabelle. -->
-      <h4 style="margin:16px 0 6px">Herausgeben — für Gerätewechsel und Depot</h4>
-      <p data-passwort-rolle="datei" class="leise" style="margin:0 0 6px"><b>Das Passwort gehört zur
-        Sicherungsdatei</b>, nicht zu dieser Seite.</p>
+      <h4 style="margin:16px 0 6px">🔒 Verschlüsselt herausgeben</h4>
+      <p class="merkmale">
+        <span class="merkmal" data-passwort-rolle="datei">Passwort gehört zur Sicherungsdatei, nicht zur Seite</span>
+      </p>
       <div class="pult">
         <input id="tresor-neu" type="password" autocomplete="new-password"
                placeholder="neues Passwort" style="flex:1 1 200px">
@@ -1618,8 +1698,6 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
         <button id="tresor-klartext" type="button">🔓 Offen herunterladen</button>
       </div>
       <p class="merkmale">
-        <span class="merkmal">🔒 verschlossen · in den Download-Ordner</span>
-        <span class="merkmal">🔓 offen · zum Ansehen</span>
         <span class="merkmal" data-verlust="">⚠ Verlorenes Passwort heißt verlorene Datei — kein Zurücksetzen</span>
       </p>
 
@@ -1633,8 +1711,7 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
           <button id="tresor-machen" type="button">🔒 Gewählte Datei verschließen</button>
         </div>
         <p class="merkmale">
-          <span class="merkmal">nimmt die oben gewählte Datei</span>
-          <span class="merkmal">ist sie schon ein Paket: wechselt das Passwort</span>
+          <span class="merkmal">nimmt die gewählte Datei · wechselt ihr Passwort</span>
         </p>
       </div>
       <p class="leise" id="tresor-machen-hinweis" hidden style="margin:6px 0 0">
@@ -1646,9 +1723,9 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
 
       <!-- ══ 5 · WAS HERAUSGEGEBEN WURDE ════════════════════════════════════ -->
       <h4 style="margin:16px 0 6px">Herausgegebene Dateien</h4>
-      <p class="leise" data-sicherungen-grenze="" style="margin:0 0 6px">Was diese Seite
-        herausgegeben hat — <b>es ist keine Dateiliste</b>, in deinen
-        Download-Ordner kann kein Browser sehen.</p>
+      <p class="merkmale">
+        <span class="merkmal" data-sicherungen-grenze="">keine Dateiliste — in deinen Ordner sieht kein Browser</span>
+      </p>
       <div id="tresor-sicherungen" data-sicherungen="0"></div>
       <p class="leise" id="tresor-sicherung" data-sicherung="">Wird geprüft …</p>
 
