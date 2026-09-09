@@ -76,10 +76,13 @@ npm test              # tests/alle.mjs — Kopie, Schale, Knoten
 npm run drift         # ist die Kopie noch die Kopie aus Kimhub?
 npm run sbkim-drift   # ist der Knoten noch der Knoten aus Sage?
 npm run gegenprobe    # baut Fehler ein — jeder MUSS eine Probe umwerfen
+
+node tools/aus-kimhub-holen.mjs              # nur nachsehen: hängt eine Kopie zurück?
+node tools/aus-kimhub-holen.mjs --schreiben  # alle auf einmal holen + Pins nachziehen
 ```
 
-Zuletzt gemessen (2026-09-08): **50 grün · 0 ROT · 0 nicht lauffähig** ·
-Gegenprobe **21 gefangen · 0 durchgerutscht**.
+Zuletzt gemessen (2026-09-09): **52 grün · 0 ROT · 0 nicht lauffähig** ·
+Gegenprobe **23 gefangen · 0 durchgerutscht · 23 Anker geprüft, 0 tot**.
 
 ⚠ **`npm test` allein ist nicht „die Prüfung".** Ein Wächter ohne Gegenprobe ist
 nur ein grüner Haken — beim Bau des Knotens waren **acht** eigene Wächter blind,
@@ -88,6 +91,35 @@ Namen, die in dieser Datei nur im **Kopf-Kommentar** stehen, zwei fanden ihren
 Namen im Erklär-Kommentar daneben, einer verwechselte
 `switchWizardIdentityAbgeschaltet` mit `switchWizardIdentity`. Behoben wurden
 die **Wächter**, nicht die Fälle.
+
+## ⚠ EIN DRIFT-GUARD SAGT „UNVERÄNDERT", NICHT „AKTUELL"
+
+Am 2026-09-09 hat Klaus zum zweiten Mal denselben Befund geschickt: *„und die
+Agentenpillen die sind immmer noch nicht in der Startposition."* Die Arbeit war
+getan — in **Kimhubs** `ansicht.js`. Hierher kopiert hatte ich nur `index.html`.
+
+**Und alle Wächter waren grün.** `tools/drift-guard.mjs` vergleicht jede Kopie
+mit **ihrem eigenen** Fingerabdruck; eine Datei, die niemand angefasst hat, ist
+„unverändert" — auch wenn die Quelle längst weiter ist. Es ist die Frage nach
+der **Abwandlung**, nicht die nach dem **Stand**, und die zweite hatte niemand
+gestellt.
+
+Derselbe Satz hat in derselben Woche schon zweimal zugeschnappt:
+`PWA-Toolpoint/sbkim/15_membran.js` hing eine ganze Modul-Generation zurück,
+und hier war es `ansicht.js`. **Beim dritten Mal ist es keine Unachtsamkeit
+mehr, sondern ein fehlendes Werkzeug.**
+
+`tools/aus-kimhub-holen.mjs` holt deshalb **alle** gepinnten Kopien auf einmal
+und zieht Pins und Herkunft in derselben Bewegung nach. Es liest seine Liste
+aus `drift-guard.mjs` — eine zweite Liste liefe auseinander, und die vergessene
+Datei wäre wieder genau die, an die niemand denkt. **Von Hand kopieren heißt,
+sich an jede Datei zu erinnern; eine Regel, an die man sich erinnern muss, ist
+keine.**
+
+⚠ **BENANNTE GRENZE:** dass die Kopien wirklich aktuell **sind**, misst keine
+Probe. Dafür braucht es den Kimhub-Klon daneben, und der ist in einem frischen
+Container nicht da. Gemessen wird, dass das Werkzeug dasteht und aus der einen
+Liste liest — beides mit Gegenprobe. Wer hier etwas ändert, ruft es vorher auf.
 
 ## Die eine Regel, auf die es hier ankommt
 
