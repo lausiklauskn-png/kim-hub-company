@@ -5693,29 +5693,27 @@
       var d = $("#tresor-datei").files && $("#tresor-datei").files[0];
       if (!d) { tresorSagen("Keine Datei gewaehlt.", "keine-datei"); return; }
       var alt = $("#tresor-alt") ? $("#tresor-alt").value : "";
-      /* Welche der beiden Schubladen? Am INHALT erkannt, nicht am Dateinamen —
-         wer eine Sicherung umbenennt, soll sie trotzdem einlesen koennen. */
-      var wohin = function (o) {
-        if (o && o.belege) return "belege";
-        if (o && o.tage) return "zeiten";
-        /*
-         * ⚠ DIE STECHUHR GEHOERTE HIER VON ANFANG AN HIN (Klaus 2026-09-08,
-         * beim ersten Versuch, seine 469 Minuten zurueckzuholen).
-         *
-         * Am selben Tag habe ich den Tresor gelehrt, die Stechuhr ABZULEGEN —
-         * und den Einlese-Zweig dafuer in den ANDEREN Weg gebaut ("⭱ Lauf
-         * laden"). Der Tresor konnte sie damit hineinlegen und nicht wieder
-         * herausholen: genau das, was die Verfassung schon einmal gelernt hat
-         * ("ein Tresor, aus dem man nichts herausholen kann, ist ein
-         * Briefkasten"), nur an einer neuen Datei.
-         *
-         * Und die Meldung darauf war die irrefuehrende Sorte: "Darin steht
-         * weder eine Beleg- noch eine Zeiten-Liste" — wahr fuer das, was der
-         * Code kannte, und falsch fuer das, was in der Datei stand.
-         */
-        if (o && Array.isArray(o.stechuhr)) return "stechuhr";
-        return null;
-      };
+      /*
+       * ⚠ EINE FASSUNG, ZWEI AUFRUFER — und dass es hier zwei WAREN, hat der
+       * volle Gegenprobe-Lauf vom 2026-09-08 aufgedeckt.
+       *
+       * Hier stand eine zweite, wortgleiche Entscheidung neben `tresorWohin`.
+       * Der Kommentar DORT warnt seit jeher genau davor: „Zwei Fassungen davon
+       * waeren eine Drift-Quelle mit Ansage: die eine wuerde die Stechuhr
+       * zusammenfuehren, die andere sie irgendwann ersetzen, und niemand saehe
+       * es, bis jemand seine Zeiten verliert." Der Kommentar beschrieb die
+       * Gefahr, und der Code hatte sie.
+       *
+       * DER PREIS WAR EIN BLINDER WAECHTER. Der Gegenprobe-Fall „der Tresor
+       * kennt die Stechuhr beim Einlesen nicht" nimmt die Zeile aus
+       * `tresorWohin` heraus — und rutschte durch, weil die Kopie hier weiter
+       * griff. Zwei Riegel, die einander decken; ein Eingriff in nur einen
+       * beweist nichts.
+       *
+       * Am INHALT erkannt, nicht am Dateinamen: wer eine Sicherung umbenennt,
+       * soll sie trotzdem einlesen koennen.
+       */
+      var wohin = tresorWohin;
       tresorSagen("Wird gelesen …", "rechnet");
       d.text().then(function (roh) {
         var o = JSON.parse(roh);

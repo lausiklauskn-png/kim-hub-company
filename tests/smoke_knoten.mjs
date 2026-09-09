@@ -34,11 +34,41 @@ const lies = (...t) => readFileSync(join(WURZEL, ...t), "utf8");
 
 /* Die netzweit VERGEBENEN Schubladen. Register: Sage-Protokol/sbkim/DB-SUFFIXE.md
    — diese Liste ist eine benannte KOPIE daraus, keine zweite Wahrheit. Sie steht
-   hier, weil eine Probe nicht in ein fremdes Depot sehen kann. */
-const VERGEBEN = ["alismoderaum", "familyprojekt", "jasonstresor", "kimbell", "kimboard",
-  "kimseek", "meintresor", "mixarium", "muttisrezeptbuch", "perfectskinbeauty",
-  "perfectskinfashion", "privatbrain", "rezeptbuch", "tomyhub", "toolpoint",
-  "workfloh", "workflohpage"];
+   hier, weil eine Probe nicht in ein fremdes Depot sehen kann.
+
+   ⚠ SIE IST GEMESSEN, NICHT ABGESCHRIEBEN. Der Brief zu dieser Sitzung nannte
+   16 vergebene Suffixe; über alle Klone gezählt sind es 22, und `toolpoint`
+   gehört SB·KIMTool·Point, nicht PWA Toolpoint (das heisst `pwatoolpoint` und
+   fehlte in der Liste ganz). Eine unvollständige Liste ist genau dann
+   gefährlich, wenn sie beruhigt.
+   Gezählt wird auf DREI Wegen, weil ein Suffix auf drei Wegen gesetzt wird —
+   im `<head>`, als Konstante im Klebstoff, als Feld in einer Konfiguration.
+   Wer nur den ersten nimmt, findet `companybrain` und `privatbrain` nicht. */
+const VERGEBEN = [
+  "alismoderaum",
+  "blp",
+  "bookledgerpro",
+  "companybrain",
+  "familyprojekt",
+  "jasonstresor",
+  "kimbell",
+  "kimboard",
+  "kimseek",
+  "meintresor",
+  "mixarium",
+  "muttisrezeptbuch",
+  "perfectskinbeauty",
+  "perfectskinfashion",
+  "privatbrain",
+  "pwatoolpoint",
+  "rezeptbuch",
+  "sage",
+  "tomyhub",
+  "toolpoint",
+  "workfloh",
+  "workflohpage",
+  "auslieferungspruefer",
+];
 
 const KLEBSTOFF = ["storage-init", "rendezvous-init", "schutz-init",
                    "nostr-listen-init", "siegel-inhalt"];
