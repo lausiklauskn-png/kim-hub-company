@@ -207,9 +207,13 @@ fall "die Beschreibung schrumpft auf einen Satz" sbkim/rendezvous-init.js \
   'domainDescription:' \
   'domainDescription: "Eine App fuer Auftraege." + "" +   //'
 
+# ⚠ ZUM DRITTEN MAL DERSELBE TOTE ANKER IN DIESER DATEI. Erst hing er an
+# „Acht benannte Rollen…", dann an „Kim Hub Company — acht…" — und jedes Mal hat
+# eine Textverbesserung ihn ins Leere zeigen lassen. Der Text DARF sich aendern;
+# der Feldname nicht. Er ist der einzige Anker, der eine Verbesserung ueberlebt.
 fall "die zwei Wege zur Spore beschreiben den Knoten verschieden" sbkim/siegel-inhalt.js \
-  'domainDescription: "Kim Hub Company — acht' \
-  'domainDescription: "Kim Hub Company — sieben'
+  'domainDescription:' \
+  'domainDescription: "Ein anderer Knoten." + //'
 
 # ══ DAS SIEGEL MIT DEM ANDOCK-WERKZEUG ══════════════════════════════════════
 # „mit Zelle und auch dem Siegel" heisst Modul 16 MIT dem Wizard darin. Der

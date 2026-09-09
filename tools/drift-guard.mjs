@@ -52,13 +52,13 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
  * Fingerabdrücke unten nachzieht und das hier vergisst, wird rot.
  */
 export const HERKUNFT = {
-  commit: "2d72922",
-  datum:  "2026-09-09T09:20:24+00:00",
-  betreff: "Klaus' Sichttest an Company: das Siegel war einen Pixel breit, und ein ES-Modul warf bei jedem Aufruf",
+  commit: "6bd1961",
+  datum:  "2026-09-09T09:59:16+00:00",
+  betreff: "Das Siegel war gebaut und unsichtbar — und die Buehne startet jetzt am Anfang",
 };
 
 export const ERWARTET = [
-  { datei: "index.html",                herkunft: "start.html",              sha: "3316c725a15fbcb6345a0b50e7e1e76ed43fc16f8d5a07f536d44168cce70541" },
+  { datei: "index.html",                herkunft: "start.html",              sha: "4a7e0a059ceea47083af77e47b53e703dfc5c9cffbebbef677da4be6bf90f226" },
   { datei: "company.js",                herkunft: "company.js",              sha: "8225958ef89441c83cceb7265c4f17423017f24fb8bc61c2f9e218e587629870" },
   { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "1aa6930c883f06885d9df139c610533720c58cb266e19e225f222078df8720d2" },
   { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "2b55844be02df209c8f18d7f8434b4a39bebe2621b7720a3e2b725bfdecaee9c" },
