@@ -2078,6 +2078,42 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
   }
   #sbkim-siegel-badge svg { width: 100%; height: 100%; display: block; }
   #sbkim-siegel-badge:focus-visible { outline: 3px solid var(--akzent); outline-offset: 2px; }
+
+  /* ⚠ DAS SIEGEL WAR GEBAUT UND UNSICHTBAR (Klaus 2026-09-09, zweiter Blick).
+     Modul 17 legt seine Anker `#lamp-fremd` und `#sbkim-siegel-badge` in einen
+     PROXY-Kasten, der im Kanon `visibility:hidden` und 1x1 px ist — Modul 15
+     und 16 haengen ihre Anzeigen dort hinein. Gedacht ist er fuer Seiten, die
+     ihre EIGENE Lampen-Leiste mitbringen (so macht es PWA-Toolpoints
+     Marktplatz, den Klaus in Ordnung findet); dort haengt das Siegel sichtbar
+     in der Seite und der Proxy bleibt leer.
+
+     Diese Seite hat keine eigene Leiste — sie hat das schwebende Fenster. Also
+     wird der Proxy hier SICHTBAR gemacht, statt eine zweite Leiste daneben zu
+     bauen. Zwei Anker mit derselben Kennung waeren doppelte IDs, und dann
+     entschiede die Reihenfolge, welchen Modul 16 findet.
+
+     ⚠ MEINE ERSTE MESSUNG WAR RICHTIG UND MEIN SCHLUSS FALSCH: ich hatte das
+     Abzeichen mit 28x28 px gemessen und es fuer behoben erklaert — gemessen
+     hatte ich den Anker IM VERSTECKTEN Proxy. Eine Zahl, die stimmt, ist noch
+     keine Auskunft ueber das, was ein Mensch sieht. */
+  #sbkim-widget .sbkim-widget-proxy {
+    position: static; width: auto; height: auto;
+    visibility: visible; overflow: visible; pointer-events: auto;
+    display: inline-flex; align-items: center; gap: 8px;
+    margin-left: 4px; padding-left: 8px;
+    border-left: 1px solid var(--sbkim-widget-line, var(--kante));
+  }
+  /* Der ★-Glyph lag ueber dem „i" von SIEGEL — Klaus: „der Stern deckt das i
+     im Wort Siegel ab". Er ist Zierde; das echte Siegel steht jetzt daneben. */
+  #sbkim-widget .sbkim-widget-siegel-glyph { display: none; }
+  /* Die FREMD-Anzeige aus Modul 15 braucht eine Groesse, sonst ist sie da und
+     niemand sieht sie — derselbe Fall wie beim Abzeichen. */
+  #lamp-fremd {
+    display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+    background: var(--sbkim-widget-lamp-bg, var(--grund2)); cursor: pointer;
+    border: 1px solid var(--sbkim-widget-line, var(--kante));
+  }
+  #lamp-fremd:focus-visible { outline: 3px solid var(--akzent); outline-offset: 2px; }
 </style>
 <!-- ══ SBKIM — Kim Hub Company als eigener Knoten im Mycel ══════════════════
      Eigene Identität, eigene Spore, das schwebende Verbinden-Fenster, die

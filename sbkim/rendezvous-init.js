@@ -32,24 +32,30 @@
     domain: "Werkstatt/KI-Rollen/Auftrag",
     endpoint: "https://lausiklauskn-png.github.io/kim-hub-company/",
     nodeType: "hybrid",
-    domainDescription:
-      "Kim Hub Company — acht benannte Rollen arbeiten nacheinander an einem Auftrag: eine schlägt vor, " +
-      "was gebaut wird, eine schärft den Vorschlag mit Bau- und Entwurfserfahrung, eine " +
-      "baut es, eine prüft gegen ein vorher genanntes Merkmal, eine sucht was daran " +
-      "kaputtgeht, eine sieht auf Gestaltung und Bedienung, eine benutzt es wie jemand " +
-      "der es täglich benutzt, eine schreibt auf wo es steht. Das Ganze läuft im " +
-      "Browser auf dem eigenen KI-Zugang des Nutzers; der Schlüssel bleibt " +
-      "verschlüsselt auf dem Gerät und wird an niemanden weitergegeben. Ein Trockenlauf " +
-      "zeigt den vollständigen Ablauf ohne Schlüssel und ohne Kosten. Jede Fahrt hat " +
-      "einen Geldeckel, eine Uhr und einen Notaus, und jede trägt sich in ein " +
-      "Fahrtenbuch ein — auch die abgebrochene, denn was bis dahin hinausging, ist " +
-      "bezahlt. Am Ende steht ein Übergabe-Blatt: ein Auftrag in Worten, den man an ein " +
-      "großes Modell weitergeben kann.",
+    domainDescription: "Kim Hub Company ist ein Endknoten im SBKIM-Mycel und arbeitet auf Grundlage des Sage-Protokolls — semantisch verbunden mit den verwandten Knoten Kimhub (der Werkstatt, in der diese App gebaut und geprüft wird), SB-KIMTool-Point (die Werkzeugkiste des Protokolls), Kimseek (Bedeutungs-Suche), BookLedgerPro (Buchhaltung, Angebot und Rechnung), Mein WorkFloh (Auftragsabwicklung) und dem offenen Marktplatz PWA Toolpoint. Sein Kern ist eine Werkstatt aus acht benannten Rollen, die nacheinander an einem Auftrag arbeiten: eine schlägt vor, was gebaut wird, eine schärft den Vorschlag mit Bau- und Entwurfserfahrung, eine baut es, eine prüft gegen ein vorher genanntes Merkmal, eine sucht was daran kaputtgeht, eine sieht auf Gestaltung und Bedienung, eine benutzt es wie jemand der es täglich benutzt, eine schreibt auf wo es steht. Aus einer Idee in eigenen Worten wird so ein ausgearbeiteter Auftrag, ein geprüftes Werkstück und ein Übergabe-Blatt, das man an ein großes Sprachmodell weiterreichen kann. Zugleich ist Kim Hub Company ein wandelbares Arbeitswerkzeug, nicht auf ein Fach festgelegt: was die acht Rollen ausarbeiten, kann eine App, ein Text, ein Plan oder eine Entscheidung sein. Das Ganze läuft im Browser auf dem eigenen KI-Zugang des Nutzers (BYOK); der Schlüssel bleibt verschlüsselt auf dem Gerät und wird an niemanden weitergegeben. Ein Trockenlauf zeigt den vollständigen Ablauf ohne Schlüssel und ohne Kosten. Jede Fahrt hat einen Geldeckel, eine Uhr und einen Notaus, und jede trägt sich in ein Fahrtenbuch ein — auch die abgebrochene, denn was bis dahin hinausging, ist bezahlt. Wie die Schwester-Knoten Rezeptbuch und Mixarium ein Baukasten: Rollen umbenennen, Grundsätze anpassen, einen eigenen Auftrag laden. Server-los, offline direkt im Browser, ohne Anmeldung, mit eigenem SBKIM-Siegel und eigener Identität im Knotennetz.",
     domainKeywords: [
-      "Auftrag ausarbeiten", "mehrere Blickwinkel", "bauen lassen", "gegenprüfen lassen",
-      "KI-Team", "Agenten", "Rollen", "eigener KI-Zugang", "BYOK", "Trockenlauf",
-      "Kostendeckel", "Notaus", "Fahrtenbuch", "Übergabe-Blatt",
-      "Werkzeug für Entwickler", "im Browser, ohne Server"
+      "Werkstatt",
+      "Auftrag",
+      "Rollen",
+      "KI-Team",
+      "Agenten",
+      "bauen lassen",
+      "gegenprüfen lassen",
+      "mehrere Blickwinkel",
+      "Übergabe-Blatt",
+      "eigener KI-Zugang",
+      "BYOK",
+      "Trockenlauf",
+      "Kostendeckel",
+      "Notaus",
+      "Fahrtenbuch",
+      "Werkzeug für Entwickler",
+      "im Browser, ohne Server",
+      "SBKIM",
+      "Knotennetz",
+      "Sage-Protokoll",
+      "Mycel",
+      "Endknoten"
     ],
   };
 
