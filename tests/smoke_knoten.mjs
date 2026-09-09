@@ -147,6 +147,28 @@ export async function lauf(ok) {
     bRdv.length > 400 && bRdv.split(/[.!?]\s/).length >= 4);
   ok("… und sie steht in beiden Wegen zur Spore WORTGLEICH da",
     !!bRdv && bRdv === bSieg);
+  /* ⚠ VIER DINGE MÜSSEN NAMENTLICH DARIN STEHEN (Klaus 2026-09-09).
+     Er hat die Beschreibung zweimal beanstandet, und beide Male fehlte etwas,
+     das kein Wächter verlangt hatte: erst der NAME des Werkzeugs, dann der
+     ZWECK und die FORSCHUNG. Sein Wort: *„die Beschreibung ist mager, sie
+     erwähnt die Forschung nicht, dass brauchbare Werkzeuge hergestellt werden,
+     mit agentenbasiertem Matching … SBKIM Bestandteil der Sage-Forschung"* und
+     *„es muss zusätzlich der Zweck angegeben werden."*
+
+     ⚠ EINE LÄNGENPRÜFUNG FÄNGT DAS NICHT. 1851 Zeichen sahen aus wie Substanz,
+     und der Zweck stand trotzdem nirgends — eine Zahl misst Umfang, nicht
+     Inhalt. Gemessen werden deshalb die vier Sachen selbst, jede einzeln, mit
+     eigenem Namen in der roten Zeile. Wer eine herausnimmt, sieht welche.
+
+     Gemessen wird der BEGRIFF, nicht die Formulierung: ein Wächter, der einen
+     Satz festnagelt, verbietet das nächste Richtigstellen. */
+  for (const [was, muster] of [
+    ["den Namen des Werkzeugs", /Kim Hub Company/],
+    ["den ZWECK ausdrücklich", /\bZWECK\b/i],
+    ["die Forschung und das Protokoll", /SBKIM-Protokoll/],
+    ["agentenbasiertes Matching", /agentenbasiert\w*\s+Matching/i],
+  ]) ok(`die Beschreibung nennt ${was}`, muster.test(bRdv));
+
   ok("… die Stichworte ebenso, und es sind mehr als eine Handvoll",
     (lies("sbkim", "rendezvous-init.js").match(/domainKeywords/) ? true : false) &&
     (lies("sbkim", "siegel-inhalt.js").match(/"BYOK"/) ? true : false) &&

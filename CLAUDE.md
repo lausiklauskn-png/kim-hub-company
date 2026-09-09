@@ -81,8 +81,8 @@ node tools/aus-kimhub-holen.mjs              # nur nachsehen: hängt eine Kopie 
 node tools/aus-kimhub-holen.mjs --schreiben  # alle auf einmal holen + Pins nachziehen
 ```
 
-Zuletzt gemessen (2026-09-09): **52 grün · 0 ROT · 0 nicht lauffähig** ·
-Gegenprobe **23 gefangen · 0 durchgerutscht · 23 Anker geprüft, 0 tot**.
+Zuletzt gemessen (2026-09-09, spät): **56 grün · 0 ROT · 0 nicht lauffähig** ·
+Gegenprobe **27 gefangen · 0 durchgerutscht · 31 Anker geprüft, 0 tot**.
 
 ⚠ **`npm test` allein ist nicht „die Prüfung".** Ein Wächter ohne Gegenprobe ist
 nur ein grüner Haken — beim Bau des Knotens waren **acht** eigene Wächter blind,
@@ -120,6 +120,65 @@ keine.**
 Probe. Dafür braucht es den Kimhub-Klon daneben, und der ist in einem frischen
 Container nicht da. Gemessen wird, dass das Werkzeug dasteht und aus der einen
 Liste liest — beides mit Gegenprobe. Wer hier etwas ändert, ruft es vorher auf.
+
+## ⚠ WAS IN DER BESCHREIBUNG STEHEN MUSS — und warum eine Zahl es nicht misst
+
+Klaus hat die Bedeutungs-Beschreibung **zweimal** beanstandet. Beim ersten Mal
+fehlte der **Name** des Werkzeugs, beim zweiten Mal der **Zweck** und die
+**Forschung**:
+
+> *„die Beschreibung ist mager, sie erwähnt die Forschung nicht, dass
+> brauchbare Werkzeuge hergestellt werden, mit agentenbasiertem Matching …
+> SBKIM Bestandteil der Sage-Forschung"* · *„es muss zusätzlich der Zweck
+> angegeben werden."*
+
+**Beim zweiten Mal hatte sie 1851 Zeichen.** Der Wächter davor maß die Länge —
+und Länge sah aus wie Substanz. **Eine Zahl misst Umfang, keinen Inhalt.**
+Gemessen werden seitdem vier Sachen **einzeln**, jede mit eigenem Namen in der
+roten Zeile: der Name des Werkzeugs · der **Zweck** · Forschung und
+**SBKIM-Protokoll** · **agentenbasiertes Matching**. Gemessen wird der Begriff,
+nicht die Formulierung — ein Wächter, der einen Satz festnagelt, verbietet das
+nächste Richtigstellen.
+
+### ⚠ Modul 03 schneidet bei 512 Tokens ab, und es sagt es nur der Konsole
+
+`EMBEDDING_MAX_TOKENS = 512`. Was dahinter steht, geht **nicht** in den Vektor
+ein — still. Und weil `embedPassage` erst die Beschreibung und dann die
+Stichwörter bekommt, fällt bei einem Schnitt **zuerst die Stichwort-Liste** weg.
+
+⚠ **WO DER SCHNITT LIEGT, IST NICHT GEMESSEN.** Das Modell läuft im Browser; in
+dieser Umgebung ist huggingface gesperrt und ein lokaler Tokenizer liegt nicht
+vor (die `models/`-Ordner der Geschwister-Apps tragen nur einen Platzhalter —
+nachgesehen, nicht angenommen). **Eine geschätzte Token-Zahl klingt genau wie
+eine gemessene**, deshalb steht hier keine.
+
+Was daraus folgt, gilt unabhängig davon, wo der Schnitt fällt: **das Wichtigste
+steht vorne** — Zweck, dann Forschung und Protokoll, dann die acht Rollen, dann
+die Sicherungen, zuletzt der Baukasten-Absatz. **Wer kürzen muss, kürzt von
+hinten.**
+
+**Messen kann es nur Klaus, und es kostet einen Blick:** beim Signieren im
+Siegel die Konsole (Eruda) öffnen. Steht dort `MODUL 03 EMBEDDING: Eingabe >
+512 Tokens, abgeschnitten`, wird der letzte Absatz gestrichen.
+
+### ⚠ Und ein Gegenprobe-Fall, der nur EINEN Weg zur Spore trifft, misst den falschen Wächter
+
+Die Beschreibung steht in `sbkim/rendezvous-init.js` **und**
+`sbkim/siegel-inhalt.js`, und ein Wächter vergleicht beide wortgleich.
+Sabotiert man nur eine Datei, fällt **immer** dieser Wächter um — der Fall
+meldet „gefangen", und ob der Wächter, um den es geht, überhaupt etwas misst,
+bleibt offen.
+
+**Genau so ist es am 2026-09-09 passiert, und zwar doppelt:** der Fall „der
+Name des Werkzeugs verschwindet" galt als gefangen, **und der Namens-Wächter
+war dabei grün** — der Name steht **zweimal** in der Beschreibung, ersetzt
+wurde die erste Stelle. Zwei Fehler in einem Fall, und der Lauf sagte
+„bestanden". Gefunden hat es nicht der Lauf, sondern das **Nachstellen von
+Hand**.
+
+`fall2` in `tests/gegenprobe.sh` ersetzt deshalb in **beiden** Dateien und an
+**allen** Stellen. Jeder der vier Fälle erzeugt seitdem **genau eine** rote
+Zeile — die mit seinem eigenen Namen.
 
 ## Die eine Regel, auf die es hier ankommt
 

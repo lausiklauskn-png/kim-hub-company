@@ -117,6 +117,50 @@ fall() {
 
 # Eine Datei ganz WEGNEHMEN. `ersetze` kann nur Text tauschen — eine Datei, von
 # der nur eine Zeile verschwindet, liegt immer noch da.
+# ⚠ EIN FALL, DER NUR EINEN DER ZWEI WEGE ZUR SPORE TRIFFT, MISST DEN FALSCHEN
+# WAECHTER. Die Beschreibung steht in `rendezvous-init.js` UND `siegel-inhalt.js`,
+# und ein Waechter vergleicht beide wortgleich. Sabotiert man nur eine Datei,
+# faellt IMMER dieser Waechter um — der Fall meldet sich als „gefangen", und ob
+# der Waechter, um den es geht, ueberhaupt etwas misst, bleibt offen.
+#
+# Beim Nachstellen von Hand am 2026-09-09 genau so passiert: „der Name des
+# Werkzeugs verschwindet" war gefangen, und der Namens-Waechter blieb dabei
+# gruen — der Name steht ZWEIMAL in der Beschreibung, ersetzt wurde die erste
+# Stelle. Zwei Fehler in einem Fall, und der Lauf sagte „bestanden".
+#
+# `fall2` ersetzt deshalb in BEIDEN Dateien und ALLE Vorkommen.
+fall2() {
+  local was="$1" alt="$2" neu="$3"
+  if [ -n "$NUR_ANKER" ]; then
+    merkeAnker sbkim/rendezvous-init.js "$alt"
+    merkeAnker sbkim/siegel-inhalt.js "$alt"
+    return
+  fi
+  faellt_aus "$was" && return
+  frisch
+  local d fehl=0
+  for d in sbkim/rendezvous-init.js sbkim/siegel-inhalt.js; do
+    ALT="$alt" NEU="$neu" python3 -c '
+import os, sys
+p = sys.argv[1]
+s = open(p, encoding="utf-8").read()
+t = s.replace(os.environ["ALT"], os.environ["NEU"])   # ALLE Vorkommen
+if t == s: sys.exit(3)
+open(p, "w", encoding="utf-8").write(t)
+' "$KOPIE/$d" || fehl=1
+  done
+  if [ "$fehl" = 1 ]; then
+    echo "  ⚠ ANKER NICHT GEFUNDEN — dieser Fall misst nichts: ${alt:0:64}…"
+    rot=$((rot+1)); return
+  fi
+  jetzt="$(rotZahl)"
+  if [ -n "$jetzt" ] && [ "$jetzt" -gt "${BASIS_ROT:-0}" ]; then
+    gruen=$((gruen+1)); echo "  ✓ gefangen: $was"
+  else
+    rot=$((rot+1)); echo "  ✗ NICHT GEFANGEN: $was"
+  fi
+}
+
 fallweg() {
   local was="$1" datei="$2"
   if [ -n "$NUR_ANKER" ]; then merkeAnker "$datei" ""; return; fi
@@ -291,6 +335,32 @@ fall "Modul 23 legt beim Seitenstart wortlos eine Kennung an" sbkim/rendezvous-i
 
 # ⚠ HIER ENDET DIE FALL-LISTE. Was dahinter steht, sammelt der Anker-Waechter
 # nicht mehr ein — sein Block steigt mit einem eigenen `exit` aus.
+
+# ── Was in der Beschreibung stehen MUSS (Klaus 2026-09-09) ─────────────────
+#
+# ⚠ EINE LAENGENPRUEFUNG FAENGT DAS NICHT. Klaus hat die Beschreibung zweimal
+# beanstandet; beim zweiten Mal hatte sie 1851 Zeichen und nannte den Zweck
+# trotzdem nicht. Eine Zahl misst Umfang, keinen Inhalt — deshalb je ein Fall
+# je Sache, damit die rote Zeile sagt, WELCHE fehlt.
+#
+# Sabotiert wird mit `fall2` in BEIDEN Wegen zur Spore und an ALLEN Stellen.
+# Warum das noetig ist, steht ueber dem Helfer — es hat mich einen blinden Fall
+# und einen blinden Waechter gekostet, beide erst beim Nachstellen sichtbar.
+
+fall2 "die Beschreibung nennt den ZWECK nicht mehr" \
+  'ZWECK: aus einer Idee' 'Ausserdem: aus einer Idee'
+
+fall2 "die Forschung und das Protokoll fallen heraus" \
+  'der Sage-Forschung am SBKIM-Protokoll' 'der Arbeit an diesem Werkzeug'
+
+fall2 "agentenbasiertes Matching wird nicht mehr genannt" \
+  'ob agentenbasiertes Matching brauchbare' 'ob dieses Vorgehen brauchbare'
+
+# ⚠ ALLE Vorkommen — der Name steht zweimal in der Beschreibung. Die erste
+# Stelle zu tauschen liess den Waechter gruen; genau daran ist der Fall beim
+# Nachstellen aufgefallen.
+fall2 "der Name des Werkzeugs verschwindet aus der Beschreibung" \
+  'Kim Hub Company' 'Diese App'
 
 # ── Das Nachzieh-Werkzeug ───────────────────────────────────────────────────
 #
