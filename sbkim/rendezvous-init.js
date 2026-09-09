@@ -33,7 +33,7 @@
     endpoint: "https://lausiklauskn-png.github.io/kim-hub-company/",
     nodeType: "hybrid",
     domainDescription:
-      "Acht benannte Rollen arbeiten nacheinander an einem Auftrag: eine schlägt vor, " +
+      "Kim Hub Company — acht benannte Rollen arbeiten nacheinander an einem Auftrag: eine schlägt vor, " +
       "was gebaut wird, eine schärft den Vorschlag mit Bau- und Entwurfserfahrung, eine " +
       "baut es, eine prüft gegen ein vorher genanntes Merkmal, eine sucht was daran " +
       "kaputtgeht, eine sieht auf Gestaltung und Bedienung, eine benutzt es wie jemand " +
