@@ -4150,6 +4150,33 @@
         "oder du holst sie über „Lauf laden\" herein.");
     zeigeHerkunft(ausBeispiel, NAMEN);
     setzeStand(achse.length);   // Vorgabe: alles zu sehen. Wer abspielt, fängt vorn an.
+    /* ⚠ DIE BÜHNE STARTET IN DER ANFANGSSTELLUNG — DER TEXT BLEIBT VOLLSTÄNDIG.
+     *
+     * Klaus 2026-09-09, mit Bild: „beim Start von KHC sind die Agentenpillen
+     * immer bei dem abgebrochenen Stand positioniert, nicht in der
+     * Ausgangsposition für die neue Schicht" — und auf Rückfrage: „wieder an
+     * den Anfang. Die Tabelle soll bleiben. Anfangsposition."
+     *
+     * Das ist die ZWEITE HÄLFTE des Befundes vom 2026-09-07. Damals pulste
+     * Nora über einer längst beendeten Schicht; die Ursache stand schon in
+     * `buehne.js`: „ansicht.js stellt bei JEDEM Neuaufbau den Abspiel-Stand
+     * ans Ende." Gerichtet wurde damals der Puls, nicht die STELLUNG — und die
+     * zeigt seitdem weiter das eingefrorene Ende einer abgebrochenen Fahrt.
+     *
+     * ⚠ UND DAS STEHT GEGEN EINE BESTEHENDE LEHRE, deshalb steht es hier und
+     * nicht stumm im Code: „Die Bühne läuft am selben Stand wie der Text —
+     * sonst zeigte das Bild einen anderen Schritt als die Zeile darunter, und
+     * man glaubte dem falschen." Die Lehre bleibt richtig — für das ABSPIELEN.
+     * Sie ist hier nicht verletzt, sondern eingegrenzt: entkoppelt wird
+     * ausschliesslich der Zustand VOR dem ersten Schritt, in dem niemand einen
+     * Schritt liest, weil noch keiner gewählt ist. Sobald jemand abspielt,
+     * blättert oder die Leiste zieht, läuft alles wieder durch `setzeStand`
+     * und ist gekoppelt wie zuvor.
+     *
+     * `-1` ist die Stellung „noch nichts gelaufen" (`zeigeStand` macht daraus
+     * `ev = null`), und `false` heisst: es spielt nichts — sonst käme der Puls
+     * zurück, den der 2026-09-07 gerade weggenommen hat. */
+    if (buehne) buehne.zeigeStand(-1, false);
   }
 
   // ── Bedienung ───────────────────────────────────────────────────────────

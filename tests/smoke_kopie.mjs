@@ -113,6 +113,28 @@ export async function lauf(ok) {
   ok("version.json ist genau das, was aus der Herkunft folgt — nicht Handarbeit daneben",
     lies("version.json") === inhalt());
 
+  /* ---- 6 · Das Nachzieh-Werkzeug liest die LISTE, nicht sein Gedächtnis --
+     ⚠ EIN DRIFT-GUARD SAGT „UNVERÄNDERT", NICHT „AKTUELL". Am 2026-09-09 habe
+     ich in Kimhub `ansicht.js` gerichtet und hier nur `index.html` kopiert;
+     die Pins blieben grün, weil niemand die Kopie angefasst hatte, und auf
+     Klaus' Schirm stand weiter der alte Stand. Dieselbe Woche, dritter Fall.
+
+     `tools/aus-kimhub-holen.mjs` holt deshalb ALLE gepinnten Kopien auf
+     einmal — und es zieht seine Liste aus `drift-guard.mjs`, statt eine
+     zweite zu führen. Eine zweite Liste liefe auseinander, und die vergessene
+     Datei wäre wieder genau die, die niemand nennt.
+
+     ⚠ BENANNTE GRENZE: dass die Kopien wirklich aktuell SIND, misst hier
+     keine Probe — dafür braucht es den Kimhub-Klon daneben, und der ist in
+     einem frischen Container nicht da. Gemessen wird, dass das Werkzeug
+     dasteht und aus der einen Liste liest. */
+  const holer = lies("tools/aus-kimhub-holen.mjs");
+  ok("das Nachzieh-Werkzeug steht da — ein Drift-Guard sagt nicht, dass eine Kopie aktuell ist",
+    holer.length > 0);
+  ok("… und es zieht seine Liste aus dem Drift-Guard, statt eine zweite zu führen",
+    /import\s*\(\s*join\(WURZEL,\s*"tools",\s*"drift-guard\.mjs"\)\s*\)/.test(holer)
+    && /\bERWARTET\b/.test(holer));
+
   ok("die Ausschluss-Liste steht da und nennt die Zugänge",
     /^\*\.key$/m.test(lies(".gitignore")) && /^\.env$/m.test(lies(".gitignore")));
 }

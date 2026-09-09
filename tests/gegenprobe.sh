@@ -292,6 +292,22 @@ fall "Modul 23 legt beim Seitenstart wortlos eine Kennung an" sbkim/rendezvous-i
 # ⚠ HIER ENDET DIE FALL-LISTE. Was dahinter steht, sammelt der Anker-Waechter
 # nicht mehr ein — sein Block steigt mit einem eigenen `exit` aus.
 
+# ── Das Nachzieh-Werkzeug ───────────────────────────────────────────────────
+#
+# ⚠ EIN DRIFT-GUARD SAGT „UNVERAENDERT", NICHT „AKTUELL". Deshalb gibt es
+# `tools/aus-kimhub-holen.mjs` — und deshalb muss es aus DER EINEN Liste lesen.
+
+fallweg "das Nachzieh-Werkzeug faellt weg — dann wird wieder von Hand kopiert" \
+  tools/aus-kimhub-holen.mjs
+
+# ⚠ EINE ZWEITE LISTE SIEHT AUS WIE DIESELBE und laeuft auseinander. Genau die
+# vergessene Datei waere dann wieder die, an die niemand denkt.
+fall "das Werkzeug fuehrt seine eigene Liste statt der des Drift-Guards" \
+  tools/aus-kimhub-holen.mjs \
+  'const { ERWARTET, HERKUNFT } = await import(join(WURZEL, "tools", "drift-guard.mjs"));' \
+  'const ERWARTET = [{ datei: "index.html", quelle: "start.html", sha: "" }];
+const HERKUNFT = { commit: "", datum: "", betreff: "" };'
+
 if [ -n "$NUR_ANKER" ]; then
   python3 -c '
 import os, sys

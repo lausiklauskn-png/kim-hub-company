@@ -835,6 +835,11 @@ details.langtext>div{margin-top:4px}
     <h1>Kim Hub Company</h1>
     <small>Acht Rollen, ein Auftrag — im Browser, auf deinem eigenen KI-Zugang.</small>
   </div>
+  <div class="lamps" id="lamps">
+    <span class="lamp" id="lamp-alive"   title="lebt — eigene Kennung geladen"><span class="lamp-label">lebt</span></span>
+    <span class="lamp" id="lamp-traffic" title="verkehr — grün, solange am Relais gelauscht wird"><span class="lamp-label">verkehr</span></span>
+    <span class="lamp" id="lamp-fremd"   title="fremd — rot nur bei echtem Fremdzugriff"><span class="lamp-label">fremd</span></span>
+  </div>
   <div class="weg">
     <button id="installieren" type="button" hidden>⬇ Installieren</button>
     <button id="thema" type="button">Thema</button>
@@ -2041,36 +2046,67 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
      Nähte benutzt (`__werkstatt.speise`) — und als Modul, weil er die
      Schicht-Kette unter `schicht/` importiert. -->
 <script type="module" src="company.js"></script>
-<!-- ══ SBKIM-Klebstoff: Groesse und Thema ══════════════════════════════════
-     ⚠ DAS SIEGEL-ABZEICHEN HAT KEINE EIGENE GROESSE. Modul 17 legt nur den
-     Anker `#sbkim-siegel-badge` an, Modul 16 haengt ein <svg> hinein — und ein
-     <svg> ohne width/height in einem Flex-Kasten wird 1 PIXEL breit. Genau so
-     stand es am 2026-09-09 auf Klaus' Schirm: der Knopf war da, die Trefferflaeche
-     war zu erraten, und der Stern lag ueber dem "i" von SIEGEL. Gemessen im
-     Browser: 1x12 px hier, 28x28 px beim Auslieferungspruefer, der diesen
-     Klebstoff schon hatte. DIE SEITE MUSS IHM DIE GROESSE GEBEN.
+<!-- ══ Lampen-Leiste und Siegel — nach dem Muster von PWA Toolpoint ══════
+     ⚠ HIER STAND EIN UMWEG, UND KLAUS HAT IHN ZURECHTGEWIESEN (2026-09-09):
+     „das Siegel ist jetzt völlig verworren … Du hast das deshalb so gemacht,
+     weil Du das Design übernehmen wolltest von Kim Company. Das ist nicht
+     zwingend nötig. Das Design ist so gestaltet von dem Siegel, dass es überall
+     passt."
 
-     Und Modul 17 bringt eigene, dunkle Farben mit. Auf einer hellen Seite sieht
-     das Fenster dann aus wie hineingefallen — Klaus: "beim Themenwechsel
-     wechselt die Farbe des Siegels nicht". Das Modul ist darauf vorbereitet und
-     sagt es in seinem eigenen Kopf: die Variablen stehen auf `:root`, damit eine
-     PWA sie ueberschreiben kann. Weil hier `var(--…)` der Werkstatt eingesetzt
-     wird, folgen sie dem Themenwechsel von allein — es gibt keine zweite Stelle,
-     die nachgezogen werden muesste.
+     Der Umweg war: Modul 17s VERSTECKTEN Proxy-Kasten per CSS sichtbar machen,
+     um das schwebende Fenster zu behalten. Ergebnis auf dem Schirm: das Wappen
+     hing HINTER dem Schließen-Kreuz, daneben ein loser Punkt. Technisch stand
+     alles da, zu lesen war es nicht.
 
-     Das ist app-eigener Klebstoff, KEIN Eingriff in eine Byte-Kopie. -->
+     Der gebaute Weg ist der von PWA Toolpoint: DIE SEITE bringt ihre eigene
+     Lampen-Leiste mit, und Modul 16 haengt sein Wappen in genau diesen
+     Container (`badgeSelector: ".lamps"` — das ist die VORGABE des Moduls).
+     Dann braucht es Modul 17 gar nicht, und mit ihm verschwinden das
+     schwebende Fenster, der ★-Glyph und die Minimieren/Schliessen-Knöpfe.
+
+     Angepasst ist nur, was angepasst werden MUSS: die Farben kommen aus den
+     Themen-Marken dieser App (`--gut`, `--warn`, `--akzent`, `--leise`,
+     `--kante`, `--mono`) statt aus Toolpoints eigenen. Deshalb folgt die
+     Leiste dem Themenwechsel von allein.
+
+     `min-height` haelt den Platz fuer das Wappen frei, BEVOR es da ist — ohne
+     das waechst die Kopfleiste beim Erscheinen und schiebt die Seite nach
+     unten (bei SB·KIMTool·Point gemessen: CLS 0,103 → 0,052). -->
 <style>
-  :root {
-    --sbkim-widget-bg: var(--karte);
-    --sbkim-widget-fg: var(--schrift);
-    --sbkim-widget-fg-dim: var(--leise);
-    --sbkim-widget-line: var(--kante);
-    --sbkim-widget-lamp-bg: var(--grund2);
-    --sbkim-widget-accent-green: var(--gut);
-    --sbkim-widget-accent-gold: var(--warn);
-    --sbkim-widget-accent-red: var(--rot);
-    --sbkim-widget-siegel-gold: var(--warn);
+  .lamps {
+    display: flex; gap: 1rem; flex-wrap: wrap;
+    min-height: 34px; align-items: center;
   }
+  .lamp {
+    display: inline-flex; align-items: center; gap: .35rem;
+    font-family: var(--mono); font-size: .74rem; color: var(--leise);
+  }
+  .lamp::before {
+    content: ""; width: 9px; height: 9px; border-radius: 50%;
+    background: var(--kante); box-shadow: none;
+    transition: background .25s, box-shadow .25s;
+  }
+  .lamp.on::before   { background: var(--gut);  box-shadow: 0 0 8px var(--gut); }
+  .lamp.warn::before { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+  /* ⚠ NICHT `var(--rot)`. Der Name ist in dieser Seite doppelt vergeben:
+     Zeile 40/55 setzen ihn als FARBE, und weiter unten registriert
+     `@property --rot { syntax: "<angle>" }` denselben Namen als WINKEL
+     fuer den Holo-Rand. Die Registrierung gewinnt — gemessen loest
+     `var(--rot)` zu `0deg` auf, und `background: 0deg` ist ungueltig.
+     Die FREMD-Lampe waere farblos geblieben, ausgerechnet die eine, die
+     einen Alarm zeigt. Feste Farbe wie in PWA Toolpoint. */
+  .lamp.bad::before  { background: #ff6b6b; box-shadow: 0 0 8px #ff6b6b; }
+  .lamp.traffic-pulse::before { animation: lampen-puls .9s ease-out; }
+  @keyframes lampen-puls {
+    0%   { background: var(--akzent); box-shadow: 0 0 12px var(--akzent); }
+    100% { background: var(--gut);    box-shadow: 0 0 8px var(--gut); }
+  }
+  /* Am schmalen Schirm nur die Punkte — die Beschriftung liesse die Leiste
+     umbrechen, und eine umbrechende Kopfleiste ist eine Sprungfalle. */
+  @media (max-width: 700px) { .lamp .lamp-label { display: none; } }
+  /* Das Wappen bekommt seine Groesse von der SEITE: Modul 16 haengt ein <svg>
+     in den Container, und ein <svg> ohne width/height faellt in einem
+     Flex-Kasten auf einen Pixel zusammen. */
   #sbkim-siegel-badge {
     width: 28px; height: 28px; flex-shrink: 0; cursor: pointer;
     display: inline-flex; align-items: center; justify-content: center;
@@ -2078,42 +2114,6 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
   }
   #sbkim-siegel-badge svg { width: 100%; height: 100%; display: block; }
   #sbkim-siegel-badge:focus-visible { outline: 3px solid var(--akzent); outline-offset: 2px; }
-
-  /* ⚠ DAS SIEGEL WAR GEBAUT UND UNSICHTBAR (Klaus 2026-09-09, zweiter Blick).
-     Modul 17 legt seine Anker `#lamp-fremd` und `#sbkim-siegel-badge` in einen
-     PROXY-Kasten, der im Kanon `visibility:hidden` und 1x1 px ist — Modul 15
-     und 16 haengen ihre Anzeigen dort hinein. Gedacht ist er fuer Seiten, die
-     ihre EIGENE Lampen-Leiste mitbringen (so macht es PWA-Toolpoints
-     Marktplatz, den Klaus in Ordnung findet); dort haengt das Siegel sichtbar
-     in der Seite und der Proxy bleibt leer.
-
-     Diese Seite hat keine eigene Leiste — sie hat das schwebende Fenster. Also
-     wird der Proxy hier SICHTBAR gemacht, statt eine zweite Leiste daneben zu
-     bauen. Zwei Anker mit derselben Kennung waeren doppelte IDs, und dann
-     entschiede die Reihenfolge, welchen Modul 16 findet.
-
-     ⚠ MEINE ERSTE MESSUNG WAR RICHTIG UND MEIN SCHLUSS FALSCH: ich hatte das
-     Abzeichen mit 28x28 px gemessen und es fuer behoben erklaert — gemessen
-     hatte ich den Anker IM VERSTECKTEN Proxy. Eine Zahl, die stimmt, ist noch
-     keine Auskunft ueber das, was ein Mensch sieht. */
-  #sbkim-widget .sbkim-widget-proxy {
-    position: static; width: auto; height: auto;
-    visibility: visible; overflow: visible; pointer-events: auto;
-    display: inline-flex; align-items: center; gap: 8px;
-    margin-left: 4px; padding-left: 8px;
-    border-left: 1px solid var(--sbkim-widget-line, var(--kante));
-  }
-  /* Der ★-Glyph lag ueber dem „i" von SIEGEL — Klaus: „der Stern deckt das i
-     im Wort Siegel ab". Er ist Zierde; das echte Siegel steht jetzt daneben. */
-  #sbkim-widget .sbkim-widget-siegel-glyph { display: none; }
-  /* Die FREMD-Anzeige aus Modul 15 braucht eine Groesse, sonst ist sie da und
-     niemand sieht sie — derselbe Fall wie beim Abzeichen. */
-  #lamp-fremd {
-    display: inline-block; width: 10px; height: 10px; border-radius: 50%;
-    background: var(--sbkim-widget-lamp-bg, var(--grund2)); cursor: pointer;
-    border: 1px solid var(--sbkim-widget-line, var(--kante));
-  }
-  #lamp-fremd:focus-visible { outline: 3px solid var(--akzent); outline-offset: 2px; }
 </style>
 <!-- ══ SBKIM — Kim Hub Company als eigener Knoten im Mycel ══════════════════
      Eigene Identität, eigene Spore, das schwebende Verbinden-Fenster, die
@@ -2137,6 +2137,14 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
      Die Datei stand hier, weil ein Waechter "alle dreizehn namentlich"
      verlangte — richtig gezaehlt, falscher Ort. Eine Liste der DATEIEN und
      eine Liste der KETTENGLIEDER sind nicht dieselbe Liste. */
+  /* ⚠ MODUL 17 STEHT ABSICHTLICH NICHT IN DIESER LISTE. Es ist das schwebende
+     Status-Fenster und legt seine Anker in einen VERSTECKTEN Proxy-Kasten.
+     Diese Seite bringt ihre Lampen-Leiste selbst mit (siehe <style> oben) —
+     genau wie PWA Toolpoints Marktplatz, der 17 aus demselben Grund nicht
+     laedt. Zwei Anker mit derselben Kennung waeren doppelte IDs, und dann
+     entschiede die Reihenfolge, welchen Modul 15 und 16 finden.
+     Der AUSLIEFERUNGSPRUEFER laedt 17 sehr wohl — er hat keine eigene Leiste.
+     Zwei Seiten, zwei Ketten, derselbe Kanon. */
   var KANON = [
     "./sbkim/03_embedding.js",
     "./sbkim/01_storage.js",
@@ -2146,7 +2154,6 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
     "./sbkim/05_anastomose.js",
     "./sbkim/23_rendezvous.js",
     "./sbkim/23_rendezvous_ui.js",
-    "./sbkim/17_floating_widget.js",
     "./sbkim/07_apoptose.js",
     "./sbkim/15_membran.js",
     "./sbkim/16_siegel.js",

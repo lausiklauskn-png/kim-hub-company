@@ -2,11 +2,21 @@
  * Kim Hub Company — Voller-Knoten-Init: Widget (17) → Membran (15) → Siegel (16),
  * dazu Apoptose (07).
  *
- * ⚠ DIE REIHENFOLGE IST PFLICHT, und sie ist die dritte der vier Fallen aus
- * Sages LEHREN § 4. `SbkimWidget.init()` legt die Anker `#lamp-fremd` und
- * `#sbkim-siegel-badge` an; Membran und Siegel hängen sich daran. Läuft das
- * Widget danach, hängen beide LAUTLOS ins Leere — die Seite sieht normal aus,
- * nur fehlen Lampe und Abzeichen, und niemand bekommt eine Fehlermeldung.
+ * ⚠ DIE ANKER KOMMEN AUS DER SEITE, NICHT AUS MODUL 17 (Klaus 2026-09-09).
+ * Sages LEHREN § 4 nennt als dritte Falle: `SbkimWidget.init()` legt
+ * `#lamp-fremd` und `#sbkim-siegel-badge` an, also muss es VOR Membran und
+ * Siegel laufen. Die Falle greift hier nicht mehr — diese Seite bringt ihre
+ * Lampen-Leiste selbst mit (`.lamps` in der Kopfzeile), genau wie PWA
+ * Toolpoints Marktplatz. Modul 17 wird deshalb gar nicht geladen.
+ *
+ * Der Umweg davor war, 17s VERSTECKTEN Proxy-Kasten sichtbar zu machen, um
+ * sein schwebendes Fenster zu behalten. Klaus dazu: „das Siegel ist jetzt
+ * völlig verworren … Das Design ist so gestaltet, dass es überall passt."
+ * Das Wappen hing hinter dem Schliessen-Kreuz. Zwei Anker mit derselben
+ * Kennung waeren ausserdem doppelte IDs.
+ *
+ * `badgeSelector: ".lamps"` ist die VORGABE von Modul 16: es zeigt auf einen
+ * CONTAINER, in den das Wappen gehaengt wird — nicht auf das Wappen selbst.
  *
  * Das Siegel stellt sich SELBST aus (Bronze), sobald die acht Pflicht-Module
  * geladen sind (01/02/03/04/05/05b/07/15 — 05b kam am 2026-08-16 dazu, weil
@@ -32,26 +42,44 @@
   var ALLOWED_ORIGINS = ["https://lausiklauskn-png.github.io"];
   var REPO_URL = "https://github.com/lausiklauskn-png/kim-hub-company";
 
-  function boot() {
-    var widgetFertig = Promise.resolve();
-    if (window.SbkimWidget && typeof window.SbkimWidget.init === "function") {
-      try {
-        widgetFertig = Promise.resolve(window.SbkimWidget.init({
-          allowedOrigins: ALLOWED_ORIGINS,
-          repoUrl: REPO_URL,
-        }));
-      } catch (e) { if (window.console && console.warn) console.warn("[Company] Status-Widget übersprungen:", e); }
-    }
+  /* Die Lampen zeigen ECHTE Ereignisse, nie einen geschaetzten Zustand: wo
+     nichts passiert, leuchtet nichts. Uebernommen aus PWA Toolpoints
+     `assets/sbkim-init.js` — dieselben Ereignis-Namen, dieselben Klassen. */
+  function lampe(id, klasse) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove("on", "warn", "bad");
+    if (klasse) el.classList.add(klasse);
+  }
+  function pulsSetzen(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.classList.add("traffic-pulse");
+    setTimeout(function () { el.classList.remove("traffic-pulse"); }, 950);
+  }
+  function lampenVerdrahten() {
+    window.addEventListener("sbkim:alive", function () { lampe("lamp-alive", "on"); });
+    window.addEventListener("sbkim:nostr-listening", function (e) {
+      lampe("lamp-traffic", (e && e.detail && e.detail.active) ? "on" : null);
+    });
+    window.addEventListener("sbkim:handshake",   function () { pulsSetzen("lamp-traffic"); });
+    window.addEventListener("sbkim:postmessage", function () { pulsSetzen("lamp-traffic"); });
+    window.addEventListener("sbkim:fremd-alert", function () { lampe("lamp-fremd", "bad"); });
+  }
 
+  function boot() {
+    lampenVerdrahten();
+    var widgetFertig = Promise.resolve();
     widgetFertig.then(function () {
       if (window.SbkimMembrane && typeof window.SbkimMembrane.init === "function") {
-        try { window.SbkimMembrane.init({ allowedOrigins: ALLOWED_ORIGINS }); }
+        try { window.SbkimMembrane.init({ allowedOrigins: ALLOWED_ORIGINS,
+               lampSelector: "#lamp-fremd" }); }
         catch (e) { if (window.console && console.warn) console.warn("[Company] Membran übersprungen:", e); }
       }
       if (window.SbkimSiegel && typeof window.SbkimSiegel.init === "function") {
         try {
           window.SbkimSiegel.init({
-            badgeSelector: "#sbkim-siegel-badge",
+            badgeSelector: ".lamps",
             repoUrl: REPO_URL,
             ribbonText: "KIM HUB COMPANY",
           });
