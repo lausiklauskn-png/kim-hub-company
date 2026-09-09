@@ -52,13 +52,13 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
  * Fingerabdrücke unten nachzieht und das hier vergisst, wird rot.
  */
 export const HERKUNFT = {
-  commit: "bb861e2",
-  datum:  "2026-09-09T01:58:39+00:00",
-  betreff: "Company wird ein SBKIM-Endknoten — der Einbau steht im Ableiter (#175)",
+  commit: "2d72922",
+  datum:  "2026-09-09T09:20:24+00:00",
+  betreff: "Klaus' Sichttest an Company: das Siegel war einen Pixel breit, und ein ES-Modul warf bei jedem Aufruf",
 };
 
 export const ERWARTET = [
-  { datei: "index.html",                herkunft: "start.html",              sha: "7b65a355cb5c3b2da4ba0dbba235e7bc94c93f8adc8860d175693f9b02d00c97" },
+  { datei: "index.html",                herkunft: "start.html",              sha: "3316c725a15fbcb6345a0b50e7e1e76ed43fc16f8d5a07f536d44168cce70541" },
   { datei: "company.js",                herkunft: "company.js",              sha: "8225958ef89441c83cceb7265c4f17423017f24fb8bc61c2f9e218e587629870" },
   { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "1aa6930c883f06885d9df139c610533720c58cb266e19e225f222078df8720d2" },
   { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "2b55844be02df209c8f18d7f8434b4a39bebe2621b7720a3e2b725bfdecaee9c" },

@@ -2041,6 +2041,44 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
      Nähte benutzt (`__werkstatt.speise`) — und als Modul, weil er die
      Schicht-Kette unter `schicht/` importiert. -->
 <script type="module" src="company.js"></script>
+<!-- ══ SBKIM-Klebstoff: Groesse und Thema ══════════════════════════════════
+     ⚠ DAS SIEGEL-ABZEICHEN HAT KEINE EIGENE GROESSE. Modul 17 legt nur den
+     Anker `#sbkim-siegel-badge` an, Modul 16 haengt ein <svg> hinein — und ein
+     <svg> ohne width/height in einem Flex-Kasten wird 1 PIXEL breit. Genau so
+     stand es am 2026-09-09 auf Klaus' Schirm: der Knopf war da, die Trefferflaeche
+     war zu erraten, und der Stern lag ueber dem "i" von SIEGEL. Gemessen im
+     Browser: 1x12 px hier, 28x28 px beim Auslieferungspruefer, der diesen
+     Klebstoff schon hatte. DIE SEITE MUSS IHM DIE GROESSE GEBEN.
+
+     Und Modul 17 bringt eigene, dunkle Farben mit. Auf einer hellen Seite sieht
+     das Fenster dann aus wie hineingefallen — Klaus: "beim Themenwechsel
+     wechselt die Farbe des Siegels nicht". Das Modul ist darauf vorbereitet und
+     sagt es in seinem eigenen Kopf: die Variablen stehen auf `:root`, damit eine
+     PWA sie ueberschreiben kann. Weil hier `var(--…)` der Werkstatt eingesetzt
+     wird, folgen sie dem Themenwechsel von allein — es gibt keine zweite Stelle,
+     die nachgezogen werden muesste.
+
+     Das ist app-eigener Klebstoff, KEIN Eingriff in eine Byte-Kopie. -->
+<style>
+  :root {
+    --sbkim-widget-bg: var(--karte);
+    --sbkim-widget-fg: var(--schrift);
+    --sbkim-widget-fg-dim: var(--leise);
+    --sbkim-widget-line: var(--kante);
+    --sbkim-widget-lamp-bg: var(--grund2);
+    --sbkim-widget-accent-green: var(--gut);
+    --sbkim-widget-accent-gold: var(--warn);
+    --sbkim-widget-accent-red: var(--rot);
+    --sbkim-widget-siegel-gold: var(--warn);
+  }
+  #sbkim-siegel-badge {
+    width: 28px; height: 28px; flex-shrink: 0; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+  }
+  #sbkim-siegel-badge svg { width: 100%; height: 100%; display: block; }
+  #sbkim-siegel-badge:focus-visible { outline: 3px solid var(--akzent); outline-offset: 2px; }
+</style>
 <!-- ══ SBKIM — Kim Hub Company als eigener Knoten im Mycel ══════════════════
      Eigene Identität, eigene Spore, das schwebende Verbinden-Fenster, die
      Status-Lampen und das selbstausfüllende Siegel. Die Reihenfolge ist Pflicht
@@ -2052,13 +2090,23 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
 <script>
 (function () {
   "use strict";
+  /* ⚠ `noble-secp256k1.js` STEHT ABSICHTLICH NICHT IN DIESER LISTE, obwohl es
+     zu den dreizehn Pflicht-Dateien gehoert. Es ist ein ES-MODUL; als
+     klassisches Skript nachgehaengt wirft es
+     `SyntaxError: Unexpected token 'export'` — gemessen am 2026-09-09 im
+     Browser. Modul 05b holt es sich per relativem Import selbst; DALIEGEN muss
+     es, geladen wird es nicht von hier. PWA-Toolpoints Pruefer haelt es
+     genauso, und dessen Probe sagt den Grund im Klartext.
+
+     Die Datei stand hier, weil ein Waechter "alle dreizehn namentlich"
+     verlangte — richtig gezaehlt, falscher Ort. Eine Liste der DATEIEN und
+     eine Liste der KETTENGLIEDER sind nicht dieselbe Liste. */
   var KANON = [
     "./sbkim/03_embedding.js",
     "./sbkim/01_storage.js",
     "./sbkim/storage-init.js",
     "./sbkim/04_match.js",
     "./sbkim/02_spore.js",
-    "./sbkim/noble-secp256k1.js",
     "./sbkim/05_anastomose.js",
     "./sbkim/23_rendezvous.js",
     "./sbkim/23_rendezvous_ui.js",

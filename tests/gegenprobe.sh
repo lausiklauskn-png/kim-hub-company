@@ -198,13 +198,18 @@ fall "die Schublade nimmt den Namen einer fremden App" index.html \
 # Modul 03 rechnet daraus den Vektor. Ein Satz ergibt einen Knoten, der zu allem
 # und zu nichts passt.
 
+# ⚠ DER ANKER HAENGT AM FELDNAMEN, NICHT AM TEXT. Am 2026-09-09 wurde der
+# Beschreibung der Knoten-Name vorangestellt (Klaus: „nicht einmal der Name steht
+# darin") — und beide Faelle hier meldeten „ANKER NICHT GEFUNDEN". Sie massen
+# nichts mehr, und das sah aus wie zwei bestandene Pruefungen. Ein Text, der
+# verbessert werden DARF, ist ein schlechter Anker; der Feldname bleibt.
 fall "die Beschreibung schrumpft auf einen Satz" sbkim/rendezvous-init.js \
-  '      "Acht benannte Rollen arbeiten nacheinander an einem Auftrag: eine schlägt vor, " +' \
-  '      "Eine App fuer Auftraege." + "" +'
+  'domainDescription:' \
+  'domainDescription: "Eine App fuer Auftraege." + "" +   //'
 
 fall "die zwei Wege zur Spore beschreiben den Knoten verschieden" sbkim/siegel-inhalt.js \
-  'domainDescription: "Acht benannte Rollen' \
-  'domainDescription: "Sieben benannte Rollen'
+  'domainDescription: "Kim Hub Company — acht' \
+  'domainDescription: "Kim Hub Company — sieben'
 
 # ══ DAS SIEGEL MIT DEM ANDOCK-WERKZEUG ══════════════════════════════════════
 # „mit Zelle und auch dem Siegel" heisst Modul 16 MIT dem Wizard darin. Der
