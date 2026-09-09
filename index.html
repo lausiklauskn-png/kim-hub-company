@@ -32,6 +32,20 @@ window.__WERKSTATT_QUELLE = {
      mit, geschrieben beim Kopieren. Ein hier erfundenes Datum wäre der
      Zeitpunkt des Seitenaufrufs und hätte mit dem Stand nichts zu tun. */
 };</script>
+<!-- ══ DIE EIGENE SBKIM-SCHUBLADE — MUSS VOR JEDEM MODUL STEHEN ══════════
+     Erste der vier Fallen aus Sages LEHREN § 4. Modul 01 liest
+     `window.SBKIM_DB_SUFFIX` BEIM LADEN und macht daraus seinen Vorgabe-
+     Namen. Fehlt die Zeile, ist der Vorgabe-Name die GETEILTE Schublade
+     `sbkim` — und auf `lausiklauskn-png.github.io` liegen rund zwanzig Apps
+     unter EINER Adresse. `sbkim/storage-init.js` ruft zwar `init({dbSuffix})`,
+     aber ASYNCHRON: greift ein Modul vorher zu, ist der geteilte Topf offen.
+     Gesehen am 2026-08-16 an Alis Moderaum — der Andock-Wizard zeigte die
+     Bedeutungs-Beschreibung einer fremden App, und aus einer falschen
+     Beschreibung entsteht ein falscher Vektor.
+     ⚠ ES IST DIE DRITTE SCHUBLADE DIESER APP UND NICHT MIT DEN ANDEREN ZU
+     VERWECHSELN: `__WERKSTATT_DB` ist die Buchhaltung, der Schlüssel-Tresor
+     hält den KI-Zugang, und das hier ist die Knoten-Identität. -->
+<script>window.SBKIM_DB_SUFFIX = "kimhubcompany";</script>
 <!-- Welche Vorräte dem ⟳ gehören. `caches` gehört dem URSPRUNG, und auf
      github.io liegen rund dreissig Apps — ohne diese Zeile räumte der ⟳ ihnen
      allen den Offline-Vorrat weg. Sie steht HIER und nicht in `ansicht.js`,
@@ -1184,6 +1198,41 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
         in die Sitzung einfügen.</p>
       <p class="leise" id="tor-sagt" role="status" aria-live="polite"></p>
     </div>
+    <!-- ══ DER WEG ZUR EIGENEN KENNUNG (Klaus 2026-09-08) ═══════════════════
+         Company ist seit dieser Sitzung ein eigener SBKIM-Endknoten. Die
+         Module dazu holt die Seite NACH dem Laden (siehe SBKIM_KETTE im
+         Ableiter); das Verbinden-Fenster und das Siegel schweben danach über
+         der Seite.
+
+         ⚠ WARUM HIER TROTZDEM EIN HINWEIS STEHT. Zwei schwebende Knöpfe an den
+         Rändern sind leicht zu übersehen, und wer seine Kennung nicht findet,
+         hat keinen Knoten — er hat eine App mit Modulen darin. Der Hinweis
+         nennt beide Wege beim Namen, statt sie zu beschreiben.
+
+         ⚠ UND ER VERSPRICHT NICHTS, WAS ER NICHT HÄLT. Die Kennung entsteht
+         erst, wenn der Nutzer sie erzeugt — vorher gibt es hier keine. Das ist
+         Absicht (netzweite Stufe 0b): eine Kennung, die beim Seitenaufruf
+         wortlos entsteht, macht aus einem Speicher-Problem einen
+         Identitäts-Wechsel. -->
+    <h2 style="margin-top:18px">Dieser Knoten im Mycel</h2>
+    <p class="leise" data-knoten-hinweis>Company hat eine <b>eigene Kennung</b>
+      im SBKIM-Netz — getrennt von der Werkstatt und von den Geschwister-Apps
+      (Schublade <code>sbkim_kimhubcompany</code>). Sie ist <b>noch nicht da</b>,
+      solange du sie nicht erzeugt hast, und das ist Absicht.</p>
+    <ul class="leise" data-knoten-wege>
+      <li><b>🌐 Mit dem Netz verbinden</b> — das Fenster unten links. Dort
+        entsteht die Kennung, dort trägst du einen <b>Gerätenamen</b> ein, und
+        dort meldest du dich im Raum an. Nichts davon passiert von selbst.</li>
+      <li><b>Das Siegel</b> — oben in der Status-Leiste. Dahinter liegt das
+        Andock-Werkzeug: Kennung erzeugen, <b>Spore signieren und
+        herunterladen</b>, verschlüsselte Sicherung, Wiederherstellen und der
+        <b>Identitäts-Wechsler</b>.</li>
+    </ul>
+    <p class="leise" data-knoten-getrennt><b>Das ist nicht dein KI-Zugang.</b>
+      Der Schlüssel oben bezahlt die Schicht; die Kennung hier sagt dem Netz,
+      wer dieser Knoten ist und was er kann. Zwei Geheimnisse, zwei Aufgaben —
+      der private Teil der Kennung verlässt deinen Browser nie, und im Depot
+      liegt keine Spore.</p>
   </section>
 
   </section>
@@ -1992,5 +2041,60 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
      Nähte benutzt (`__werkstatt.speise`) — und als Modul, weil er die
      Schicht-Kette unter `schicht/` importiert. -->
 <script type="module" src="company.js"></script>
+<!-- ══ SBKIM — Kim Hub Company als eigener Knoten im Mycel ══════════════════
+     Eigene Identität, eigene Spore, das schwebende Verbinden-Fenster, die
+     Status-Lampen und das selbstausfüllende Siegel. Die Reihenfolge ist Pflicht
+     (Sage docs/PFLICHT_MODULE.md); die Begründung steht im Ableiter
+     tools/company-schale-bauen.mjs, damit sie an EINER Stelle steht.
+
+     Fällt eine Datei aus, läuft die Kette weiter und die App bleibt vollständig
+     bedienbar. Kein toter Knopf, kein Absturz. -->
+<script>
+(function () {
+  "use strict";
+  var KANON = [
+    "./sbkim/03_embedding.js",
+    "./sbkim/01_storage.js",
+    "./sbkim/storage-init.js",
+    "./sbkim/04_match.js",
+    "./sbkim/02_spore.js",
+    "./sbkim/noble-secp256k1.js",
+    "./sbkim/05_anastomose.js",
+    "./sbkim/23_rendezvous.js",
+    "./sbkim/23_rendezvous_ui.js",
+    "./sbkim/17_floating_widget.js",
+    "./sbkim/07_apoptose.js",
+    "./sbkim/15_membran.js",
+    "./sbkim/16_siegel.js",
+    "./sbkim/nostr-listen-init.js",
+    "./sbkim/rendezvous-init.js",
+    "./sbkim/schutz-init.js",
+    "./sbkim/siegel-inhalt.js"
+  ];
+  function pause(f) {
+    /* `timeout` ist Absicht: requestIdleCallback ruft SPÄTESTENS danach auf —
+       eine beschäftigte Seite soll die Kette nicht auf die lange Bank schieben. */
+    if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(f, { timeout: 500 });
+    else setTimeout(f, 16);
+  }
+  function naechste(i) {
+    if (i >= KANON.length) return;
+    var s = document.createElement("script");
+    s.src = KANON[i];
+    /* onerror WIE onload: eine fehlende Datei darf die Kette nicht anhalten.
+       Was danach kommt, prüft ohnehin selbst, ob sein Vorgänger da ist. */
+    s.onload = s.onerror = function () { pause(function () { naechste(i + 1); }); };
+    document.body.appendChild(s);
+  }
+  if (document.readyState === "complete") pause(function () { naechste(0); });
+  else window.addEventListener("load", function () { pause(function () { naechste(0); }); });
+})();
+</script>
+<!-- ⚠ MODUL 05b GEHT NICHT ÜBER DIE KETTE (Falle 2 aus Sages LEHREN § 4). Es ist
+     ein ES-Modul und importiert `noble-secp256k1` relativ; per
+     `document.createElement` nachgehängt läuft es NIE. Ohne es leuchtet das
+     Siegel und der Raum ist tot — genau das hat am 2026-08-16 Alis Moderaum
+     gekostet. `defer` hält es trotzdem vom kritischen Pfad fern. -->
+<script type="module" src="./sbkim/05b_nostr_relay.js" defer></script>
 </body>
 </html>

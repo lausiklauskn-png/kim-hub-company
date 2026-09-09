@@ -19,7 +19,13 @@
  * (`index.html` statt `start.html`) — app-eigener Klebstoff. Der Unterschied
  * steht im Kopf des Workers, damit ihn niemand für einen Fehler hält.
  *
- * Quelle: github.com/lausiklauskn-png/Kimhub (Stand 2026-09-07)
+ * ⚠ DIESER GUARD IST NICHT DER EINZIGE. `tools/sbkim-drift.mjs` beantwortet
+ * eine ANDERE Frage: „ist der Knoten noch der Knoten aus SAGE?" Zwei Quellen,
+ * zwei Herkuenfte, zwei Listen — zusammengeworfen wuesste bei einer Abweichung
+ * niemand, in welchem Depot nachzuziehen ist, und genau das soll ein
+ * Drift-Guard beantworten.
+ *
+ * Quelle: github.com/lausiklauskn-png/Kimhub (Stand 2026-09-08)
  * Lauf:   node tools/drift-guard.mjs
  */
 import { readFileSync } from "node:fs";
@@ -46,15 +52,15 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
  * Fingerabdrücke unten nachzieht und das hier vergisst, wird rot.
  */
 export const HERKUNFT = {
-  commit: "0367acc",
-  datum:  "2026-09-08T23:57:22+02:00",
-  betreff: "Die Symbole sind wieder RGBA — eine Farbpalette hat die Installation gekostet (#172)",
+  commit: "bb861e2",
+  datum:  "2026-09-09T01:58:39+00:00",
+  betreff: "Company wird ein SBKIM-Endknoten — der Einbau steht im Ableiter (#175)",
 };
 
 export const ERWARTET = [
-  { datei: "index.html",                herkunft: "start.html",              sha: "70266b1c3567ceda90ff6a3c681658b8c7643670a08deb62b6047f3113ccb157" },
+  { datei: "index.html",                herkunft: "start.html",              sha: "7b65a355cb5c3b2da4ba0dbba235e7bc94c93f8adc8860d175693f9b02d00c97" },
   { datei: "company.js",                herkunft: "company.js",              sha: "8225958ef89441c83cceb7265c4f17423017f24fb8bc61c2f9e218e587629870" },
-  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "65b41579ba230617a531e88b8a8adbab226e39004be48eadfde61900c0ac2bbc" },
+  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "1aa6930c883f06885d9df139c610533720c58cb266e19e225f222078df8720d2" },
   { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "2b55844be02df209c8f18d7f8434b4a39bebe2621b7720a3e2b725bfdecaee9c" },
   { datei: "zeit.js",                   herkunft: "zeit.js",                 sha: "b2d483fa378d67a852feac4c9f7aff0f2d9977ebe149f510f606072f77a385c9" },
   /* ⚠ NEU AM 2026-09-07. `zusammen()` ist aus `schicht/kosten.mjs` hierher

@@ -25,7 +25,12 @@
    nur noch die eigenen Vorräte weg. Ohne den Bump lieferte der Worker die
    alte `ansicht.js` weiter — und die löscht jeden Vorrat des Ursprungs,
    also auch den der Werkstatt und der dreissig Geschwister-Apps. */
-var CACHE_VERSION = "kim-hub-company-v49";
+/* ⚠ v49 → v50 am 2026-09-08: Company ist seitdem ein eigener
+   SBKIM-Endknoten. Die 13 Kanon-Module und die fünf Klebstoff-Dateien
+   stehen neu im Vorrat, und `index.html` trägt die Kette samt
+   `SBKIM_DB_SUFFIX`. Ohne den Bump lieferte der Worker die alte Seite
+   weiter — die App sähe aus, als wäre nichts geschehen. */
+var CACHE_VERSION = "kim-hub-company-v52";
 
 /* ⚠ NUR EIGENE VORRAETE AUFRAEUMEN — `caches` gehoert dem URSPRUNG, nicht dem
  * Pfad. Auf lausiklauskn-png.github.io liegen rund zwanzig Apps; ein Filter,
@@ -54,6 +59,20 @@ var SCHALE = [
      holte jeder Besucher beim ersten Aufruf mit, fuer ein Bild, das im
      laufenden Betrieb niemand sieht. */
   "./icons/kimhub-96.png", "./icons/kimhub-192.png",
+  /* ⚠ DER KNOTEN GEHOERT VOLLSTAENDIG IN DEN VORRAT (Falle 4 aus Sages
+     LEHREN § 4). Ein Modul, das nie im Vorrat war, muss jedes Mal uebers Netz
+     — und offline gar nicht. Dann leuchtet das Siegel nicht und das
+     Verbinden-Fenster fehlt, ohne dass irgendwo etwas steht.
+     Wer ein Modul dazunimmt, traegt es HIER nach UND erhoeht CACHE_VERSION.
+     Die Reihenfolge hier ist bedeutungslos (der Vorrat ist eine Menge); die
+     Lade-Reihenfolge steht in der Kette in `index.html`. */
+  "./sbkim/01_storage.js", "./sbkim/02_spore.js", "./sbkim/03_embedding.js",
+  "./sbkim/04_match.js", "./sbkim/05_anastomose.js", "./sbkim/05b_nostr_relay.js",
+  "./sbkim/07_apoptose.js", "./sbkim/15_membran.js", "./sbkim/16_siegel.js",
+  "./sbkim/17_floating_widget.js", "./sbkim/23_rendezvous.js",
+  "./sbkim/23_rendezvous_ui.js", "./sbkim/noble-secp256k1.js",
+  "./sbkim/storage-init.js", "./sbkim/rendezvous-init.js", "./sbkim/schutz-init.js",
+  "./sbkim/nostr-listen-init.js", "./sbkim/siegel-inhalt.js",
 ];
 
 self.addEventListener("install", function (e) {

@@ -44,13 +44,40 @@ Nutzung, keine Telemetrie. Sie läuft vollständig, auch wenn du nie einen Knopf
 drückst, der etwas verschickt. Keine CDNs — nach dem ersten Besuch läuft sie
 offline, bis auf die KI-Aufrufe selbst.
 
+## Ein eigener Knoten im SBKIM-Netz
+
+Seit dem 2026-09-08 ist diese App zugleich ein **eigenständiger SBKIM-Endknoten**:
+eigene Identität, eigene Spore, ein Siegel mit dem Andock-Werkzeug darin, und
+eine eigene Schublade in der Browser-Datenbank (`sbkim_kimhubcompany`).
+
+Zwei Knöpfe führen dorthin, und **beide tun nichts von selbst**:
+
+- **🌐 Mit dem Netz verbinden** (das Fenster unten links) — dort entsteht die
+  Kennung, dort steht der Gerätename, dort meldet man sich im Raum an.
+- **Das Siegel** (oben in der Status-Leiste) — Kennung erzeugen, Spore
+  signieren und herunterladen, verschlüsselte Sicherung, Wiederherstellen,
+  Identitäts-Wechsler.
+
+⚠ **Der private Schlüssel verlässt den Browser nie, und im Depot liegt keine
+Spore.** Sie entsteht erst, wenn du sie erzeugst. Eine Datei, die aussieht wie
+eine Identität, wäre schlimmer als keine.
+
+⚠ **Das ist NICHT dein KI-Zugang.** Der Schlüssel im Formular bezahlt die
+Schicht; die Kennung sagt dem Netz, wer dieser Knoten ist und was er kann. Zwei
+Geheimnisse, zwei Aufgaben.
+
 ## Prüfen
 
 ```bash
-npm test        # Drift-Guard + die Schale dieses Depots
-npm run drift   # nur die byte-1:1-Kopien
-npm run serve   # http://localhost:8000/
+npm test              # Drift-Guard, die Schale und der Knoten
+npm run drift         # ist die Kopie noch die Kopie aus Kimhub?
+npm run sbkim-drift   # ist der Knoten noch der Knoten aus Sage?
+npm run gegenprobe    # baut Fehler ein — jeder MUSS eine Probe umwerfen
+npm run serve         # http://localhost:8000/
 ```
+
+Zuletzt gemessen (2026-09-08): **50 grün · 0 ROT · 0 nicht lauffähig** ·
+Gegenprobe **21 gefangen · 0 durchgerutscht**.
 
 **⚠ Der Prüfstand dieser App liegt NICHT hier, sondern in
 [Kimhub](https://github.com/lausiklauskn-png/Kimhub):** dort messen 1 293
@@ -60,8 +87,14 @@ gründlicher Prüfstand daneben wäre schlimmer als keiner — er sähe aus wie 
 Zusicherung und wäre eine schwächere.
 
 Was dieses Depot deshalb prüft, ist genau das, was Kimhub nicht prüfen kann:
-dass die Kopien byte-gleich sind, und dass die zwei app-eigenen Abweichungen
-zusammenpassen.
+dass die Kopien byte-gleich sind, dass die zwei app-eigenen Abweichungen
+zusammenpassen — **und den Knoten**, denn dessen Dateien liegen nur hier.
+
+**Seit dem 2026-09-08 gibt es dafür eine eigene Gegenprobe** (`npm run
+gegenprobe`, 21 Fälle). Sie deckt die neuen Wächter ab, nicht die älteren aus
+`tests/smoke_kopie.mjs` — das ist eine benannte Lücke, keine verschwiegene. Und
+sie hat sich sofort bezahlt: **acht** frisch geschriebene Wächter waren blind,
+weil sie Namen suchten, die nur in Kommentaren stehen.
 
 ## Kopieren, nicht klonen
 
@@ -85,6 +118,8 @@ Namen.)
 | Der Schlüssel-Tresor | **gemessen** — hinein, zu, auf, weg; in der Ablage liegt ein Paket, kein Klartext |
 | Ein **echter, bezahlter** Lauf über den Browser | **nicht gemessen** |
 | Was eine Schicht kostet, die bis „fertig" läuft | **nicht gemessen**. Eine gemessene Schicht an der Kommandozeile kostete am 2026-08-23 rund 0,42 € — sie war nach einer Runde nicht fertig. |
+| Der Knoten: 13 Module byte-1:1, Kette, Reihenfolge, Vorrat | **gemessen** (50 Prüfungen, Gegenprobe 21/0) |
+| Ob der Knoten im Rendezvous-Raum wirklich auftaucht | **nicht gemessen** — das sieht nur ein Browser |
 | Klaus' Sichttest am Tablet | **steht aus** |
 
 Eine geratene Zahl klingt genau wie eine gemessene. Wo nichts gemessen wurde,
