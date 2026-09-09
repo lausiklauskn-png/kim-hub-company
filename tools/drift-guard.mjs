@@ -52,9 +52,9 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
  * Fingerabdrücke unten nachzieht und das hier vergisst, wird rot.
  */
 export const HERKUNFT = {
-  commit: "0df8728",
-  datum:  "2026-09-09T00:39:48+00:00",
-  betreff: "Merge origin/main (#174) in den Knoten-Zweig — ansicht.js nachgezogen",
+  commit: "bb861e2",
+  datum:  "2026-09-09T01:58:39+00:00",
+  betreff: "Company wird ein SBKIM-Endknoten — der Einbau steht im Ableiter (#175)",
 };
 
 export const ERWARTET = [
