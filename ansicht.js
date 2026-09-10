@@ -2352,14 +2352,34 @@
     // Bauzeit
     var zt = $("#zeiten"), k3 = el("tbody"); leer(zt);
     var z3 = daten.zeiten;
+    /* ⚠ DIE UNTERZEILE TRAEGT DEN GRUND, NICHT NUR DIE EINHEIT (Klaus
+       2026-09-10: „und Bauzeit am Repo ist noch nicht eingetragen").
+       Sie sagte „Untergrenze aus der Git-Historie" — was die Zahl WAERE —,
+       waehrend darueber ein „–" stand. Der Grund lag im zugeklappten
+       Aufklapper darunter, also dort, wo ihn nur findet, wer schon sucht. */
+    var bauSub = $("#k-bau-sub");
+    var bauSagen = function (marke, text) {
+      if (!bauSub) return;                 // fail-soft: die Company-Schale hat sie nicht
+      bauSub.setAttribute("data-bauzeit", marke);
+      bauSub.textContent = text;
+    };
     if (verschlossen.zeiten) {
       tresorZeile(zt, "zeiten");
       $("#k-bau").textContent = "🔒";
+      bauSagen("verschlossen", "im Tresor — mit dem Passwort aufschließen");
     } else if (!z3 || !z3.tage) {
       var zz = el("tr"); zz.appendChild(el("td", "fehlt leise",
         "Nicht gesammelt. `node tools/zeiten-sammeln.mjs` erzeugt die Datei."));
       k3.appendChild(zz); zt.appendChild(k3);
       $("#k-bau").textContent = "–";
+      /* ⚠ NICHT „0 min". Wo nichts gemessen wurde, steht nicht null — eine
+         Null saehe aus wie eine Messung. Und der WEG steht dabei: eine
+         Auskunft, die nur sagt „geht nicht", ist ein toter Knopf in Worten.
+         Die Seite kann das nicht selbst holen — sie braucht die
+         Git-Historie, und dorthin kommt kein Browser
+         (NETZWEIT § 6b, die Grenzen, die man nachschlaegt). */
+      bauSagen("nicht-gesammelt",
+        "noch nicht gesammelt — in Termux: node tools/zeiten-sammeln.mjs");
     } else {
       var kopf3 = el("tr");
       ["Tag", "Commits", "Untergrenze"].forEach(function (h, i) { kopf3.appendChild(el("th", i ? "zahl" : null, h)); });
@@ -2374,6 +2394,11 @@
       zt.appendChild(k3);
       var gesM = z3.tage.reduce(function (a, x) { return a + x.minuten; }, 0);
       $("#k-bau").textContent = Math.floor(gesM / 60) + " h " + (gesM % 60) + " min";
+      /* Und wenn eine Zahl DA ist, sagt die Zeile, worauf sie beruht — samt
+         ihrem Stand. Eine Untergrenze aus einer alten Sammlung sieht genauso
+         aus wie eine frische. */
+      bauSagen("gesammelt", "Untergrenze aus der Git-Historie · " + z3.tage.length
+        + " Tage" + (z3.erzeugt ? " · gesammelt " + String(z3.erzeugt).slice(0, 10) : ""));
     }
   }
 

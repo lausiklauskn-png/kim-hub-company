@@ -30,7 +30,7 @@
    stehen neu im Vorrat, und `index.html` trägt die Kette samt
    `SBKIM_DB_SUFFIX`. Ohne den Bump lieferte der Worker die alte Seite
    weiter — die App sähe aus, als wäre nichts geschehen. */
-var CACHE_VERSION = "kim-hub-company-v58";
+var CACHE_VERSION = "kim-hub-company-v59";
 
 /* ⚠ NUR EIGENE VORRAETE AUFRAEUMEN — `caches` gehoert dem URSPRUNG, nicht dem
  * Pfad. Auf lausiklauskn-png.github.io liegen rund zwanzig Apps; ein Filter,
