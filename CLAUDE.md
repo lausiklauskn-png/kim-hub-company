@@ -81,7 +81,7 @@ node tools/aus-kimhub-holen.mjs              # nur nachsehen: hängt eine Kopie 
 node tools/aus-kimhub-holen.mjs --schreiben  # alle auf einmal holen + Pins nachziehen
 ```
 
-Zuletzt gemessen (2026-09-10): **60 grün · 0 ROT · 0 nicht lauffähig** ·
+Zuletzt gemessen (2026-09-10, spät): **60 grün · 0 ROT · 0 nicht lauffähig** ·
 Gegenprobe **31 gefangen · 0 durchgerutscht · 35 Anker geprüft, 0 tot**.
 
 ⚠ **`npm test` allein ist nicht „die Prüfung".** Ein Wächter ohne Gegenprobe ist
@@ -180,43 +180,62 @@ Hand**.
 **allen** Stellen. Jeder der vier Fälle erzeugt seitdem **genau eine** rote
 Zeile — die mit seinem eigenen Namen.
 
-## ⚠ DER NEUE TEXT WAR DA — UND KLAUS SAH IHN NICHT
+## ⚠ WER „AUTOMATISCH" BITTET UND EINEN KNOPF BEKOMMT, HAT NICHT BEKOMMEN, WORUM ER BAT
 
-Am 2026-09-10, nachdem die überarbeitete Beschreibung längst auf `main` stand:
-*„Wolltest du nicht den neuen Text automatisch in das Siegel einfügen, damit ich
-jederzeit neu erzeugen kann? Der neue Text ist da noch nicht drin."*
+Klaus hat es **zweimal** gesagt. Beim ersten Mal (2026-09-10): *„Wolltest du
+nicht den neuen Text automatisch in das Siegel einfügen, damit ich jederzeit neu
+erzeugen kann? Der neue Text ist da noch nicht drin."*
 
-**Er hatte recht, und der Grund war NICHT der Offline-Vorrat** — der lag
-nahe und war falsch. Nachgesehen statt geraten: der Text stand in beiden
-Dateien auf `main`, und `CACHE_VERSION` war erhöht.
+**Der Grund war NICHT der Offline-Vorrat** — das lag nahe und war falsch.
+Nachgesehen statt geraten: der Text stand in beiden Dateien auf `main`, und
+`CACHE_VERSION` war bei **jedem** der drei Commits erhöht worden (v52 → v53 →
+v54 → v55). Der Grund stand im Code: das Feld wurde mit `WIZ.domainDescription`
+vorbelegt und danach **von der gespeicherten Spore überschrieben**.
 
-Der Grund steht in `sbkim/siegel-inhalt.js`: das Feld wird mit
-`WIZ.domainDescription` vorbelegt und danach **von der gespeicherten Spore
-überschrieben**. Wer einmal signiert hat, sieht für immer seinen alten Text —
-und **nichts sagte ihm, welchen der beiden er vor sich hat.**
+**Meine erste Abhilfe war zu zaghaft, und Klaus hat sie zu Recht beanstandet.**
+Ich ließ die gespeicherte Spore weiter gewinnen und stellte einen Knopf daneben
+(„↺ Text dieser App hereinholen") plus eine Zeile, die nennt, welcher Text im
+Feld steht. An seinem Schirm gemessen: **Hinweis da, Knopf da — und trotzdem der
+alte Text im Feld**, weil er erst einen zweiten Knopf finden und drücken musste.
+Er schrieb: *„Die Beschreibung ist vollkommen [unzureichend], nicht mal der Name
+steht drin."*
 
-⚠ **DIE NAHELIEGENDE ABHILFE WÄRE FALSCH GEWESEN:** den Vorschlag der App
-gewinnen zu lassen. Dann verlöre jeder beim nächsten Update still seine eigene,
-von Hand geschriebene Beschreibung. Was der Nutzer veröffentlicht hat, bleibt
-stehen.
+> **Wer „automatisch" bittet und einen Knopf bekommt, hat nicht bekommen, worum
+> er gebeten hat.** Eine Abhilfe, die eine Handlung mehr verlangt als die Bitte,
+> ist keine Abhilfe, sondern eine Verschiebung.
 
-Gebaut ist stattdessen die Unterscheidung, die gefehlt hat: eine Zeile, die
-**nennt**, welcher Text im Feld steht (`data-woher`), und — **nur wenn beide
-abweichen** — ein Knopf, der den Vorschlag der App hereinholt. Ein Griff, nichts
-geht verloren, die Entscheidung trifft der Nutzer. Ein Knopf, der immer dastünde,
-wäre bald einer, den niemand mehr liest.
+**Seitdem gewinnt der Vorschlag der App.** Er ist der gepflegte Text — er wird
+mit dem Depot aktualisiert, und vier Wächter bestehen darauf, dass er den Namen
+des Werkzeugs, den Zweck, die Forschung und das SBKIM-Protokoll nennt. Wer
+nichts weiter tut und neu signiert, bekommt genau ihn.
 
-### ⚠ Und der erste Wächter dazu war blind — an einem Ausdruck, der jetzt zweimal dasteht
+⚠ **Und nichts geht dabei verloren**, sonst wäre es die andere Sorte Schaden: der
+zuletzt signierte Text steht weiter in der Spore, bis wirklich neu signiert wird;
+solange er abweicht, holt ihn ein Knopf mit einem Griff zurück. Die Zeile darüber
+**nennt jedes Mal**, welcher der beiden im Feld steht — ohne sie wäre der Tausch
+still, und still ist hier schlimmer als falsch.
 
-`ta.value = WIZ.domainDescription;` steht seit dem Knopf **zweimal**: einmal als
-Vorbelegung, einmal im Klick-Handler. Der Wächter suchte ihn **frei in der Datei**
+**Gemessen im Browser, beide Lagen** (2026-09-10, headless Chromium mit
+gestellter `getOwnSpore`):
+
+| | Feld | Länge | Name·Zweck·Forschung | Knopf |
+|---|---|---|---|---|
+| gespeicherte Spore mit altem Text | **Vorschlag der App** | 2602 | ja·ja·ja | sichtbar |
+| … nach Klick auf den Knopf | eigener Text | — | — | verschwunden |
+| frischer Browser, keine Spore | **Vorschlag der App** | 2602 | ja·ja·ja | **nicht** da |
+
+### ⚠ Und ein Wächter dazu war blind — an einem Ausdruck, der zweimal dasteht
+
+`ta.value = WIZ.domainDescription;` stand nach dem ersten Bau **zweimal**: als
+Vorbelegung und im Klick-Handler. Der Wächter suchte ihn **frei in der Datei**
 und blieb grün, als die Vorbelegung ausgebaut war — er fand die Stelle im Knopf.
 
 **Gefunden hat es die Gegenprobe, nicht das Nachdenken:** der Fall meldete sich
 als „NICHT GEFANGEN", während der Schaden angerichtet war. Gemessen wird jetzt
-der **Block** zwischen dem Anlegen des Feldes und der Herkunfts-Zeile.
-Dieselbe Falle wie beim Fahrtenbuch am 2026-09-06 — *„sie fragten, ob ein
-Ausdruck irgendwo steht, statt an seiner Stelle"* —, nur an einer neuen Stelle.
+der **Block** zwischen dem Anlegen des Feldes und der Herkunfts-Zeile, und im
+Lade-Pfad wird **gezählt**, dass dort nur noch **eine** Zuweisung an `ta.value`
+steht — die im Knopf. Dieselbe Falle wie beim Fahrtenbuch am 2026-09-06 —
+*„sie fragten, ob ein Ausdruck irgendwo steht, statt an seiner Stelle"*.
 
 ## Die eine Regel, auf die es hier ankommt
 

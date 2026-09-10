@@ -300,53 +300,57 @@ export async function lauf(ok) {
   ok("Modul 23 legt beim Seitenstart keine Kennung wortlos an",
     initBlock.length > 50 && !/ensureIdentity:\s*(true|function)/.test(initBlock));
 
-  /* ---- Woher der Text im Beschreibungs-Feld kommt -------------------------
-     ⚠ Klaus am 2026-09-10: „der neue Text ist da noch nicht drin." Er hatte
-     recht, und der Grund war NICHT der Offline-Vorrat: das Feld wird mit dem
-     Vorschlag der App vorbelegt und danach von der GESPEICHERTEN Spore
-     überschrieben. Wer schon einmal signiert hat, sieht für immer seinen alten
-     Text — und nichts sagte ihm, welchen der beiden er vor sich hat.
+  /* ---- Welcher Text im Beschreibungs-Feld steht --------------------------
+     ⚠ Klaus hat es ZWEIMAL gesagt, und beim zweiten Mal deutlich: „Wolltest du
+     nicht den neuen Text AUTOMATISCH in das Siegel einfügen?" — und: „nicht mal
+     der Name steht drin."
 
-     Gemessen werden vier Zusicherungen einzeln, jede mit eigenem Namen in der
-     roten Zeile. Sie hängen zusammen und decken einander NICHT ab: der
-     Vorschlag darf da sein und trotzdem still verlieren; die Spore darf
-     gewinnen und trotzdem unbenannt bleiben; die Zeile darf dastehen und der
-     Knopf trotzdem immer sichtbar sein. */
+     Der erste Bau zeigte die GESPEICHERTE Spore und stellte einen Knopf daneben,
+     der den Text der App hereinholte. An seinem Schirm gemessen: Hinweis da,
+     Knopf da — und trotzdem der alte Text im Feld, weil er erst einen zweiten
+     Knopf finden und drücken musste. **Wer „automatisch" bittet und einen Knopf
+     bekommt, hat nicht bekommen, worum er gebeten hat.**
+
+     Jetzt gewinnt der Vorschlag der App, und der zuletzt signierte Text ist der,
+     den ein Knopf zurückholt. Vier Zusicherungen, die einander NICHT abdecken. */
   const sieg = lies("sbkim", "siegel-inhalt.js");
 
-  /* ⚠ GEMESSEN AN SEINER STELLE, NICHT IRGENDWO IN DER DATEI. `ta.value =
-     WIZ.domainDescription;` steht seit dem Knopf ZWEIMAL — einmal als Vorbelegung,
-     einmal im Klick-Handler. Die erste Fassung dieses Wächters suchte den
-     Ausdruck frei und blieb grün, als die Vorbelegung ausgebaut war: sie fand die
-     Stelle im Knopf. Der Gegenprobe-Fall meldete sich als „nicht gefangen", und
-     genau daran ist es aufgefallen. Gemessen wird jetzt der Block zwischen dem
-     Anlegen des Feldes und der Herkunfts-Zeile. */
+  /* ⚠ GEMESSEN AN SEINER STELLE, NICHT IRGENDWO IN DER DATEI. Die erste Fassung
+     dieses Wächters suchte `ta.value = WIZ.domainDescription;` frei und blieb
+     grün, als die Vorbelegung ausgebaut war — sie fand die Stelle im Knopf.
+     Gefunden hat es die Gegenprobe, nicht das Nachdenken. */
   const iFeld = sieg.indexOf('ta.id = "sbkim-si-semantik-text"');
   const iHerk = sieg.indexOf("var herkunft = document.createElement");
   const vorbelegung = iFeld >= 0 && iHerk > iFeld ? sieg.slice(iFeld, iHerk) : "";
-  ok("das Feld wird mit dem Vorschlag der App vorbelegt",
+  ok("das Feld zeigt den Vorschlag der App",
     vorbelegung.length > 0 && /ta\.value\s*=\s*WIZ\.domainDescription\s*;/.test(vorbelegung));
 
-  /* Der eigene Text des Nutzers gewinnt — sonst verlöre er beim nächsten
-     Update still, was er selbst geschrieben hat. */
-  ok("… und der Text aus der signierten Spore gewinnt darüber",
-    /getOwnSpore\(\)[\s\S]*?ta\.value\s*=\s*sp\.domainDescription\s*;/.test(sieg));
+  /* ⚠ UND DIE GESPEICHERTE SPORE UEBERSCHREIBT IHN NICHT MEHR. Genau das war
+     der Fehler: `ta.value = sp.domainDescription` im Lade-Pfad. Der Wert darf
+     nur noch auf Knopfdruck ins Feld. */
+  const iLade = sieg.indexOf("getOwnSpore()");
+  const iEnde = sieg.indexOf('ta.addEventListener("input"', iLade);
+  const ladePfad = iLade >= 0 && iEnde > iLade ? sieg.slice(iLade, iEnde) : "";
+  const imKnopf = /zurueck\.addEventListener[\s\S]{0,200}?ta\.value\s*=\s*eigener\s*;/.test(ladePfad);
+  const stilleZuweisungen = (ladePfad.match(/ta\.value\s*=/g) || []).length;
+  ok("… und die gespeicherte Spore überschreibt ihn NICHT mehr von selbst",
+    ladePfad.length > 0 && imKnopf && stilleZuweisungen === 1);
 
-  /* ⚠ Der Wächter hängt an der MARKE, nicht am Satz: ein Wächter, der eine
+  /* ⚠ Der Wächter hängt an der MARKE, nicht am Satz — ein Wächter, der eine
      Formulierung festnagelt, verbietet das nächste Richtigstellen. */
-  ok("eine Zeile nennt, WOHER der Text im Feld kommt",
+  ok("eine Zeile nennt, WELCHER der beiden Texte im Feld steht",
     /data-woher/.test(sieg)
-    && /setAttribute\("data-woher",\s*"spore"\)/.test(sieg)
-    && /setAttribute\("data-woher",\s*"app"\)/.test(sieg));
+    && /setAttribute\("data-woher",\s*"app"\)/.test(sieg)
+    && /setAttribute\("data-woher",\s*"spore"\)/.test(sieg));
 
-  /* ⚠ UND DER KNOPF ERSCHEINT NUR BEI ABWEICHUNG. Gemessen wird der Vergleich
-     der TEXTE, nicht ob eine Spore da ist — wer schon mit dem heutigen
-     Vorschlag signiert hat, braucht keinen Knopf, und einer, der immer
-     dasteht, ist bald einer, den niemand mehr liest. */
-  ok("der Knopf holt den App-Text und zeigt sich nur, wenn die Texte abweichen",
-    /id\s*=\s*"sbkim-si-semantik-app-text"/.test(sieg)
-    && /holen\.hidden\s*=\s*true\s*;/.test(sieg)
-    && /abweichend\s*=\s*sp\.domainDescription\.trim\(\)\s*!==/.test(sieg)
-    && /holen\.hidden\s*=\s*!abweichend\s*;/.test(sieg)
-    && /holen\.addEventListener[\s\S]{0,200}?ta\.value\s*=\s*WIZ\.domainDescription\s*;/.test(sieg));
+  /* ⚠ Der Knopf erscheint nur bei Abweichung: wer zuletzt mit genau diesem
+     Vorschlag signiert hat, braucht keinen — und einer, der immer dasteht, ist
+     bald einer, den niemand mehr liest. Gemessen wird der Vergleich der TEXTE,
+     nicht ob eine Spore da ist. */
+  ok("der Knopf holt den eigenen Text zurück und zeigt sich nur bei Abweichung",
+    /id\s*=\s*"sbkim-si-semantik-eigener-text"/.test(sieg)
+    && /zurueck\.hidden\s*=\s*true\s*;/.test(sieg)
+    && /abweichend\s*=[\s\S]{0,120}?eigener\.trim\(\)\s*!==/.test(sieg)
+    && /if\s*\(!abweichend\)\s*return\s*;/.test(sieg)
+    && /zurueck\.hidden\s*=\s*false\s*;/.test(sieg));
 }
