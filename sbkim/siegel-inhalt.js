@@ -154,65 +154,66 @@
       "color:#F5F5FF;background:rgba(0,0,0,0.35);border:1px solid rgba(201,169,97,0.35);border-radius:8px;";
     ta.value = WIZ.domainDescription;
 
-    /* ⚠ WOHER DER TEXT IN DIESEM FELD KOMMT — und warum das dastehen muss.
+    /* ⚠ WELCHER TEXT IM FELD STEHT — und warum der VORSCHLAG DER APP gewinnt.
      *
-     * Klaus am 2026-09-10: „wolltest du nicht den neuen Text automatisch in das
-     * Siegel einfuegen, damit ich jederzeit neu erzeugen kann? Der neue Text ist
-     * da noch nicht drin."
+     * Klaus, zweimal, und beim zweiten Mal deutlich (2026-09-10):
+     * „Wolltest du nicht den neuen Text AUTOMATISCH in das Siegel einfuegen,
+     * damit ich jederzeit neu erzeugen kann? Der neue Text ist da noch nicht
+     * drin." Und: „Die Beschreibung ist vollkommen [unzureichend], nicht mal
+     * der Name steht drin."
      *
-     * Er hatte recht, und der Grund war NICHT der Offline-Vorrat. Das Feld wird
-     * mit `WIZ.domainDescription` vorbelegt und danach von der GESPEICHERTEN
-     * Spore ueberschrieben. Wer schon einmal signiert hat, sieht also fuer immer
-     * seinen alten Text — auch wenn die App laengst einen besseren mitbringt.
-     * Und nichts sagte ihm, welchen der beiden er gerade vor sich hat.
+     * ⚠ ZUERST HABE ICH ES ANDERSHERUM GEBAUT, und das war der Fehler. Das Feld
+     * zeigte die GESPEICHERTE Spore, und daneben stand ein Knopf, der den Text
+     * der App hereinholte. Gemessen an seinem Schirm: Hinweis da, Knopf da — und
+     * trotzdem stand im Feld der alte Text, weil er erst einen zweiten Knopf
+     * finden und druecken musste. **Wer „automatisch" bittet und einen Knopf
+     * bekommt, hat nicht bekommen, worum er gebeten hat.**
      *
-     * ⚠ DIE NAHELIEGENDE ABHILFE WAERE FALSCH: den Vorschlag der App einfach
-     * gewinnen zu lassen. Dann verlaere jeder seine eigene, von Hand
-     * geschriebene Beschreibung beim naechsten Update — still, und ohne dass er
-     * es merkt, bis er neu signiert. Was er selbst veroeffentlicht hat, bleibt
-     * deshalb stehen.
+     * Jetzt gewinnt der Vorschlag der App. Er ist der gepflegte Text: er wird
+     * mit dem Depot aktualisiert, und ein Waechter besteht darauf, dass er den
+     * Namen des Werkzeugs, den Zweck, die Forschung und das SBKIM-Protokoll
+     * nennt. Wer nichts weiter tut und neu signiert, bekommt genau ihn.
      *
-     * Gebaut wird stattdessen die Unterscheidung, die gefehlt hat: eine Zeile,
-     * die NENNT, welcher Text im Feld steht, und — nur wenn die beiden sich
-     * unterscheiden — ein Knopf, der den Vorschlag der App hereinholt. Ein Griff,
-     * nichts geht verloren, und die Entscheidung trifft der Nutzer.
+     * ⚠ UND NICHTS GEHT DABEI VERLOREN, sonst waere es die andere Sorte Schaden.
+     * Der zuletzt signierte Text steht weiter in der Spore, bis wirklich neu
+     * signiert wird; solange er sich vom Vorschlag unterscheidet, holt ihn ein
+     * Knopf mit einem Griff zurueck. Und die Zeile darueber NENNT jedes Mal,
+     * welcher der beiden gerade im Feld steht — ohne sie waere der Tausch
+     * still, und still ist hier schlimmer als falsch.
      */
     var herkunft = document.createElement("p");
     herkunft.id = "sbkim-si-semantik-herkunft";
     herkunft.setAttribute("data-woher", "app");
     herkunft.style.cssText = "margin:0 0 0.45rem;font-size:0.78rem;line-height:1.45;color:rgba(245,245,255,0.62);";
-    herkunft.textContent = "Im Feld steht der Vorschlag dieser App.";
+    herkunft.textContent = "Im Feld steht der Vorschlag dieser App — er wird mit der App gepflegt.";
 
-    var holen = document.createElement("button");
-    holen.type = "button"; holen.id = "sbkim-si-semantik-app-text";
-    holen.hidden = true;
-    holen.textContent = "↺ Text dieser App hereinholen";
-    holen.style.cssText = "display:block;margin:0 0 0.5rem;padding:0.32rem 0.7rem;font:inherit;" +
+    var zurueck = document.createElement("button");
+    zurueck.type = "button"; zurueck.id = "sbkim-si-semantik-eigener-text";
+    zurueck.hidden = true;
+    zurueck.textContent = "↺ Meinen zuletzt signierten Text zurückholen";
+    zurueck.style.cssText = "display:block;margin:0 0 0.5rem;padding:0.32rem 0.7rem;font:inherit;" +
       "font-size:0.8rem;cursor:pointer;border-radius:8px;border:1px solid rgba(201,169,97,0.45);" +
       "background:rgba(201,169,97,0.08);color:#F5E6B8;";
-    holen.addEventListener("click", function () {
-      ta.value = WIZ.domainDescription;
-      autoGrow(ta);
-      herkunft.setAttribute("data-woher", "app");
-      herkunft.textContent = "Im Feld steht jetzt der Vorschlag dieser App. "
-        + "Zum Übernehmen unten neu signieren — deine Kennung bleibt dabei dieselbe.";
-      holen.hidden = true;
-    });
 
     try {
       if (window.SbkimSpore && window.SbkimSpore.getOwnSpore) {
         window.SbkimSpore.getOwnSpore().then(function (sp) {
-          if (sp && typeof sp.domainDescription === "string" && sp.domainDescription.trim()) {
-            ta.value = sp.domainDescription; autoGrow(ta);
+          var eigener = sp && typeof sp.domainDescription === "string" ? sp.domainDescription : "";
+          /* Gemessen wird der TEXT, nicht ob eine Spore da ist: wer zuletzt mit
+           * genau diesem Vorschlag signiert hat, braucht keinen Knopf — und
+           * einer, der immer dasteht, ist bald einer, den niemand mehr liest. */
+          var abweichend = !!eigener.trim()
+            && eigener.trim() !== String(WIZ.domainDescription || "").trim();
+          if (!abweichend) return;
+          herkunft.textContent = "Im Feld steht der Vorschlag dieser App. Dein zuletzt "
+            + "signierter Text war ein anderer — er bleibt in deiner Spore, bis du neu signierst.";
+          zurueck.hidden = false;
+          zurueck.addEventListener("click", function () {
+            ta.value = eigener; autoGrow(ta);
             herkunft.setAttribute("data-woher", "spore");
-            /* Gemessen wird der TEXT, nicht ob eine Spore da ist: wer schon mit
-             * dem heutigen Vorschlag signiert hat, braucht keinen Knopf. */
-            var abweichend = sp.domainDescription.trim() !== String(WIZ.domainDescription || "").trim();
-            herkunft.textContent = abweichend
-              ? "Im Feld steht der Text aus deiner signierten Spore — die App bringt inzwischen einen anderen mit."
-              : "Im Feld steht der Text aus deiner signierten Spore. Er ist derselbe, den die App vorschlägt.";
-            holen.hidden = !abweichend;
-          }
+            herkunft.textContent = "Im Feld steht jetzt dein zuletzt signierter Text.";
+            zurueck.hidden = true;
+          });
         }).catch(function () {});
       }
     } catch (e) {}
@@ -233,7 +234,7 @@
     out.id = "sbkim-si-semantik-out";
     out.style.cssText = "margin:0.6rem 0 0;font-family:monospace;font-size:0.78rem;line-height:1.5;color:#6ee7d3;word-break:break-word;";
     btn.addEventListener("click", function () { reSignWithDescription(ta, btn, out); });
-    wrap.appendChild(label); wrap.appendChild(herkunft); wrap.appendChild(holen);
+    wrap.appendChild(label); wrap.appendChild(herkunft); wrap.appendChild(zurueck);
     wrap.appendChild(ta); wrap.appendChild(hint); wrap.appendChild(btn); wrap.appendChild(out);
     setTimeout(function () { autoGrow(ta); }, 0);
     return wrap;

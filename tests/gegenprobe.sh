@@ -378,33 +378,32 @@ fall "das Werkzeug fuehrt seine eigene Liste statt der des Drift-Guards" \
   'const ERWARTET = [{ datei: "index.html", quelle: "start.html", sha: "" }];
 const HERKUNFT = { commit: "", datum: "", betreff: "" };'
 
-# ── Woher der Text im Beschreibungs-Feld kommt (2026-09-10) ─────────────────
+# ── Welcher Text im Beschreibungs-Feld steht (2026-09-10) ───────────────────
 #
-# Klaus: „der neue Text ist da noch nicht drin." Der Grund war nicht der
-# Offline-Vorrat, sondern dass die gespeicherte Spore das Feld ueberschreibt —
-# und dass nichts sagte, welcher der beiden Texte darin steht.
+# Klaus zweimal, beim zweiten Mal deutlich: „Wolltest du nicht den neuen Text
+# AUTOMATISCH in das Siegel einfuegen?" Der erste Bau zeigte die gespeicherte
+# Spore und stellte einen Knopf daneben — Hinweis da, Knopf da, und trotzdem der
+# alte Text im Feld. Jetzt gewinnt der Vorschlag der App.
 #
-# ⚠ VIER FAELLE, WEIL VIER ZUSICHERUNGEN. Sie decken einander NICHT ab: der
-# Vorschlag darf dastehen und trotzdem still verlieren, die Spore darf gewinnen
-# und trotzdem unbenannt bleiben, die Zeile darf da sein und der Knopf trotzdem
-# immer sichtbar.
+# ⚠ VIER FAELLE, WEIL VIER ZUSICHERUNGEN, und sie decken einander NICHT ab.
 
-fall "das Feld wird nicht mehr mit dem Vorschlag der App vorbelegt" \
+fall "das Feld zeigt nicht mehr den Vorschlag der App" \
   sbkim/siegel-inhalt.js \
   'ta.value = WIZ.domainDescription;
-' \
+
+    /* ⚠ WELCHER TEXT IM FELD STEHT' \
   'ta.value = "";
-'
 
-# ⚠ DIE ANDERE RICHTUNG, und sie ist die gefaehrlichere: laesst man den
-# Vorschlag der App gewinnen, verliert jeder Nutzer beim naechsten Update still
-# seine eigene, von Hand geschriebene Beschreibung.
-fall "der Vorschlag der App ueberschreibt den eigenen Text des Nutzers" \
+    /* ⚠ WELCHER TEXT IM FELD STEHT'
+
+# ⚠ DIE RUECKKEHR DES ALTEN FEHLERS: die gespeicherte Spore ueberschreibt den
+# Vorschlag wieder von selbst. Genau daran ist Klaus zweimal haengengeblieben.
+fall "die gespeicherte Spore ueberschreibt den Vorschlag wieder von selbst" \
   sbkim/siegel-inhalt.js \
-  'ta.value = sp.domainDescription; autoGrow(ta);' \
-  'autoGrow(ta);'
+  'if (!abweichend) return;' \
+  'ta.value = eigener; autoGrow(ta); if (!abweichend) return;'
 
-fall "die Zeile sagt nicht mehr, WOHER der Text im Feld kommt" \
+fall "die Zeile sagt nicht mehr, WELCHER Text im Feld steht" \
   sbkim/siegel-inhalt.js \
   'herkunft.setAttribute("data-woher", "spore");' \
   'herkunft.setAttribute("data-hinweis", "spore");'
@@ -413,8 +412,8 @@ fall "die Zeile sagt nicht mehr, WOHER der Text im Feld kommt" \
 # dieselbe Regel wie „eine Warnung, die man nicht mehr los wird, ist keine".
 fall "der Knopf steht auch dann da, wenn die Texte gleich sind" \
   sbkim/siegel-inhalt.js \
-  'holen.hidden = !abweichend;' \
-  'holen.hidden = false;'
+  'if (!abweichend) return;' \
+  'if (false) return;'
 
 if [ -n "$NUR_ANKER" ]; then
   python3 -c '
