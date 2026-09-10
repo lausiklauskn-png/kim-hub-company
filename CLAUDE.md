@@ -65,9 +65,42 @@ Spore gibt — das Verbinden-Fenster und den Andock-Wizard im Siegel. Zwei
 verschiedene Texte ergäben zwei verschiedene Vektoren für denselben Knoten. Ein
 Wächter vergleicht sie wortgleich.
 
-⚠ **Im Depot liegt KEINE `spore.json`, und das bleibt so.** Sie entsteht in
-Klaus' Browser, der private Schlüssel bleibt dort. Eine Datei, die aussieht wie
-eine Identität, ist schlimmer als keine.
+⚠ **SEIT DEM 2026-09-10 LIEGT `sbkim/spore.json` DA — und hier stand vorher das
+Gegenteil.** Der Satz lautete „Im Depot liegt KEINE `spore.json`, und das bleibt
+so." Sein **Grund** war richtig und gilt weiter: eine **erfundene** Spore ist
+schlimmer als keine — sie beantwortet „hat dieser Knoten eine Kennung?" mit einem
+Ja, das niemand geprüft hat. Der **Wächter** dazu maß aber nur den **Dateinamen**,
+und ein Wächter am Namen schneidet an beiden Kanten falsch:
+
+- Er wirft Klaus' **echte**, signierte Spore hinaus. Sages `status.json` nannte
+  für diesen Knoten die ganze Zeit `…/kim-hub-company/sbkim/spore.json` — eine
+  Adresse, die nichts auslieferte. Sages Tafel sagt ausdrücklich: die Spore im
+  Netz ist nicht die Spore im Depot, die Datei ist **„Ablage und Beleg, kein
+  Sender"**. Zwölf Geschwister-Knoten legen sie genau so ab.
+- Er lässt eine **erfundene** durch, sobald sie anders heißt.
+
+Bewacht wird deshalb die **Zusicherung statt der Zeile**. Liegt hier eine Spore,
+muss sie sich gegen ihren eigenen Schlüssel **verifizieren**, darf **keinen
+privaten Teil** tragen und muss **diesen** Knoten ankündigen — mit der Kennung,
+die im Netz für ihn steht, und mit der Beschreibung, die die App **heute**
+mitbringt. Liegt keine da, ist das weiterhin in Ordnung.
+
+⚠ **Der private Schlüssel bleibt trotzdem in Klaus' Browser.** Was hier liegt,
+ist die öffentliche Hälfte; ein Wächter besteht auf `key_ops: ["verify"]` und auf
+der Abwesenheit von `d`.
+
+⚠ **Die Kennung ist GENAGELT** (`KENNUNG` in `tests/smoke_knoten.mjs`). Ohne den
+Nagel fängt kein Wächter eine erfundene Spore: wer ein frisches Schlüsselpaar
+erzeugt und damit unterschreibt, bekommt eine, die in sich tadellos ist und nur
+einen anderen Knoten ankündigt. **Wer die Kennung wechselt** — der
+Identitäts-Wechsler im Siegel kann das —, zieht sie **hier UND in
+`Sage-Protokol/status.json`** nach. Das ist der Preis, und er ist beabsichtigt:
+ein Identitäts-Wechsel soll eine Spur im Verlauf hinterlassen.
+
+⚠ **Der Service-Worker friert sie nicht ein.** `sw.js` holt für `.json` **Netz
+zuerst** und greift auf den Vorrat nur offline zurück. Eine neu signierte Spore
+kommt also sofort an — eine eingefrorene wäre schlimmer als keine, weil sie
+aussieht, als gälte sie noch.
 
 ## Prüfen
 
@@ -81,8 +114,24 @@ node tools/aus-kimhub-holen.mjs              # nur nachsehen: hängt eine Kopie 
 node tools/aus-kimhub-holen.mjs --schreiben  # alle auf einmal holen + Pins nachziehen
 ```
 
-Zuletzt gemessen (2026-09-10, spät): **60 grün · 0 ROT · 0 nicht lauffähig** ·
-Gegenprobe **31 gefangen · 0 durchgerutscht · 35 Anker geprüft, 0 tot**.
+Zuletzt gemessen (2026-09-10, nach der abgelegten Spore): **68 grün · 0 ROT ·
+0 nicht lauffähig** · Gegenprobe **40 gefangen · 0 durchgerutscht · 35 Anker
+geprüft, 0 tot**.
+
+⚠ **Die neun Fälle zur abgelegten Spore mussten NEU UNTERSCHREIBEN, statt zu
+verbiegen.** Jedes Feld einer Spore steht **unter** der Signatur — ein Eingriff
+von Hand bricht also immer zuerst den Signatur-Wächter, und der Fall wäre
+„gefangen", ohne den gemeinten Wächter je erreicht zu haben. Genau die Falle,
+die im Kopf von `tests/gegenprobe.sh` schon an einer anderen Tür steht.
+`tests/gegenprobe-spore.mjs` unterschreibt deshalb mit einem frischen Paar, das
+nur im Arbeitsspeicher lebt; danach ist die Spore in sich tadellos, und **genau
+ein** Wächter fällt um. Beim Nachstellen von Hand hat das dreimal etwas gefunden,
+das der Lauf als „gefangen" gemeldet hätte: der genagelte Kennungs-Wächter feuerte
+bei **jeder** Fälschung mit (der Fälscher zieht den Nagel jetzt nach) · der
+Platte-vs-Depot-Wächter hing an der **Anzahl** statt an der **Datei** und fiel bei
+einer zweiten Spore mit um · und `--nagel-nachziehen` **vor** dem Dateinamen machte
+den Schalter zum Dateinamen, worauf drei Fälle nichts mehr sabotierten und wie
+blinde Wächter aussahen.
 
 ⚠ **`npm test` allein ist nicht „die Prüfung".** Ein Wächter ohne Gegenprobe ist
 nur ein grüner Haken — beim Bau des Knotens waren **acht** eigene Wächter blind,

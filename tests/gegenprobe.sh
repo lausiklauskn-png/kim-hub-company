@@ -161,6 +161,37 @@ open(p, "w", encoding="utf-8").write(t)
   fi
 }
 
+# Ein Fall, der mehr braucht als einen Textersatz: eine Datei anlegen, eine aus
+# dem Index nehmen, eine Spore neu unterschreiben. Der Befehl laeuft IN der Kopie.
+#
+# ⚠ ER PRUEFT, OB DER EINGRIFF WIRKLICH GEGRIFFEN HAT. Ein Befehl, der still
+# nichts tut (falscher Pfad, Tippfehler), sieht sonst genauso aus wie ein
+# blinder Waechter — der Fall meldete „NICHT GEFANGEN" und schickte die naechste
+# Sitzung in den Code statt in diese Zeile. Gemessen wird an dem, was `git` in
+# der Kopie als veraendert meldet; die Kopie ist nach `frisch` sauber committet.
+#
+# ⚠ UND ER HAT KEINEN TEXTANKER — der Anker-Waechter (NUR_ANKER=1) kann diese
+# Faelle nicht auf Verfall pruefen. Benannte Grenze: was sie halten, sind Pfade,
+# und ein Pfad, den es nicht mehr gibt, laesst den Eingriff fehlschlagen. Das
+# faengt die Zeile darueber, nur eben erst im vollen Lauf.
+falltu() {
+  local was="$1" befehl="$2"
+  [ -n "$NUR_ANKER" ] && return
+  faellt_aus "$was" && return
+  frisch
+  (cd "$KOPIE" && eval "$befehl") >/dev/null 2>&1
+  if [ -z "$(cd "$KOPIE" && git status --porcelain)" ]; then
+    echo "  ⚠ EINGRIFF OHNE WIRKUNG — dieser Fall misst nichts: $was"
+    rot=$((rot+1)); return
+  fi
+  jetzt="$(rotZahl)"
+  if [ -n "$jetzt" ] && [ "$jetzt" -gt "${BASIS_ROT:-0}" ]; then
+    gruen=$((gruen+1)); echo "  ✓ gefangen: $was"
+  else
+    rot=$((rot+1)); echo "  ✗ NICHT GEFANGEN: $was"
+  fi
+}
+
 fallweg() {
   local was="$1" datei="$2"
   if [ -n "$NUR_ANKER" ]; then merkeAnker "$datei" ""; return; fi
@@ -440,6 +471,51 @@ sys.exit(1 if tot else 0)
   rm -f "$ANKERLISTE"
   exit $ergebnis
 fi
+
+echo "  · Die abgelegte Spore"
+
+# Bis zum 2026-09-10 hiess der Waechter hier „keine erfundene Spore im Depot"
+# und mass den DATEINAMEN. Er warf damit Klaus' echte Spore hinaus und liess
+# eine erfundene durch, sobald sie anders hiess. Gemessen wird jetzt die
+# Zusicherung — und jede Haelfte davon braucht ihren eigenen Fehler.
+
+falltu "eine ZWEITE Spore liegt unter anderem Namen daneben" \
+  "cp sbkim/spore.json sbkim/alt-spore.json && git add sbkim/alt-spore.json"
+
+falltu "die Spore liegt nur auf der Platte, das Depot fuehrt sie nicht" \
+  "git rm --cached -q sbkim/spore.json"
+
+# ⚠ DIESE DREI FAELSCHEN NEU, statt zu verbiegen. Jedes Feld einer Spore steht
+# UNTER der Signatur; ein Eingriff von Hand braeche immer zuerst den
+# Signatur-Waechter, und der Fall waere gefangen, ohne den gemeinten Waechter je
+# erreicht zu haben. Der Faelscher unterschreibt mit einem frischen Paar, das nur
+# im Arbeitsspeicher lebt — danach ist die Spore in sich tadellos, und genau ein
+# Waechter faellt um.
+falltu "eine tadellos signierte Spore mit FREMDER Kennung" \
+  "node tests/gegenprobe-spore.mjs sbkim/spore.json '{}'"
+
+falltu "… eine, die einen ANDEREN Knoten ankuendigt" \
+  "node tests/gegenprobe-spore.mjs --nagel-nachziehen sbkim/spore.json '{\"nodeName\":\"Ein anderer Knoten\"}'"
+
+falltu "… eine, deren Bedeutungs-Vektor kein echter mehr ist" \
+  "node tests/gegenprobe-spore.mjs --nagel-nachziehen sbkim/spore.json '{\"domainVector\":[1,2,3]}'"
+
+falltu "… eine, die den PRIVATEN Teil des Schluessels mittraegt" \
+  "node tests/gegenprobe-spore.mjs --nagel-nachziehen sbkim/spore.json '{\"publicKey.key_ops\":[\"verify\",\"sign\"]}'"
+
+falltu "… eine, die etwas ANDERES ankuendigt, als die App sagt" \
+  "node tests/gegenprobe-spore.mjs --nagel-nachziehen sbkim/spore.json '{\"domainDescription\":\"Ein ganz anderer Text.\"}'"
+
+# Die Signatur steht als EINZIGES Feld nicht unter sich selbst — sie laesst sich
+# also von Hand verderben, ohne dass ein anderer Waechter mitfeuert.
+fall "die Signatur der abgelegten Spore ist verdorben" sbkim/spore.json \
+  '"signature": "KSWLLvGf' '"signature": "AAAAAAAA'
+
+# Die App zieht weiter, die abgelegte Spore bleibt zurueck. Beide Glue-Dateien,
+# damit nicht der Wortgleich-Waechter den Fall wegfaengt (siehe Kopf von fall2).
+fall2 "die Beschreibung der App wandert weiter, die Spore bleibt zurueck" \
+  "Kim Hub Company ist eine Werkstatt für brauchbare Werkzeuge." \
+  "Kim Hub Company ist eine Werkstatt für brauchbare Werkzeuge. Und noch etwas."
 
 echo; echo "— $gruen gefangen, $rot durchgerutscht${uebersprungen:+, $uebersprungen uebersprungen} —"; echo
 [ "$rot" -gt 0 ] && exit 1

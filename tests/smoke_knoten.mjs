@@ -23,6 +23,7 @@
  * kein Knoten, und niemand bekommt eine Meldung.
  */
 import { readFileSync, existsSync } from "node:fs";
+import { webcrypto } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -31,6 +32,7 @@ import { pruefe as driftPruefe, KANON, SAGE_HERKUNFT } from "../tools/sbkim-drif
 export const NAME = "Der Knoten (SBKIM)";
 const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
 const lies = (...t) => readFileSync(join(WURZEL, ...t), "utf8");
+const subtle = webcrypto.subtle;
 
 /* Die netzweit VERGEBENEN Schubladen. Register: Sage-Protokol/sbkim/DB-SUFFIXE.md
    — diese Liste ist eine benannte KOPIE daraus, keine zweite Wahrheit. Sie steht
@@ -269,16 +271,122 @@ export async function lauf(ok) {
   ok(`jede wird auch von git geführt${nichtGefuehrt.length ? " — NUR auf der Platte: " + nichtGefuehrt.join(", ") : ""}`,
     nichtGefuehrt.length === 0);
 
-  /* ---- 8 · Was NICHT im Depot liegt ------------------------------------
-     ⚠ KEINE ERFUNDENE SPORE. Klaus erzeugt sie im Browser, der private
-     Schlüssel bleibt dort. Eine Datei, die aussieht wie eine Identität, ist
-     schlimmer als keine — sie beantwortet die Frage „hat dieser Knoten eine
-     Kennung?" mit einem Ja, das niemand geprüft hat.
-     Gemessen wird das DEPOT, nicht die Platte: was ein Besucher bekommt, ist
-     das, was `git` führt. */
-  const verdaechtig = [...gefuehrt].filter((f) => /(^|\/)spore\.json$/.test(f));
-  ok(`keine erfundene Spore im Depot${verdaechtig.length ? " — " + verdaechtig.join(", ") : ""}`,
-    verdaechtig.length === 0);
+  /* ---- 8 · Die Spore im Depot — und was NICHT darin liegt ---------------
+     ⚠ HIER STAND BIS ZUM 2026-09-10 „KEINE SPORE IM DEPOT". Der GRUND war
+     richtig und bleibt: eine ERFUNDENE Spore ist schlimmer als keine — sie
+     beantwortet „hat dieser Knoten eine Kennung?" mit einem Ja, das niemand
+     geprüft hat. Gemessen wurde davon aber nur der DATEINAME.
+
+     Ein Wächter am Namen hat zwei Kanten, und beide schneiden falsch:
+       · Er wirft Klaus' ECHTE, signierte Spore hinaus — und Sages
+         `status.json` nannte für diesen Knoten die ganze Zeit
+         `…/kim-hub-company/sbkim/spore.json`, eine Adresse, die nichts
+         auslieferte. Sages Tafel sagt ausdrücklich: die Spore im Netz ist
+         nicht die Spore im Depot, die Datei ist „Ablage und Beleg, kein
+         Sender". Zwölf Geschwister-Knoten legen sie so ab.
+       · Er lässt eine erfundene Spore durch, sobald sie anders heisst.
+
+     Gemessen wird deshalb die ZUSICHERUNG statt der Zeile: liegt hier eine,
+     muss sie sich gegen ihren eigenen Schlüssel VERIFIZIEREN, darf keinen
+     privaten Teil tragen und muss zu DIESEM Knoten gehören. Liegt keine da,
+     ist das weiterhin in Ordnung — sie entsteht in Klaus' Browser. */
+  const sporen = [...gefuehrt].filter((f) => /(^|\/)[\w.-]*spore\.json$/i.test(f));
+  ok(`höchstens EINE abgelegte Spore, und die heisst sbkim/spore.json${sporen.length ? " — " + sporen.join(", ") : ""}`,
+    sporen.length === 0 || (sporen.length === 1 && sporen[0] === "sbkim/spore.json"));
+
+  /* ⚠ DIE PLATTE IST NICHT DAS DEPOT, und hier ist der Unterschied teuer: eine
+     Spore, die nur hier liegt, wird von Pages NICHT ausgeliefert — Sages
+     `sporeUrl` zeigte dann weiter ins Leere, während lokal alles danach
+     aussieht, als sei es erledigt. Dieselbe Falle wie `schluesseltresor.js`
+     am 2026-09-05, nur andersherum: dort fehlte sie im Depot, hier fehlte sie
+     dem Wächter, der ausschliesslich `git ls-files` liest. */
+  ok("… und wenn eine daliegt, führt git sie auch",
+    !existsSync(join(WURZEL, "sbkim", "spore.json")) || gefuehrt.has("sbkim/spore.json"));
+
+  /* ⚠ NICHT `sporen.length === 1`. Läge eine zweite, verirrte Spore daneben,
+     schaltete diese Bedingung SECHS Wächter ab — die Zeile darüber wäre rot, und
+     ob die echte Spore noch trägt, wüsste niemand mehr. Ein Fehler soll einen
+     Wächter umwerfen, nicht die Prüfung daneben stilllegen. */
+  if (gefuehrt.has("sbkim/spore.json")) {
+    const sp = JSON.parse(lies("sbkim", "spore.json"));
+
+    /* Der eigentliche Riegel: die Signatur über das TIEF kanonische JSON ohne
+       das Feld `signature` — Modul 02 sortiert die Schlüssel REKURSIV, nicht
+       nur oben. Wer nur die erste Ebene sortiert, bekommt „ungültig" bei einer
+       tadellosen Spore und sucht den Fehler an der falschen Stelle. */
+    const canon = (v) => v === null ? null
+      : Array.isArray(v) ? v.map(canon)
+      : typeof v === "object"
+        ? Object.keys(v).sort().reduce((o, k) => (o[k] = canon(v[k]), o), {})
+        : v;
+    const b64u = (b) => Buffer.from(b).toString("base64")
+      .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const pub = await subtle.importKey("jwk", sp.publicKey, { name: "Ed25519" }, true, ["verify"]);
+    const ohneSig = {};
+    for (const k of Object.keys(sp)) if (k !== "signature") ohneSig[k] = sp[k];
+    const echt = await subtle.verify({ name: "Ed25519" }, pub,
+      Buffer.from(sp.signature.replace(/-/g, "+").replace(/_/g, "/"), "base64"),
+      Buffer.from(JSON.stringify(canon(ohneSig)), "utf8"));
+    ok("die abgelegte Spore ist wirklich signiert (Ed25519, tief-kanonisch)", echt === true);
+
+    const abgeleitet = b64u(await subtle.digest("SHA-256", await subtle.exportKey("raw", pub)));
+    ok("… und ihre Kennung ist der Abdruck ihres eigenen Schlüssels",
+      abgeleitet === sp.id);
+
+    /* ⚠ DIE ZEILE DARÜBER FÄNGT EINE ERFUNDENE SPORE NICHT. Wer ein frisches
+       Schlüsselpaar erzeugt und damit eine Spore unterschreibt, bekommt eine,
+       die in sich tadellos ist — sie kündigt nur einen ANDEREN Knoten an, der
+       zufällig denselben Namen trägt. Genau das war die Sorge, aus der die alte
+       Regel „keine Spore im Depot" entstanden ist.
+       Also wird die Kennung GENAGELT. Ein Nagel, EINE Stelle, ein Wächter —
+       dieselbe Bauart wie ein gepinnter Fingerabdruck.
+       ⚠ WER DIE KENNUNG WECHSELT (der Identitäts-Wechsler im Siegel kann das),
+       zieht sie hier UND in `Sage-Protokol/status.json` nach. Das ist der Preis,
+       und er ist beabsichtigt: ein Identitäts-Wechsel ist eine seltene, bewusste
+       Handlung und soll eine Spur im Verlauf hinterlassen. */
+    const KENNUNG = "eNxEFbgof9x69RyVABOCMGExEb66iwuLtqBxXtfeGnM";
+    ok(`… und es ist die Kennung, die im Netz für diesen Knoten steht${sp.id === KENNUNG ? "" : " — hier: " + sp.id}`,
+      sp.id === KENNUNG);
+
+    /* Zwei Riegel in EINER Zeile, weil sie einander decken: ein `d` im JWK ist
+       der private Schlüssel im Klartext, und ein `key_ops`, das mehr als
+       `verify` erlaubt, ist die Einladung dazu. Getrennt geprüft misst ein
+       Gegenprobe-Fall den je anderen mit. */
+    ok("… und sie trägt NUR den öffentlichen Teil",
+      !("d" in sp.publicKey)
+      && Array.isArray(sp.publicKey.key_ops)
+      && sp.publicKey.key_ops.length === 1
+      && sp.publicKey.key_ops[0] === "verify");
+
+    /* Ein Vektor aus dem Demo-Stub sieht aus wie einer aus dem Modell — er ist
+       nur bedeutungslos. Gemessen wird die LÄNGE, die NORM und die Abwesenheit
+       der Stub-Marke; jede allein liesse die anderen zwei durch. */
+    const v = sp.domainVector;
+    const l2 = Array.isArray(v) ? Math.sqrt(v.reduce((a, x) => a + x * x, 0)) : 0;
+    ok(`… und ihr Bedeutungs-Vektor ist echt (384 Zahlen, L2 = ${l2.toFixed(6)})`,
+      Array.isArray(v) && v.length === 384 && Math.abs(l2 - 1) < 1e-4
+      && !JSON.stringify(sp).includes("_demo"));
+
+    /* Und sie gehört zu DIESEM Knoten. Das ist die Hälfte, die „erfunden"
+       wirklich fängt: eine fremde oder zusammengeschriebene Spore verifiziert
+       womöglich tadellos gegen ihren eigenen Schlüssel — sie kündigt nur einen
+       anderen Knoten an. Verglichen wird gegen den Glue, nicht gegen eine
+       zweite Liste hier. */
+    const werte = ["nodeName", "endpoint", "nodeType", "domain"];
+    const falsch = werte.filter((f) => !new RegExp(`${f}:\\s*"${sp[f].replace(/[.*+?^${}()|[\]\\\/]/g, "\\$&")}"`).test(rdv));
+    ok(`… und sie kündigt DIESEN Knoten an${falsch.length ? " — weicht ab: " + falsch.join(", ") : ""}`,
+      falsch.length === 0);
+
+    /* Die Beschreibung ist keine Zierde: Modul 03 rechnet daraus den Vektor.
+       Steht in der Spore ein anderer Text als in der App, kündigt der Knoten
+       etwas an, das die App nicht mehr sagt — und niemand sähe es. */
+    ok("… mit genau der Bedeutungs-Beschreibung, die die App heute mitbringt",
+      typeof sp.domainDescription === "string"
+      && sp.domainDescription.length > 0
+      && rdv.includes(sp.domainDescription)
+      && lies("sbkim", "siegel-inhalt.js").includes(sp.domainDescription));
+  }
+
   const mitSchluessel = knotenDateien.filter((f) => /sk-ant-api|BEGIN [A-Z ]*PRIVATE KEY/.test(lies(f)));
   ok(`kein Schlüssel in einer Knoten-Datei${mitSchluessel.length ? " — " + mitSchluessel.join(", ") : ""}`,
     mitSchluessel.length === 0);
