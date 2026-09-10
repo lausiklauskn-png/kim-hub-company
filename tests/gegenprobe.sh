@@ -378,6 +378,44 @@ fall "das Werkzeug fuehrt seine eigene Liste statt der des Drift-Guards" \
   'const ERWARTET = [{ datei: "index.html", quelle: "start.html", sha: "" }];
 const HERKUNFT = { commit: "", datum: "", betreff: "" };'
 
+# ── Woher der Text im Beschreibungs-Feld kommt (2026-09-10) ─────────────────
+#
+# Klaus: „der neue Text ist da noch nicht drin." Der Grund war nicht der
+# Offline-Vorrat, sondern dass die gespeicherte Spore das Feld ueberschreibt —
+# und dass nichts sagte, welcher der beiden Texte darin steht.
+#
+# ⚠ VIER FAELLE, WEIL VIER ZUSICHERUNGEN. Sie decken einander NICHT ab: der
+# Vorschlag darf dastehen und trotzdem still verlieren, die Spore darf gewinnen
+# und trotzdem unbenannt bleiben, die Zeile darf da sein und der Knopf trotzdem
+# immer sichtbar.
+
+fall "das Feld wird nicht mehr mit dem Vorschlag der App vorbelegt" \
+  sbkim/siegel-inhalt.js \
+  'ta.value = WIZ.domainDescription;
+' \
+  'ta.value = "";
+'
+
+# ⚠ DIE ANDERE RICHTUNG, und sie ist die gefaehrlichere: laesst man den
+# Vorschlag der App gewinnen, verliert jeder Nutzer beim naechsten Update still
+# seine eigene, von Hand geschriebene Beschreibung.
+fall "der Vorschlag der App ueberschreibt den eigenen Text des Nutzers" \
+  sbkim/siegel-inhalt.js \
+  'ta.value = sp.domainDescription; autoGrow(ta);' \
+  'autoGrow(ta);'
+
+fall "die Zeile sagt nicht mehr, WOHER der Text im Feld kommt" \
+  sbkim/siegel-inhalt.js \
+  'herkunft.setAttribute("data-woher", "spore");' \
+  'herkunft.setAttribute("data-hinweis", "spore");'
+
+# ⚠ EIN KNOPF, DER IMMER DASTEHT, IST BALD EINER, DEN NIEMAND MEHR LIEST —
+# dieselbe Regel wie „eine Warnung, die man nicht mehr los wird, ist keine".
+fall "der Knopf steht auch dann da, wenn die Texte gleich sind" \
+  sbkim/siegel-inhalt.js \
+  'holen.hidden = !abweichend;' \
+  'holen.hidden = false;'
+
 if [ -n "$NUR_ANKER" ]; then
   python3 -c '
 import os, sys

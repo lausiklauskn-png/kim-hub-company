@@ -81,8 +81,8 @@ node tools/aus-kimhub-holen.mjs              # nur nachsehen: hängt eine Kopie 
 node tools/aus-kimhub-holen.mjs --schreiben  # alle auf einmal holen + Pins nachziehen
 ```
 
-Zuletzt gemessen (2026-09-09, spät): **56 grün · 0 ROT · 0 nicht lauffähig** ·
-Gegenprobe **27 gefangen · 0 durchgerutscht · 31 Anker geprüft, 0 tot**.
+Zuletzt gemessen (2026-09-10): **60 grün · 0 ROT · 0 nicht lauffähig** ·
+Gegenprobe **31 gefangen · 0 durchgerutscht · 35 Anker geprüft, 0 tot**.
 
 ⚠ **`npm test` allein ist nicht „die Prüfung".** Ein Wächter ohne Gegenprobe ist
 nur ein grüner Haken — beim Bau des Knotens waren **acht** eigene Wächter blind,
@@ -179,6 +179,44 @@ Hand**.
 `fall2` in `tests/gegenprobe.sh` ersetzt deshalb in **beiden** Dateien und an
 **allen** Stellen. Jeder der vier Fälle erzeugt seitdem **genau eine** rote
 Zeile — die mit seinem eigenen Namen.
+
+## ⚠ DER NEUE TEXT WAR DA — UND KLAUS SAH IHN NICHT
+
+Am 2026-09-10, nachdem die überarbeitete Beschreibung längst auf `main` stand:
+*„Wolltest du nicht den neuen Text automatisch in das Siegel einfügen, damit ich
+jederzeit neu erzeugen kann? Der neue Text ist da noch nicht drin."*
+
+**Er hatte recht, und der Grund war NICHT der Offline-Vorrat** — der lag
+nahe und war falsch. Nachgesehen statt geraten: der Text stand in beiden
+Dateien auf `main`, und `CACHE_VERSION` war erhöht.
+
+Der Grund steht in `sbkim/siegel-inhalt.js`: das Feld wird mit
+`WIZ.domainDescription` vorbelegt und danach **von der gespeicherten Spore
+überschrieben**. Wer einmal signiert hat, sieht für immer seinen alten Text —
+und **nichts sagte ihm, welchen der beiden er vor sich hat.**
+
+⚠ **DIE NAHELIEGENDE ABHILFE WÄRE FALSCH GEWESEN:** den Vorschlag der App
+gewinnen zu lassen. Dann verlöre jeder beim nächsten Update still seine eigene,
+von Hand geschriebene Beschreibung. Was der Nutzer veröffentlicht hat, bleibt
+stehen.
+
+Gebaut ist stattdessen die Unterscheidung, die gefehlt hat: eine Zeile, die
+**nennt**, welcher Text im Feld steht (`data-woher`), und — **nur wenn beide
+abweichen** — ein Knopf, der den Vorschlag der App hereinholt. Ein Griff, nichts
+geht verloren, die Entscheidung trifft der Nutzer. Ein Knopf, der immer dastünde,
+wäre bald einer, den niemand mehr liest.
+
+### ⚠ Und der erste Wächter dazu war blind — an einem Ausdruck, der jetzt zweimal dasteht
+
+`ta.value = WIZ.domainDescription;` steht seit dem Knopf **zweimal**: einmal als
+Vorbelegung, einmal im Klick-Handler. Der Wächter suchte ihn **frei in der Datei**
+und blieb grün, als die Vorbelegung ausgebaut war — er fand die Stelle im Knopf.
+
+**Gefunden hat es die Gegenprobe, nicht das Nachdenken:** der Fall meldete sich
+als „NICHT GEFANGEN", während der Schaden angerichtet war. Gemessen wird jetzt
+der **Block** zwischen dem Anlegen des Feldes und der Herkunfts-Zeile.
+Dieselbe Falle wie beim Fahrtenbuch am 2026-09-06 — *„sie fragten, ob ein
+Ausdruck irgendwo steht, statt an seiner Stelle"* —, nur an einer neuen Stelle.
 
 ## Die eine Regel, auf die es hier ankommt
 

@@ -153,11 +153,65 @@
       "min-height:5.5em;padding:0.55rem 0.65rem;font:inherit;font-size:0.88rem;line-height:1.5;" +
       "color:#F5F5FF;background:rgba(0,0,0,0.35);border:1px solid rgba(201,169,97,0.35);border-radius:8px;";
     ta.value = WIZ.domainDescription;
+
+    /* ⚠ WOHER DER TEXT IN DIESEM FELD KOMMT — und warum das dastehen muss.
+     *
+     * Klaus am 2026-09-10: „wolltest du nicht den neuen Text automatisch in das
+     * Siegel einfuegen, damit ich jederzeit neu erzeugen kann? Der neue Text ist
+     * da noch nicht drin."
+     *
+     * Er hatte recht, und der Grund war NICHT der Offline-Vorrat. Das Feld wird
+     * mit `WIZ.domainDescription` vorbelegt und danach von der GESPEICHERTEN
+     * Spore ueberschrieben. Wer schon einmal signiert hat, sieht also fuer immer
+     * seinen alten Text — auch wenn die App laengst einen besseren mitbringt.
+     * Und nichts sagte ihm, welchen der beiden er gerade vor sich hat.
+     *
+     * ⚠ DIE NAHELIEGENDE ABHILFE WAERE FALSCH: den Vorschlag der App einfach
+     * gewinnen zu lassen. Dann verlaere jeder seine eigene, von Hand
+     * geschriebene Beschreibung beim naechsten Update — still, und ohne dass er
+     * es merkt, bis er neu signiert. Was er selbst veroeffentlicht hat, bleibt
+     * deshalb stehen.
+     *
+     * Gebaut wird stattdessen die Unterscheidung, die gefehlt hat: eine Zeile,
+     * die NENNT, welcher Text im Feld steht, und — nur wenn die beiden sich
+     * unterscheiden — ein Knopf, der den Vorschlag der App hereinholt. Ein Griff,
+     * nichts geht verloren, und die Entscheidung trifft der Nutzer.
+     */
+    var herkunft = document.createElement("p");
+    herkunft.id = "sbkim-si-semantik-herkunft";
+    herkunft.setAttribute("data-woher", "app");
+    herkunft.style.cssText = "margin:0 0 0.45rem;font-size:0.78rem;line-height:1.45;color:rgba(245,245,255,0.62);";
+    herkunft.textContent = "Im Feld steht der Vorschlag dieser App.";
+
+    var holen = document.createElement("button");
+    holen.type = "button"; holen.id = "sbkim-si-semantik-app-text";
+    holen.hidden = true;
+    holen.textContent = "↺ Text dieser App hereinholen";
+    holen.style.cssText = "display:block;margin:0 0 0.5rem;padding:0.32rem 0.7rem;font:inherit;" +
+      "font-size:0.8rem;cursor:pointer;border-radius:8px;border:1px solid rgba(201,169,97,0.45);" +
+      "background:rgba(201,169,97,0.08);color:#F5E6B8;";
+    holen.addEventListener("click", function () {
+      ta.value = WIZ.domainDescription;
+      autoGrow(ta);
+      herkunft.setAttribute("data-woher", "app");
+      herkunft.textContent = "Im Feld steht jetzt der Vorschlag dieser App. "
+        + "Zum Übernehmen unten neu signieren — deine Kennung bleibt dabei dieselbe.";
+      holen.hidden = true;
+    });
+
     try {
       if (window.SbkimSpore && window.SbkimSpore.getOwnSpore) {
         window.SbkimSpore.getOwnSpore().then(function (sp) {
           if (sp && typeof sp.domainDescription === "string" && sp.domainDescription.trim()) {
             ta.value = sp.domainDescription; autoGrow(ta);
+            herkunft.setAttribute("data-woher", "spore");
+            /* Gemessen wird der TEXT, nicht ob eine Spore da ist: wer schon mit
+             * dem heutigen Vorschlag signiert hat, braucht keinen Knopf. */
+            var abweichend = sp.domainDescription.trim() !== String(WIZ.domainDescription || "").trim();
+            herkunft.textContent = abweichend
+              ? "Im Feld steht der Text aus deiner signierten Spore — die App bringt inzwischen einen anderen mit."
+              : "Im Feld steht der Text aus deiner signierten Spore. Er ist derselbe, den die App vorschlägt.";
+            holen.hidden = !abweichend;
           }
         }).catch(function () {});
       }
@@ -179,7 +233,8 @@
     out.id = "sbkim-si-semantik-out";
     out.style.cssText = "margin:0.6rem 0 0;font-family:monospace;font-size:0.78rem;line-height:1.5;color:#6ee7d3;word-break:break-word;";
     btn.addEventListener("click", function () { reSignWithDescription(ta, btn, out); });
-    wrap.appendChild(label); wrap.appendChild(ta); wrap.appendChild(hint); wrap.appendChild(btn); wrap.appendChild(out);
+    wrap.appendChild(label); wrap.appendChild(herkunft); wrap.appendChild(holen);
+    wrap.appendChild(ta); wrap.appendChild(hint); wrap.appendChild(btn); wrap.appendChild(out);
     setTimeout(function () { autoGrow(ta); }, 0);
     return wrap;
   }
