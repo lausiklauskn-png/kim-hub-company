@@ -2877,11 +2877,41 @@
            gestossen hat. Eine benannte Lücke ist Arbeit, eine verschwiegene
            ist Schaden. */
         (auf.gehtAuf ? "" : " · ⚠ die Aufteilung geht nicht auf");
+      /*
+       * ⚠ DIE AUFTEILUNG STAND HINTER DEM GELD-SCHLOSS (Klaus 2026-09-10):
+       * „Die Zeiten stimmen nicht überein. 63:18:42 zu 62 h 18 min 42 s."
+       *
+       * Sie stimmten überein. Die Kachel zählt gestempelt UND gefahren, die
+       * Stoppuhr nur das Gestempelte seit dem letzten ⟲ — die Differenz ist
+       * das Gefahrene. Nur konnte er das nicht nachsehen: die Aufteilung
+       * hing an `#k-klaus-sub`, und die Zeile trägt `data-chef="geld"`. Mit
+       * gesetztem Chef-Code stand unter der großen Zahl NICHTS.
+       *
+       * Der Absatz zwei Bildschirme weiter oben sagt es selbst — „die
+       * Aufteilung steht deshalb IMMER da, auch ohne Stundensatz" — und
+       * `chefZeichnen()` sagt „Stechuhr für alle, Zahlen nur für mich".
+       * Beide Zusicherungen waren wahr und wurden trotzdem gebrochen, weil
+       * zwei verschiedene Angaben in EINEM Element saßen.
+       *
+       * **Zwei Angaben mit zwei verschiedenen Schlössern gehören in zwei
+       * Elemente.** Die Aufteilung ist Stechuhr, kein Geld.
+       */
+      var teileZeile = $("#k-klaus-teile");
+      if (teileZeile) {
+        teileZeile.textContent = teile;
+        teileZeile.setAttribute("data-teile", auf.gehtAuf ? "geht-auf" : "geht-nicht-auf");
+        teileZeile.setAttribute("data-gestempelt", String(Math.round(gestempeltSek)));
+        teileZeile.setAttribute("data-gefahren", String(Math.round(gefahrenSek)));
+        teileZeile.setAttribute("data-doppelt", String(Math.round(doppeltSek)));
+      }
       $("#k-klaus-sub").textContent = (c
         ? minuten(gesamt).toFixed(1).replace(".", ",") + " min × " +
           eur(c / 100) + "/h = " + eur(k / 100)
-        : "kein Stundensatz hinterlegt — die Stunden sind gemessen, der Betrag nicht")
-        + " · " + teile;
+        : "kein Stundensatz hinterlegt — die Stunden sind gemessen, der Betrag nicht");
+      /* Die Marken bleiben ZUSAETZLICH hier stehen: sie sind der Anker
+         mehrerer Waechter, und ein Umzug, der sie mitnimmt, macht die stumm,
+         statt sie umzuhaengen. Angezeigt wird die Aufteilung eine Zeile
+         hoeher. */
       $("#k-klaus-sub").setAttribute("data-gestempelt", String(Math.round(gestempeltSek)));
       $("#k-klaus-sub").setAttribute("data-gefahren", String(Math.round(gefahrenSek)));
       $("#k-klaus-sub").setAttribute("data-doppelt", String(Math.round(doppeltSek)));
@@ -3053,6 +3083,42 @@
                : neuAn ? "Start — beginnt eine neue Zählung; der Verlauf bleibt vollständig"
                        : "Start — und beim zweiten Druck Pause";
       st.setAttribute("data-uhr-neu-an", neuAn ? "ja" : "nein");
+    }
+    /*
+     * ══ UND DASSELBE IM ZUGEKLAPPTEN KOPF (Klaus 2026-09-10) ═══════════════
+     *
+     *   „lass die Stechuhr nach dem Starten im Button Stechuhr direkt laufen.
+     *    wenn der Button zusammengeklappt ist. Bedienbar."
+     *
+     * Eine Uhr, die man nur sieht, wenn man die Karte aufklappt, ist beim
+     * Arbeiten so gut wie nicht da — dieselbe Sorte Befund wie „eine
+     * Auskunft, die man nur mit zwei Tipps findet".
+     *
+     * ⚠ GEZEICHNET WIRD AUS DENSELBEN ZAHLEN wie die grosse Anzeige, in
+     * derselben Funktion. Ein zweiter Zeichen-Weg waere eine zweite Fassung;
+     * dann stuende im Kopf eine andere Zeit als in der Karte, und keine der
+     * beiden waere nachweislich die richtige.
+     *
+     * ⚠ UND ES IST FAIL-SOFT. `ansicht.js` bedient auch die Company-Schale,
+     * und die hat gar keine Stechuhr. Ein `return`, wenn das Element fehlt,
+     * legte alles still, was danach kommt — genau der Fehler vom 2026-09-07.
+     * Ein Platzhalter, kein Ausstieg.
+     */
+    var kurz = $("#uhr-kurz"), kurzZeit = $("#uhr-kurz-zeit"), kurzSt = $("#uhr-kurz-start");
+    if (kurz) {
+      kurz.setAttribute("data-laeuft", uhrLaeuft ? "ja" : "nein");
+      kurz.setAttribute("data-sekunden", String(Math.round(stand)));
+    }
+    if (kurzZeit) kurzZeit.textContent = zeitApi().dauerLang(stand);
+    if (kurzSt && st) {
+      /* Abgelesen, nicht abgeschrieben: derselbe Text, dieselbe Marke,
+         derselbe Titel wie am grossen Knopf. Zwei Knoepfe, die denselben
+         Zustand behaupten, laufen auseinander. */
+      kurzSt.textContent = st.textContent;
+      kurzSt.title = st.title;
+      kurzSt.setAttribute("aria-pressed", st.getAttribute("aria-pressed"));
+      kurzSt.setAttribute("data-uhr", st.getAttribute("data-uhr"));
+      kurzSt.setAttribute("data-uhr-neu-an", st.getAttribute("data-uhr-neu-an"));
     }
   }
 
@@ -4482,6 +4548,35 @@
       if (!tickHandle) tickHandle = setInterval(uhrTick, 1000);
       uhrTick();
     });
+
+    /*
+     * ══ DER KOMPAKTE KNOPF IM ZUGEKLAPPTEN KOPF (Klaus 2026-09-10) ═════════
+     *
+     * ⚠ ER FÜHRT NICHT SEINEN EIGENEN WEG — er drückt den grossen. Start,
+     * Pause und „nach dem Auschecken neu zählen" sind drei Fälle mit einer
+     * gewachsenen Begründung; sie ein zweites Mal hinzuschreiben hiesse, zwei
+     * Fassungen zu haben, die auseinanderlaufen. Dann hielte der eine Knopf
+     * an, was der andere weiterzählt.
+     *
+     * ⚠ UND ER DARF DIE KARTE NICHT AUFREISSEN. Ein Klick auf irgendetwas in
+     * einem `<summary>` schaltet das `<details>` um — der Knopf hielte die
+     * Uhr an UND klappte dabei die Karte auf, also genau das Gegenteil von
+     * „zugeklappt bedienbar". `preventDefault` nimmt die Standard-Wirkung,
+     * `stopPropagation` haelt das Ereignis vom summary fern; beide, weil
+     * jedes fuer sich schon einmal nicht gereicht hat.
+     *
+     * ⚠ FAIL-SOFT, KEIN AUSSTIEG. Fehlt der Knopf, wird hier nichts
+     * verdrahtet — und alles danach trotzdem. Ein `return` an dieser Stelle
+     * nähme die drei folgenden Bindungen mit (Befund 2026-09-07).
+     */
+    var kurzKn = $("#uhr-kurz-start");
+    if (kurzKn) {
+      kurzKn.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        $("#uhr-start").click();
+      });
+    }
 
     /*
      * AUSCHECKEN — nicht dasselbe wie Pause (Klaus 2026-08-22): „Stop bedeutet
