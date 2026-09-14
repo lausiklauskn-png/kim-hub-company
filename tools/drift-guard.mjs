@@ -58,7 +58,7 @@ export const HERKUNFT = {
 };
 
 export const ERWARTET = [
-  { datei: "index.html",                herkunft: "start.html",              sha: "3cc7a8f3000285e9fd37e7e94986dc229247d38febcc4048a76c74206b65fd85" },
+  { datei: "index.html",                herkunft: "start.html",              sha: "1226772c03181877763afa784da7c69c0b8852de40be8712366bcdc2ea0cc9e4" },
   { datei: "company.js",                herkunft: "company.js",              sha: "8225958ef89441c83cceb7265c4f17423017f24fb8bc61c2f9e218e587629870" },
   { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "0e9ac6c133b27842092d87987c282e12e19ac6d6ae16a507c4ed8a5203058ac5" },
   { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "2b55844be02df209c8f18d7f8434b4a39bebe2621b7720a3e2b725bfdecaee9c" },

@@ -300,15 +300,19 @@ fall "die zwei Wege zur Spore beschreiben den Knoten verschieden" sbkim/siegel-i
 # nennt. Die Gegenprobe meldete „TOTER ANKER", und dabei kam heraus, dass FUENF
 # Waechter genau daran haengen geblieben waren: fuenf gruene Haken ueber einer
 # Datei, in der keiner der Namen als Code vorkommt.
-fall "der Identitaets-Wechsler faellt aus dem Wizard" sbkim/siegel-inhalt.js \
+# ⚠ SEIT A18 (2026-09-14) ZEIGEN DIESE FAELLE AUF DEN KANON. Der Wizard-Code
+# ist aus siegel-inhalt.js ausgezogen; die Anker dort waren beim ersten Lauf
+# danach alle TOT — sieben Faelle, die sich als „nicht gefangen" melden,
+# obwohl jeder Waechter tadellos ist. Wer Code bewegt, bewegt Anker mit.
+fall "der Identitaets-Wechsler faellt aus dem Wizard" sbkim/sbkim-andock-wizard.js \
   '<select id="sbwiz-idsel"' \
   '<select id="sbwiz-idsel-abgeschaltet"'
 
-fall "der Wechsler zeigt nur noch eine Liste, ohne wirklich zu wechseln" sbkim/siegel-inhalt.js \
+fall "der Wechsler zeigt nur noch eine Liste, ohne wirklich zu wechseln" sbkim/sbkim-andock-wizard.js \
   'function switchWizardIdentity' \
   'function switchWizardIdentityAbgeschaltet'
 
-fall "der Knopf zum Signieren und Herunterladen der Spore ist nicht verdrahtet" sbkim/siegel-inhalt.js \
+fall "der Knopf zum Signieren und Herunterladen der Spore ist nicht verdrahtet" sbkim/sbkim-andock-wizard.js \
   'dlg.querySelector("#sbwiz-s2").addEventListener' \
   'dlg.querySelector("#sbwiz-s2x") && dlg.querySelector("#sbwiz-s2x").addEventListener'
 
@@ -419,30 +423,26 @@ const HERKUNFT = { commit: "", datum: "", betreff: "" };'
 # ⚠ VIER FAELLE, WEIL VIER ZUSICHERUNGEN, und sie decken einander NICHT ab.
 
 fall "das Feld zeigt nicht mehr den Vorschlag der App" \
-  sbkim/siegel-inhalt.js \
-  'ta.value = WIZ.domainDescription;
-
-    /* ⚠ WELCHER TEXT IM FELD STEHT' \
-  'ta.value = "";
-
-    /* ⚠ WELCHER TEXT IM FELD STEHT'
+  sbkim/sbkim-andock-wizard.js \
+  'ta.value = c.domainDescription || "";' \
+  'ta.value = "";'
 
 # ⚠ DIE RUECKKEHR DES ALTEN FEHLERS: die gespeicherte Spore ueberschreibt den
 # Vorschlag wieder von selbst. Genau daran ist Klaus zweimal haengengeblieben.
 fall "die gespeicherte Spore ueberschreibt den Vorschlag wieder von selbst" \
-  sbkim/siegel-inhalt.js \
+  sbkim/sbkim-andock-wizard.js \
   'if (!abweichend) return;' \
   'ta.value = eigener; autoGrow(ta); if (!abweichend) return;'
 
 fall "die Zeile sagt nicht mehr, WELCHER Text im Feld steht" \
-  sbkim/siegel-inhalt.js \
+  sbkim/sbkim-andock-wizard.js \
   'herkunft.setAttribute("data-woher", "spore");' \
   'herkunft.setAttribute("data-hinweis", "spore");'
 
 # ⚠ EIN KNOPF, DER IMMER DASTEHT, IST BALD EINER, DEN NIEMAND MEHR LIEST —
 # dieselbe Regel wie „eine Warnung, die man nicht mehr los wird, ist keine".
 fall "der Knopf steht auch dann da, wenn die Texte gleich sind" \
-  sbkim/siegel-inhalt.js \
+  sbkim/sbkim-andock-wizard.js \
   'if (!abweichend) return;' \
   'if (false) return;'
 

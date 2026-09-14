@@ -74,6 +74,12 @@ const VERGEBEN = [
 
 const KLEBSTOFF = ["storage-init", "rendezvous-init", "schutz-init",
                    "nostr-listen-init", "siegel-inhalt"];
+/* ⚠ SEIT A18 (2026-09-14) IST DER WIZARD KEIN KLEBSTOFF MEHR. `siegel-inhalt.js`
+   traegt nur noch die Identitaet dieses Knotens; der Ablauf steht netzweit
+   byte-gleich in `sbkim-andock-wizard.js` (Kanon Modul 16b). Die Waechter unten
+   sind MITGEZOGEN, nicht geloescht — dieselbe Zusicherung, neuer Wohnort.
+   Vertrag: Sage-Protokol/docs/INTERFACES.md 11.9. */
+const KANON_WIZARD = "sbkim-andock-wizard.js";
 
 export async function lauf(ok) {
   /* ---- 1 · Die 13 Kanon-Module, byte-1:1 aus Sage ------------------------ */
@@ -180,7 +186,7 @@ export async function lauf(ok) {
      „mit Zelle und auch dem Siegel" heisst Modul 16 MIT dem Wizard darin. Der
      IDENTITÄTS-WECHSLER (Baustein 5) fehlt in frühen Kopien am häufigsten —
      deshalb wird er einzeln genannt und nicht in einer Summe mitgezählt. */
-  const wiz = lies("sbkim", "siegel-inhalt.js");
+  const wiz = lies("sbkim", KANON_WIZARD);
   /* ⚠ DIESE FÜNF WÄCHTER WAREN ZUERST ALLE BLIND, und die Gegenprobe hat es
      gemeldet („TOTER ANKER"). Sie suchten die Namen aus dem Sage-Original
      (`andockStep1Identity` …) — und die stehen in dieser Datei ausschliesslich
@@ -422,23 +428,24 @@ export async function lauf(ok) {
      Jetzt gewinnt der Vorschlag der App, und der zuletzt signierte Text ist der,
      den ein Knopf zurückholt. Vier Zusicherungen, die einander NICHT abdecken. */
   const sieg = lies("sbkim", "siegel-inhalt.js");
+  const wizTxt = lies("sbkim", KANON_WIZARD);
 
   /* ⚠ GEMESSEN AN SEINER STELLE, NICHT IRGENDWO IN DER DATEI. Die erste Fassung
      dieses Wächters suchte `ta.value = WIZ.domainDescription;` frei und blieb
      grün, als die Vorbelegung ausgebaut war — sie fand die Stelle im Knopf.
      Gefunden hat es die Gegenprobe, nicht das Nachdenken. */
-  const iFeld = sieg.indexOf('ta.id = "sbkim-si-semantik-text"');
-  const iHerk = sieg.indexOf("var herkunft = document.createElement");
-  const vorbelegung = iFeld >= 0 && iHerk > iFeld ? sieg.slice(iFeld, iHerk) : "";
+  const iFeld = wizTxt.indexOf('ta.id = "sbkim-si-semantik-text"');
+  const iHerk = wizTxt.indexOf("var herkunft = document.createElement");
+  const vorbelegung = iFeld >= 0 && iHerk > iFeld ? wizTxt.slice(iFeld, iHerk) : "";
   ok("das Feld zeigt den Vorschlag der App",
-    vorbelegung.length > 0 && /ta\.value\s*=\s*WIZ\.domainDescription\s*;/.test(vorbelegung));
+    vorbelegung.length > 0 && /ta\.value\s*=\s*c\.domainDescription\b/.test(vorbelegung));
 
   /* ⚠ UND DIE GESPEICHERTE SPORE UEBERSCHREIBT IHN NICHT MEHR. Genau das war
      der Fehler: `ta.value = sp.domainDescription` im Lade-Pfad. Der Wert darf
      nur noch auf Knopfdruck ins Feld. */
-  const iLade = sieg.indexOf("getOwnSpore()");
-  const iEnde = sieg.indexOf('ta.addEventListener("input"', iLade);
-  const ladePfad = iLade >= 0 && iEnde > iLade ? sieg.slice(iLade, iEnde) : "";
+  const iLade = wizTxt.indexOf("getOwnSpore()");
+  const iEnde = wizTxt.indexOf('ta.addEventListener("input"', iLade);
+  const ladePfad = iLade >= 0 && iEnde > iLade ? wizTxt.slice(iLade, iEnde) : "";
   const imKnopf = /zurueck\.addEventListener[\s\S]{0,200}?ta\.value\s*=\s*eigener\s*;/.test(ladePfad);
   const stilleZuweisungen = (ladePfad.match(/ta\.value\s*=/g) || []).length;
   ok("… und die gespeicherte Spore überschreibt ihn NICHT mehr von selbst",
@@ -447,18 +454,23 @@ export async function lauf(ok) {
   /* ⚠ Der Wächter hängt an der MARKE, nicht am Satz — ein Wächter, der eine
      Formulierung festnagelt, verbietet das nächste Richtigstellen. */
   ok("eine Zeile nennt, WELCHER der beiden Texte im Feld steht",
-    /data-woher/.test(sieg)
-    && /setAttribute\("data-woher",\s*"app"\)/.test(sieg)
-    && /setAttribute\("data-woher",\s*"spore"\)/.test(sieg));
+    /data-woher/.test(wizTxt)
+    && /setAttribute\("data-woher",\s*"app"\)/.test(wizTxt)
+    && /setAttribute\("data-woher",\s*"spore"\)/.test(wizTxt));
 
   /* ⚠ Der Knopf erscheint nur bei Abweichung: wer zuletzt mit genau diesem
      Vorschlag signiert hat, braucht keinen — und einer, der immer dasteht, ist
      bald einer, den niemand mehr liest. Gemessen wird der Vergleich der TEXTE,
      nicht ob eine Spore da ist. */
   ok("der Knopf holt den eigenen Text zurück und zeigt sich nur bei Abweichung",
-    /id\s*=\s*"sbkim-si-semantik-eigener-text"/.test(sieg)
-    && /zurueck\.hidden\s*=\s*true\s*;/.test(sieg)
-    && /abweichend\s*=[\s\S]{0,120}?eigener\.trim\(\)\s*!==/.test(sieg)
-    && /if\s*\(!abweichend\)\s*return\s*;/.test(sieg)
-    && /zurueck\.hidden\s*=\s*false\s*;/.test(sieg));
+    /id\s*=\s*"sbkim-si-semantik-eigener-text"/.test(wizTxt)
+    && /zurueck\.hidden\s*=\s*true\s*;/.test(wizTxt)
+    /* ⚠ GEMESSEN WIRD DER BLOCK, NICHT EIN ZEICHENFENSTER. Hier stand
+       `[\s\S]{0,120}?` — das misst den ABSTAND zweier Stellen: kommt eine Zeile
+       dazwischen, wird die Pruefung rot, ohne dass eine Zusicherung gefallen
+       waere. Beim A18-Umzug waere sie genau daran gescheitert. */
+    && (() => { const a = wizTxt.indexOf("var abweichend"), b = wizTxt.indexOf("if (!abweichend)", a);
+                return a >= 0 && b > a && wizTxt.slice(a, b).includes("eigener.trim() !=="); })()
+    && /if\s*\(!abweichend\)\s*return\s*;/.test(wizTxt)
+    && /zurueck\.hidden\s*=\s*false\s*;/.test(wizTxt));
 }
