@@ -447,9 +447,28 @@ export async function lauf(ok) {
   const iEnde = wizTxt.indexOf('ta.addEventListener("input"', iLade);
   const ladePfad = iLade >= 0 && iEnde > iLade ? wizTxt.slice(iLade, iEnde) : "";
   const imKnopf = /zurueck\.addEventListener[\s\S]{0,200}?ta\.value\s*=\s*eigener\s*;/.test(ladePfad);
-  const stilleZuweisungen = (ladePfad.match(/ta\.value\s*=/g) || []).length;
-  ok("… und die gespeicherte Spore überschreibt ihn NICHT mehr von selbst",
-    ladePfad.length > 0 && imKnopf && stilleZuweisungen === 1);
+  /* ⚠ AM 2026-09-15 GESCHÄRFT, NICHT GELOCKERT — Tafel-Evolutions-Klausel,
+     ausdrücklich benannt statt stillschweigend umfahren.
+
+     ALT: „die gespeicherte Spore überschreibt den App-Vorschlag NIE von selbst",
+     gemessen als „genau EINE Zuweisung an ta.value im Lade-Pfad". Das war die
+     Antwort auf Klaus' zweimaligen Einwand in GENAU DIESEM Depot („wolltest du
+     nicht den neuen Text automatisch einfügen … der neue Text ist da noch nicht
+     drin"), und für diesen Fall gilt sie unverändert weiter.
+
+     NEU: für einen FREMDEN Nutzer, der eine App mit eigenen Inhalten füllt, ist
+     sie falsch herum — ein App-Update überschriebe seinen selbst geschriebenen
+     Text beim nächsten Signieren. Es gewinnt jetzt, WER ZULETZT GESCHRIEBEN HAT.
+     Solange niemand einen eigenen Text unterschrieben hat, gewinnt weiter der
+     gepflegte Vorschlag der App — Klaus' Fall ist also unberührt.
+
+     Das Zählen ist damit das falsche Mass. Gemessen wird die BEDINGUNG. */
+  ok("… und die gespeicherte Spore überschreibt ihn nur, wenn der Nutzer SELBST geschrieben hat",
+    ladePfad.length > 0 && imKnopf && /if \(hatEigenenText\(\)\) \{/.test(ladePfad));
+  /* Die Gegenrichtung: der Vermerk wird beim Signieren auch wirklich GESETZT.
+     Ohne ihn stünde die Bedingung da und wäre für immer falsch. */
+  ok("… und beim Signieren wird vermerkt, ob der Text ein eigener war",
+    /merkeEigenenText\(beschreibung\)/.test(wizTxt) && /function merkeEigenenText/.test(wizTxt));
 
   /* ⚠ Der Wächter hängt an der MARKE, nicht am Satz — ein Wächter, der eine
      Formulierung festnagelt, verbietet das nächste Richtigstellen. */
