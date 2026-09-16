@@ -41,7 +41,8 @@
  *     lampSelector?: string,        // Default '#lamp-fremd'
  *     mountModal?: boolean,         // Default true
  *     allowedOrigins?: string[],    // Default [] (alle Cross-Origin → rejected-allowlist)
- *     enableTestButton?: boolean }  // Default false (Sage-Page-Sichttest-Knopf)
+ *     enableTestButton?: boolean,   // Default false (Sage-Page-Sichttest-Knopf)
+ *     lang?: 'de' | 'en' }          // Default: <html lang> → 'de'. Siehe § SPRACHE.
  *
  * Self-check: emits a console.info line on script load (synchronous,
  * before any call). Siehe INTERFACES.md §1 Modul 15 und
@@ -115,6 +116,154 @@
   // mit einem synthetischen `kind:"endpoint-probe"`-Eintrag auf — keine
   // produktive Pfad-Erweiterung.
   var testButtonEnabled = false;
+
+  /* ── Die Sprache ────────────────────────────────────────────────────────
+   * Verfahren BYTE-GLEICH mit Modul 16, 17 und 23 UI: SCHLUESSELLOS — der
+   * deutsche Satz IST der Schluessel, `TEXTE.en` traegt die Uebersetzung,
+   * `T()` faellt fail-soft auf Deutsch zurueck. Rangfolge:
+   * init({lang}) → <html lang> → de.
+   *
+   * ⚠ WARUM DIESES MODUL UEBERHAUPT UEBERSETZT WIRD. Das Fremdzugriff-Fenster
+   * haengt an der FREMD-Lampe von Modul 17 — und die spricht seit dem
+   * 2026-09-14 Englisch. Wer dort klickte, bekam ein vollstaendig deutsches
+   * Fenster: englische Leiste, deutsches Fenster dahinter. Genau die HALB
+   * UEBERSETZTE TAFEL, die netzweit als die schlimmere Sorte benannt ist.
+   * Gemessen am 2026-09-16: 0 von 20 Traegern zeigten dieses Fenster auf
+   * Englisch, in allen 20 stand die Leiste darueber auf Englisch.
+   *
+   * ⚠ OHNE EINSTELLUNG AENDERT SICH NICHTS. Ohne `lang` und ohne
+   * `<html lang="en">` gibt T() den deutschen Satz Zeichen fuer Zeichen
+   * zurueck — neunzehn Apps tragen dieses Modul byte-1:1, und keine davon
+   * darf davon etwas merken.
+   *
+   * ⚠ WAS BEWUSST DEUTSCH BLEIBT: die Spaltenkoepfe `kind`, `origin`,
+   * `endpoint`, `decision` sind FELDNAMEN des Protokolls, keine Saetze — sie
+   * stehen in beiden Sprachen gleich da, so wie „nodeId" im Wizard. Auch die
+   * WERTE in diesen Spalten (`membrane-postmessage`, `ignored`, `accepted`)
+   * sind Protokoll-Bestand und werden nicht uebersetzt: wer einen Befund
+   * meldet, soll in beiden Sprachen dasselbe Wort nennen koennen.
+   *
+   * ⚠ KEIN ZERTIFIKAT_ASPEKTE-EINTRAG, obwohl 15 ein Schutz-Modul ist und die
+   * Konvention sonst greift — dieselbe Begruendung wie bei Modul 16 am
+   * 2026-09-14: eine Uebersetzung ist Render-Schicht. Sie ruehrt weder die
+   * Allowlist noch die Nonce-Pflicht noch den Ringbuffer an. Ein Eintrag
+   * „spricht jetzt Englisch" behauptete einen Sicherheits-Fortschritt, den es
+   * nicht gibt, und verwaesserte die Liste, die Sicherheits-Updates sichtbar
+   * machen soll. Ausgeschrieben in INTERFACES § Modul 15 SPRACHE. */
+  var TEXTE = { en: {
+      /* Das Fenster selbst */
+      "Fremdzugriff-Fenster":
+        "Foreign-access window",
+      "Schließen":
+        "Close",
+      "{0} Einträge im Ringbuffer (max {1})":
+        "{0} entries in the ring buffer (max {1})",
+      "Aufräumen":
+        "Clear",
+      "🧪 Demo-Eintrag":
+        "🧪 Demo entry",
+      "Sichttest: synthetischen endpoint-probe-Eintrag einfügen (Sage-Page-Sichttest, kein produktiver Pfad)":
+        "Visual check: insert a synthetic endpoint-probe entry (Sage page visual check, not a production path)",
+      "Zeit":
+        "Time",
+      "Tipp: leere Tabelle = Lampe geht aus.":
+        "Tip: an empty table means the lamp goes out.",
+      "(lokal)":
+        "(local)",
+
+      /* Die fuenf Abweis-Gruende (GRUND_TEXT). Sie sind Teilsaetze und werden
+       * unten in einen ganzen Satz eingesetzt — deshalb ohne Punkt. */
+      "Die Nachricht war nicht für SBKIM bestimmt":
+        "The message was not meant for SBKIM",
+      "Die Herkunft steht nicht auf der Erlaubnis-Liste":
+        "The origin is not on the allowlist",
+      "Der Nachricht fehlte die Pflicht-Kennung":
+        "The message was missing its required identifier",
+      "Die Nachricht wollte etwas, das die Membran nicht anbietet":
+        "The message wanted something the membrane does not offer",
+      "Es kam zu viel auf einmal von dieser Herkunft":
+        "Too much arrived at once from this origin",
+
+      /* Die fuenf Absender (ABSENDER_TEXT) — ebenfalls Teilsaetze. */
+      "dieses Fenster selbst":
+        "this window itself",
+      "ein eingebetteter Rahmen auf dieser Seite":
+        "an embedded frame on this page",
+      "das Fenster, das diese Seite geöffnet hat":
+        "the window that opened this page",
+      "ein anderes Fenster":
+        "another window",
+      "nicht feststellbar":
+        "not determinable",
+
+      /* Die Erklaer-Zeile. JEDER EINTRAG IST EIN GANZER SATZ mit Platzhaltern
+       * — nicht ein Anfang und ein Ende, die der Code zusammenklebt. Ein Satz,
+       * der am Komma auseinandergeschnitten wird, ist keine
+       * Uebersetzungs-Einheit: die englische Wortstellung ist eine andere. */
+      "{0} (sie gab sich aus als „{1}“).":
+        "{0} (it claimed to be “{1}”).",
+      "{0}.":
+        "{0}.",
+      "Sie gab sich aus als „{0}“.":
+        "It claimed to be “{0}”.",
+      "Abgeschickt hat sie: {0}.":
+        "It was sent by: {0}.",
+      "Herkunft: {0}.":
+        "Origin: {0}.",
+      "Herkunft: nicht feststellbar — typisch für Skripte des Browsers selbst und für Erweiterungen.":
+        "Origin: not determinable — typical for the browser’s own scripts and for extensions.",
+      "Kam {0} s nach dem Laden der Seite, während der Tab vorn war.":
+        "Arrived {0} s after the page loaded, while the tab was in the foreground.",
+      "Kam {0} s nach dem Laden der Seite, während der Tab im Hintergrund lag.":
+        "Arrived {0} s after the page loaded, while the tab was in the background.",
+      "Kam {0} s nach dem Laden der Seite.":
+        "Arrived {0} s after the page loaded.",
+      "Inhalt (gekürzt, Ziffern ersetzt): „{0}“":
+        "Content (shortened, digits replaced): “{0}”",
+      "Felder der Nachricht: {0}. (Nur die Namen — Inhalte werden nicht protokolliert.)":
+        "Fields of the message: {0}. (Names only — contents are not logged.)",
+      "Felder der Nachricht: {0} und {1} weitere. (Nur die Namen — Inhalte werden nicht protokolliert.)":
+        "Fields of the message: {0} and {1} more. (Names only — contents are not logged.)",
+  } };
+
+  /* Die gewaehlte Sprache. null = „nicht gesetzt" → <html lang> entscheidet. */
+  var optLang = null;
+
+  function sprache() {
+    if (optLang === "de" || optLang === "en") return optLang;
+    try {
+      var d = global.document;
+      var l = String((d && d.documentElement && d.documentElement.lang) || "").slice(0, 2).toLowerCase();
+      if (l === "en") return "en";
+    } catch (_e) { /* nb */ }
+    return "de";
+  }
+
+  /* Bei JEDEM Aufruf neu nachsehen, nicht einmal beim Laden merken: wer die
+   * Sprache umschaltet und danach das Fenster oeffnet, bekaeme sonst die alte. */
+  function T(de) {
+    if (sprache() !== "en") return de;
+    var w = TEXTE.en;
+    return (w && Object.prototype.hasOwnProperty.call(w, de)) ? w[de] : de;
+  }
+
+  /* Platzhalter {0}, {1}, … — die Zahl steht im SATZ, nicht daneben. */
+  /* Die Zaehl-Zeile stand bis zum 2026-09-16 an DREI Stellen als eigener
+   * Zusammenbau (`n + " Einträge im Ringbuffer (max " + bufferMax + ")"`).
+   * Ein Satz an drei Orten sind drei Orte, an denen er auseinanderlaufen
+   * kann — und beim Uebersetzen waeren es drei Schluessel gewesen, von denen
+   * zwei still deutsch geblieben waeren. */
+  function zaehlText(n) {
+    return Tf("{0} Einträge im Ringbuffer (max {1})", n, bufferMax);
+  }
+
+  function Tf(de) {
+    var a = arguments;
+    return T(de).replace(/\{(\d+)\}/g, function (_, i) {
+      var v = a[Number(i) + 1];
+      return v === undefined || v === null ? "" : String(v);
+    });
+  }
 
   // Bau 04.G-Folge (Strang A2, 2026-07-01): optionale KI-Richter-Konfig für
   // den `op:"query"`-Antwort-Pfad. Default `null` = Richter AUS → der Empfänger
@@ -972,14 +1121,14 @@
     header.style.cssText = "display:flex;align-items:center;gap:0.8rem;margin-bottom:0.8rem;";
 
     var title = doc.createElement("h2");
-    title.textContent = "Fremdzugriff-Fenster";
+    title.textContent = T("Fremdzugriff-Fenster");
     title.style.cssText = "margin:0;font-size:1.1rem;font-weight:600;flex:1;";
 
     var closeBtn = doc.createElement("button");
     closeBtn.type = "button";
     closeBtn.setAttribute("data-membran-close", "");
     closeBtn.textContent = "✕";
-    closeBtn.setAttribute("aria-label", "Schließen");
+    closeBtn.setAttribute("aria-label", T("Schließen"));
     closeBtn.style.cssText = [
       "background:transparent",
       "color:#F5F5FF",
@@ -999,12 +1148,12 @@
 
     var count = doc.createElement("span");
     count.setAttribute("data-membran-count", "");
-    count.textContent = "0 Einträge im Ringbuffer (max " + bufferMax + ")";
+    count.textContent = zaehlText(0);
 
     var clearBtn = doc.createElement("button");
     clearBtn.type = "button";
     clearBtn.setAttribute("data-membran-clear", "");
-    clearBtn.textContent = "Aufräumen";
+    clearBtn.textContent = T("Aufräumen");
     clearBtn.style.cssText = [
       "background:rgba(220,38,38,0.18)",
       "color:#F5F5FF",
@@ -1024,8 +1173,8 @@
       var testBtn = doc.createElement("button");
       testBtn.type = "button";
       testBtn.setAttribute("data-membran-test", "");
-      testBtn.textContent = "🧪 Demo-Eintrag";
-      testBtn.title = "Sichttest: synthetischen endpoint-probe-Eintrag einfügen (Sage-Page-Sichttest, kein produktiver Pfad)";
+      testBtn.textContent = T("🧪 Demo-Eintrag");
+      testBtn.title = T("Sichttest: synthetischen endpoint-probe-Eintrag einfügen (Sage-Page-Sichttest, kein produktiver Pfad)");
       testBtn.style.cssText = [
         "background:rgba(110,168,254,0.18)",
         "color:#F5F5FF",
@@ -1056,16 +1205,23 @@
     table.style.cssText = "width:100%;border-collapse:collapse;font-size:0.8rem;font-family:'Geist Mono',ui-monospace,monospace;";
     table.innerHTML =
       "<thead><tr>" +
-      "<th style=\"text-align:left;padding:0.35rem 0.4rem;border-bottom:1px solid rgba(255,255,255,0.18);\">Zeit</th>" +
+      "<th data-membran-th-zeit style=\"text-align:left;padding:0.35rem 0.4rem;border-bottom:1px solid rgba(255,255,255,0.18);\"></th>" +
       "<th style=\"text-align:left;padding:0.35rem 0.4rem;border-bottom:1px solid rgba(255,255,255,0.18);\">kind</th>" +
       "<th style=\"text-align:left;padding:0.35rem 0.4rem;border-bottom:1px solid rgba(255,255,255,0.18);\">origin</th>" +
       "<th style=\"text-align:left;padding:0.35rem 0.4rem;border-bottom:1px solid rgba(255,255,255,0.18);\">endpoint</th>" +
       "<th style=\"text-align:left;padding:0.35rem 0.4rem;border-bottom:1px solid rgba(255,255,255,0.18);\">decision</th>" +
       "</tr></thead><tbody data-membran-tbody></tbody>";
 
+    /* Der einzige Spaltenkopf, der ein WORT ist — die vier anderen (kind,
+     * origin, endpoint, decision) sind Feldnamen des Protokolls und stehen in
+     * beiden Sprachen gleich da. textContent statt innerHTML, wie jede Zelle
+     * in diesem Modul: eine Regel, die eine Ausnahme kennt, ist keine. */
+    var thZeit = table.querySelector("[data-membran-th-zeit]");
+    if (thZeit) thZeit.textContent = T("Zeit");
+
     var tip = doc.createElement("p");
     tip.style.cssText = "margin:0.9rem 0 0;font-size:0.78rem;color:rgba(245,245,255,0.55);";
-    tip.textContent = "Tipp: leere Tabelle = Lampe geht aus.";
+    tip.textContent = T("Tipp: leere Tabelle = Lampe geht aus.");
 
     panel.appendChild(header);
     panel.appendChild(summary);
@@ -1112,33 +1268,49 @@
     var teile = [];
 
     if (d.grund && GRUND_TEXT[d.grund]) {
-      teile.push(GRUND_TEXT[d.grund] + (d.typ ? " (sie gab sich aus als „" + d.typ + "“)" : "") + ".");
+      teile.push(d.typ
+        ? Tf("{0} (sie gab sich aus als „{1}“).", T(GRUND_TEXT[d.grund]), d.typ)
+        : Tf("{0}.", T(GRUND_TEXT[d.grund])));
     } else if (d.typ) {
-      teile.push("Sie gab sich aus als „" + d.typ + "“.");
+      teile.push(Tf("Sie gab sich aus als „{0}“.", d.typ));
     }
 
-    if (d.absender) teile.push("Abgeschickt hat sie: " + (ABSENDER_TEXT[d.absender] || d.absender) + ".");
+    if (d.absender) {
+      teile.push(Tf("Abgeschickt hat sie: {0}.",
+        ABSENDER_TEXT[d.absender] ? T(ABSENDER_TEXT[d.absender]) : d.absender));
+    }
 
     if (entry && entry.origin) {
-      teile.push("Herkunft: " + entry.origin + ".");
+      teile.push(Tf("Herkunft: {0}.", entry.origin));
     } else if (entry && entry.kind === "membrane-postmessage") {
       // Der Strich in Klaus' Befund. Er ist kein Fehler der Membran, sondern
       // eine echte Auskunft — und die gehört ausgeschrieben, statt dass jeder
       // sie neu erraten muss.
-      teile.push("Herkunft: nicht feststellbar — typisch für Skripte des Browsers selbst und für Erweiterungen.");
+      teile.push(T("Herkunft: nicht feststellbar — typisch für Skripte des Browsers selbst und für Erweiterungen."));
     }
 
     if (typeof d.nachLadenMs === "number") {
       var s = d.nachLadenMs / 1000;
-      teile.push("Kam " + (s < 10 ? s.toFixed(1) : String(Math.round(s))) + " s nach dem Laden der Seite" +
-        (d.sichtbar === true ? ", während der Tab vorn war." : d.sichtbar === false ? ", während der Tab im Hintergrund lag." : "."));
+      var sek = s < 10 ? s.toFixed(1) : String(Math.round(s));
+      /* ⚠ DREI GANZE SAETZE, nicht ein Anfang mit drei Enden. Die deutsche
+       * Fassung liess sich am Komma zerschneiden; im Englischen steht die
+       * Zeitangabe an anderer Stelle im Satz. Ein Satz, der am Komma
+       * auseinandergeschnitten wird, ist keine Uebersetzungs-Einheit. */
+      teile.push(d.sichtbar === true
+        ? Tf("Kam {0} s nach dem Laden der Seite, während der Tab vorn war.", sek)
+        : d.sichtbar === false
+          ? Tf("Kam {0} s nach dem Laden der Seite, während der Tab im Hintergrund lag.", sek)
+          : Tf("Kam {0} s nach dem Laden der Seite.", sek));
     }
 
     if (d.form === "text" && d.text) {
-      teile.push("Inhalt (gekürzt, Ziffern ersetzt): „" + d.text + "“");
+      teile.push(Tf("Inhalt (gekürzt, Ziffern ersetzt): „{0}“", d.text));
     } else if (Array.isArray(d.felder) && d.felder.length) {
-      teile.push("Felder der Nachricht: " + d.felder.join(", ") +
-        (d.felderMehr ? " und " + d.felderMehr + " weitere" : "") + ". (Nur die Namen — Inhalte werden nicht protokolliert.)");
+      teile.push(d.felderMehr
+        ? Tf("Felder der Nachricht: {0} und {1} weitere. (Nur die Namen — Inhalte werden nicht protokolliert.)",
+             d.felder.join(", "), d.felderMehr)
+        : Tf("Felder der Nachricht: {0}. (Nur die Namen — Inhalte werden nicht protokolliert.)",
+             d.felder.join(", ")));
     }
 
     return teile.join(" ");
@@ -1147,7 +1319,7 @@
   function renderModalRow(entry) {
     var doc = global.document;
     var tr = doc.createElement("tr");
-    var origin = entry.origin === null ? "(lokal)" : entry.origin;
+    var origin = entry.origin === null ? T("(lokal)") : entry.origin;
     var endpoint = entry.endpoint === null ? "—" : entry.endpoint;
     tr.innerHTML =
       "<td style=\"padding:0.3rem 0.4rem;border-bottom:1px solid rgba(255,255,255,0.06);\"></td>" +
@@ -1193,7 +1365,7 @@
       var note = renderModalNote(snapshot[i]);
       if (note) tbody.appendChild(note);
     }
-    countEl.textContent = snapshot.length + " Einträge im Ringbuffer (max " + bufferMax + ")";
+    countEl.textContent = zaehlText(snapshot.length);
     // Auto-Scroll nach unten — chronologische Lesart (Karte 15
     // § Fremdzugriff-Fenster Bau-Hinweis).
     if (modalRoot.scrollTop !== undefined) {
@@ -1214,7 +1386,7 @@
     tbody.appendChild(renderModalRow(entry));
     var note = renderModalNote(entry);
     if (note) tbody.appendChild(note);
-    countEl.textContent = buffer.length + " Einträge im Ringbuffer (max " + bufferMax + ")";
+    countEl.textContent = zaehlText(buffer.length);
   }
 
   function openFremdzugriffModal() {
@@ -1468,6 +1640,10 @@
       }
       allowedOrigins = filtered;
     }
+    /* Sprache. Ein unbekannter Wert laesst optLang auf null, und dann
+     * entscheidet <html lang>. Kein Throw — fail-soft wie alles hier. */
+    if (opts.lang === "de" || opts.lang === "en") optLang = opts.lang;
+
     if (opts.enableTestButton === true) {
       testButtonEnabled = true;
     }
@@ -1589,6 +1765,11 @@
       get modalMounted() { return modalMounted; },
       get modalOpen() { return modalOpen; },
       get ready() { return ready; },
+      /* Nach aussen sichtbar, damit die Proben MESSEN koennen statt den
+       * Quelltext zu lesen — ein Waechter auf eine Zeile misst nicht, ob sie
+       * gerufen wird. */
+      get lang() { return sprache(); },
+      get langKeys() { return Object.keys(TEXTE.en).length; },
       get allowedOrigins() { return allowedOrigins.slice(); },
       // Strang A2: nur ob der Richter-Pfad opt-in konfiguriert ist — NIE der
       // Schlüssel selbst (RAM-only, kein Leak über die Read-Fläche).
