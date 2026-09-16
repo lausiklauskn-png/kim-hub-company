@@ -57,7 +57,7 @@ export const KANON = [
   { datei: "sbkim/16_siegel.js",          sha: "d84fa539e76e0cc54c956b648fcb1505f08843662d97854dc1a95e6ab65b7e25" },
   { datei: "sbkim/17_floating_widget.js", sha: "3f757b35cea544b1ee84c1cbe8e0f6dbb653ddaa319cd99433be76c0958a44e5" },
   { datei: "sbkim/23_rendezvous.js",      sha: "3caa0bb1fbe7bf5293c90b6a59a74cccf8600bff45095a892b1f048244c61fcf" },
-  { datei: "sbkim/23_rendezvous_ui.js",   sha: "1c41206c87e17d00ff73e2b100ff80ff6dae44ac7a7a2cf1f41b32f77314836a" },
+  { datei: "sbkim/23_rendezvous_ui.js",   sha: "e8694ae55261b9b1227fd74cc5dd38db16fd9c4d392f798c5f3b214c9ba1d7a3" },
   { datei: "sbkim/noble-secp256k1.js",    sha: "8f3879ca422c4fdfe7ca0361688636fa7cc550a59bd94d512ed6ec79aa3d55d1" },
 ];
 
