@@ -372,3 +372,15 @@ git fetch origin --quiet && git checkout -B <branch> origin/main
 git push -u origin refs/heads/<branch>:refs/heads/<branch>
 git diff --stat origin/main origin/<branch>     # leer = der PR wäre leer
 ```
+
+## 🛡 Prüfliste vor dem KI-Richter (Sage Bau 04.J, 2026-10-14)
+
+`sbkim/04_match.js` kommt neu aus dem Kanon (Sage #1082, Pin in `tools/sbkim-drift.mjs`). Der Richter prüft die Suchfrage und jede fremde Antwort mit der Prüfliste (`window.PrueferMail`). Fehlt die Liste, läuft er nicht. Eine Antwort mit einer Anweisung an eine KI geht nicht an die KI; sie bekommt „gefahr“ und `ausgeschlossen: "ki-anweisung"`.
+
+`sbkim/pruefer-mail.js` ist byte-1:1 aus dem Auslieferungsprüfer (Pin in `tests/smoke_knoten.mjs`) und steht im Vorrat.
+
+⚠ **Sie steht NICHT in der Kette von `index.html`.** Die Kette kommt aus Kimhub (`tools/company-schale-bauen.mjs`), und Kimhub wird zur Zeit nicht angefasst. Darum lädt der Klebstoff `sbkim/schutz-init.js` die Liste (`prueflisteLaden()`). Das reicht, weil Modul 04 sie erst beim Richten abfragt, nicht beim Laden. Kommt die Zeile später in Kimhubs Kette, bleibt der Klebstoff harmlos: er lädt nichts doppelt.
+
+Gemessen im Browser: `prueflisteGeladen` ist true. In einer Kopie ohne den Aufruf fehlt `PrueferMail`. `npm test` 72 grün. Gegenprobe `NUR_FALL="PRUEFLISTE"` 3 gefangen, `NUR_ANKER` 38 · 0 tot.
+
+⚠ **Nicht angefasst:** die eigenen KI-Wege der App (die fünf Rollen, `api.anthropic.com` in `index.html` und `schicht/transport-netz.mjs`). Sie sind Kopien aus Kimhub. Am Tablet nicht gemessen.

@@ -67,6 +67,22 @@
     window.addEventListener("sbkim:fremd-alert", function () { lampe("lamp-fremd", "bad"); });
   }
 
+  /* Bau 04.J (Sage #1082, 2026-10-14): Modul 04 prüft vor dem KI-Richter die
+     Suchfrage und jede fremde Antwort mit der Prüfliste (window.PrueferMail,
+     byte-1:1 aus dem Auslieferungsprüfer). Fehlt sie, läuft der Richter nicht.
+     ⚠ Die Kette in index.html kommt aus Kimhub (company-schale-bauen.mjs) und
+     wird HIER nicht angefasst — deshalb holt dieser Klebstoff die Liste nach.
+     04 fragt sie erst beim Richten ab, nicht beim Laden. */
+  function prueflisteLaden() {
+    if (window.PrueferMail || document.querySelector('script[data-pruefliste]')) return;
+    var s = document.createElement("script");
+    s.src = "./sbkim/pruefer-mail.js";
+    s.setAttribute("data-pruefliste", "");
+    s.onerror = function () { if (window.console && console.warn) console.warn("[Company] Prüfliste nicht geladen — der KI-Richter läuft ohne sie nicht."); };
+    (document.head || document.documentElement).appendChild(s);
+  }
+  prueflisteLaden();
+
   function boot() {
     lampenVerdrahten();
     var widgetFertig = Promise.resolve();

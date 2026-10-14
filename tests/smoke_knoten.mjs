@@ -264,7 +264,7 @@ export async function lauf(ok) {
      2026-09-05 lag `schluesseltresor.js` hier, war aber nie eingecheckt. */
   const sw = lies("sw.js");
   const knotenDateien = [...KANON.map((k) => k.datei),
-    ...KLEBSTOFF.map((g) => `sbkim/${g}.js`)];
+    ...KLEBSTOFF.map((g) => `sbkim/${g}.js`), "sbkim/pruefer-mail.js"];
   const fehltVorrat = knotenDateien.filter((g) => !sw.includes(`"./${g}"`));
   ok(`jede Knoten-Datei steht im Offline-Vorrat${fehltVorrat.length ? " — fehlt: " + fehltVorrat.join(", ") : ""}`,
     fehltVorrat.length === 0);
@@ -276,6 +276,20 @@ export async function lauf(ok) {
   const nichtGefuehrt = knotenDateien.filter((g) => !gefuehrt.has(g));
   ok(`jede wird auch von git geführt${nichtGefuehrt.length ? " — NUR auf der Platte: " + nichtGefuehrt.join(", ") : ""}`,
     nichtGefuehrt.length === 0);
+
+  /* ---- 7b · Die Prüfliste vor dem KI-Richter (Sage Bau 04.J, 2026-10-14) ---
+     Modul 04 richtet nur, wenn window.PrueferMail da ist. Die Datei ist
+     byte-1:1 aus dem Auslieferungsprüfer (dort gepflegt), der Klebstoff
+     `schutz-init.js` lädt sie — die Kette in index.html kommt aus Kimhub. */
+  const PRUEFER_SHA = "cdf3ca7881bfa68763a2c0be7436d35a65bea4dbd03f606e02eaec5c613632d7";
+  const pmPfad = join(WURZEL, "sbkim/pruefer-mail.js");
+  const pmSha = existsSync(pmPfad)
+    ? Buffer.from(await subtle.digest("SHA-256", readFileSync(pmPfad))).toString("hex") : "";
+  ok("die Prüfliste ist byte-1:1 aus dem Auslieferungsprüfer (Pin)", pmSha === PRUEFER_SHA);
+  const schutzTxt = lies("sbkim", "schutz-init.js");
+  ok("der Klebstoff lädt die Prüfliste (schutz-init.js → ./sbkim/pruefer-mail.js)",
+    /s\.src\s*=\s*"\.\/sbkim\/pruefer-mail\.js"/.test(schutzTxt) && /^\s*prueflisteLaden\(\);/m.test(schutzTxt));
+  ok("… und Modul 04 trägt die Prüf-Stelle (prueflisteGeladen)", /prueflisteGeladen/.test(lies("sbkim", "04_match.js")));
 
   /* ---- 8 · Die Spore im Depot — und was NICHT darin liegt ---------------
      ⚠ HIER STAND BIS ZUM 2026-09-10 „KEINE SPORE IM DEPOT". Der GRUND war

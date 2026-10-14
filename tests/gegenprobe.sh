@@ -252,6 +252,17 @@ fall "die Herkunft nennt keinen Sage-Commit mehr" tools/sbkim-drift.mjs \
 
 fallweg "eine Klebstoff-Datei fehlt — ohne schutz-init gibt es kein Siegel" sbkim/schutz-init.js
 
+# ══ DIE PRUEFLISTE VOR DEM KI-RICHTER (Sage Bau 04.J, 2026-10-14) ═════════════
+fall "PRUEFLISTE: die Liste ist nicht mehr byte-1:1" sbkim/pruefer-mail.js \
+  'Anweisung' 'Anwiesung'
+fall "PRUEFLISTE: der Klebstoff ruft das Laden nicht mehr auf" sbkim/schutz-init.js \
+  '  prueflisteLaden();
+' '  // prueflisteLaden();
+'
+fall "PRUEFLISTE: die Liste fehlt im Offline-Vorrat" sw.js \
+  '  "./sbkim/pruefer-mail.js",
+' ''
+
 # ══ DIE SCHUBLADE ═══════════════════════════════════════════════════════════
 # Falle 1 aus Sages LEHREN § 4. Laufen die Stellen auseinander, oeffnet die App
 # zwei Schubladen und der Knoten hat zwei Identitaeten — je nachdem, wer zuerst
