@@ -379,7 +379,7 @@ git diff --stat origin/main origin/<branch>     # leer = der PR wäre leer
 
 `sbkim/pruefer-mail.js` ist byte-1:1 aus dem Auslieferungsprüfer (Pin in `tests/smoke_knoten.mjs`) und steht im Vorrat.
 
-⚠ **Sie steht NICHT in der Kette von `index.html`.** Die Kette kommt aus Kimhub (`tools/company-schale-bauen.mjs`), und Kimhub wird zur Zeit nicht angefasst. Darum lädt der Klebstoff `sbkim/schutz-init.js` die Liste (`prueflisteLaden()`). Das reicht, weil Modul 04 sie erst beim Richten abfragt, nicht beim Laden. Kommt die Zeile später in Kimhubs Kette, bleibt der Klebstoff harmlos: er lädt nichts doppelt.
+⚠ **Sie steht NICHT in der Kette von `index.html`.** Die Kette kommt aus Kimhub (`tools/company-schale-bauen.mjs`), und Kimhub wird zur Zeit nicht angefasst. Darum lädt der Klebstoff `sbkim/schutz-init.js` die Liste (`prueflisteLaden()`). Das reicht, weil Modul 04 sie erst beim Richten abfragt, nicht beim Laden. Kommt die Zeile später in Kimhubs Kette, schadet der Klebstoff nicht: steht die Liste schon da, lädt er nichts; ein doppeltes Laden setzt nur dieselbe Liste noch einmal.
 
 Gemessen im Browser: `prueflisteGeladen` ist true. In einer Kopie ohne den Aufruf fehlt `PrueferMail`. `npm test` 72 grün. Gegenprobe `NUR_FALL="PRUEFLISTE"` 3 gefangen, `NUR_ANKER` 38 · 0 tot.
 
