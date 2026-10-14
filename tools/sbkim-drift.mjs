@@ -49,7 +49,7 @@ export const KANON = [
   { datei: "sbkim/01_storage.js",         sha: "5a5a4bf64dfcc107da7ed70fb755d7db5cce7d80e963b3e2fbc2004537747820" },
   { datei: "sbkim/02_spore.js",           sha: "6789fe6e903ad2e53f39b2dee576c640698555ef71ef4e9134eb75573fdb7d68" },
   { datei: "sbkim/03_embedding.js",       sha: "e4bb8bd6a237914e7841cab5165912daf636adf0ee90c5d4ffd0c74cc5d706e5" },
-  { datei: "sbkim/04_match.js",           sha: "5de95923c3f62f141e94f576feebcac0eecc55c60e40b564540a56420436a4cd" },
+  { datei: "sbkim/04_match.js",           sha: "721eecc3c0d6ea4c259259e6071215ec1cd16f1c43c87b42ce9e72e9a0b5e41c" },
   { datei: "sbkim/05_anastomose.js",      sha: "255ac79aeb3b0203e92f0cebd0a905e47c488b43efe18f41332a7d35520bbf23" },
   { datei: "sbkim/05b_nostr_relay.js",    sha: "030aa2d260149f5627b84694a0b55e916cc186158009e260117d1e4f60d429bd" },
   { datei: "sbkim/07_apoptose.js",        sha: "0acdd6ab2d95e131fa6953061cc0e95a2396e05fff091a7dc690b2668a4c035a" },

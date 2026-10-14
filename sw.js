@@ -30,7 +30,7 @@
    stehen neu im Vorrat, und `index.html` trägt die Kette samt
    `SBKIM_DB_SUFFIX`. Ohne den Bump lieferte der Worker die alte Seite
    weiter — die App sähe aus, als wäre nichts geschehen. */
-var CACHE_VERSION = "kim-hub-company-v75";
+var CACHE_VERSION = "kim-hub-company-v76";
 
 /* ⚠ NUR EIGENE VORRAETE AUFRAEUMEN — `caches` gehoert dem URSPRUNG, nicht dem
  * Pfad. Auf lausiklauskn-png.github.io liegen rund zwanzig Apps; ein Filter,
@@ -74,6 +74,7 @@ var SCHALE = [
   "./sbkim/storage-init.js", "./sbkim/rendezvous-init.js", "./sbkim/schutz-init.js",
   "./sbkim/nostr-listen-init.js", "./sbkim/siegel-inhalt.js",
   "./sbkim/nostr-listen-init.js", "./sbkim/sbkim-andock-wizard.js",
+  "./sbkim/pruefer-mail.js",
 ];
 
 self.addEventListener("install", function (e) {
