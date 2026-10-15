@@ -47,17 +47,17 @@ export const SAGE_HERKUNFT = {
    darin." */
 export const KANON = [
   { datei: "sbkim/01_storage.js",         sha: "5a5a4bf64dfcc107da7ed70fb755d7db5cce7d80e963b3e2fbc2004537747820" },
-  { datei: "sbkim/02_spore.js",           sha: "6789fe6e903ad2e53f39b2dee576c640698555ef71ef4e9134eb75573fdb7d68" },
+  { datei: "sbkim/02_spore.js",           sha: "0cbf0664e2a79f1301c03e52f7ac0030d4b2961f03b97b38e8634827a52353c5" },
   { datei: "sbkim/03_embedding.js",       sha: "e4bb8bd6a237914e7841cab5165912daf636adf0ee90c5d4ffd0c74cc5d706e5" },
   { datei: "sbkim/04_match.js",           sha: "721eecc3c0d6ea4c259259e6071215ec1cd16f1c43c87b42ce9e72e9a0b5e41c" },
   { datei: "sbkim/05_anastomose.js",      sha: "255ac79aeb3b0203e92f0cebd0a905e47c488b43efe18f41332a7d35520bbf23" },
-  { datei: "sbkim/05b_nostr_relay.js",    sha: "030aa2d260149f5627b84694a0b55e916cc186158009e260117d1e4f60d429bd" },
+  { datei: "sbkim/05b_nostr_relay.js",    sha: "37eee5b196b3efad57131edd1cc3c0ee23acb97b5ca40740d6a0771db4b4a421" },
   { datei: "sbkim/07_apoptose.js",        sha: "0acdd6ab2d95e131fa6953061cc0e95a2396e05fff091a7dc690b2668a4c035a" },
   { datei: "sbkim/15_membran.js",         sha: "829a5bc01976b59c5ce428125314b87b314b6212cd5a473634c2d22c02579397" },
-  { datei: "sbkim/16_siegel.js",          sha: "d84fa539e76e0cc54c956b648fcb1505f08843662d97854dc1a95e6ab65b7e25" },
+  { datei: "sbkim/16_siegel.js",          sha: "7c12bc487d445f7a284469eb860fcaec7bf93f84e146a00091cc93e5af210fec" },
   { datei: "sbkim/17_floating_widget.js", sha: "e4ee076c1295910d0e83470ebda327e7419f29bc06f6718148369c8369e1a5ce" },
-  { datei: "sbkim/23_rendezvous.js",      sha: "3caa0bb1fbe7bf5293c90b6a59a74cccf8600bff45095a892b1f048244c61fcf" },
-  { datei: "sbkim/23_rendezvous_ui.js",   sha: "fc47f16b24d5c5f69eb4b53ca0079ec9f289ae023bede17954297f048fefe1f7" },
+  { datei: "sbkim/23_rendezvous.js",      sha: "05a6eb42ec687e74a8617f9941491a4f14bddda2257f84034eefbf3a106a624f" },
+  { datei: "sbkim/23_rendezvous_ui.js",   sha: "efecd89ea80d8fa19c61c61a77b71a6d1b8cc8981c6ec1efd10ee92595a44f40" },
   { datei: "sbkim/noble-secp256k1.js",    sha: "8f3879ca422c4fdfe7ca0361688636fa7cc550a59bd94d512ed6ec79aa3d55d1" },
 ];
 
