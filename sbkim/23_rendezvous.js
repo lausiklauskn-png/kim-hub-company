@@ -64,8 +64,10 @@
  *   ensureIdentity(opts?) -> Promise<{ ok, created, nodeId?, reason? }>  (Modus A)
  *   cleanupSharedOrigin() -> Promise<{ dbDeleted, swUnregistered, cachesDeleted, notes }>
  *   repairAndReconnect(opts?) -> Promise<{ ok, cleaned, created, nodeId?, reason?, reloadHint }>  (Modus B)
- *   announce(opts?) -> Promise<{ ok, nodeId?, reason? }>
+ *   announce(opts?) -> Promise<{ ok, nodeId?, reason?, bestaetigung? }>
  *       Lauscht (listenNostr) + heftet die lebende Visitenkarte ans Brett.
+ *       bestaetigung = { stand: "ja"|"nein"|"unbekannt", relais:[{relay,ergebnis,grund}] }
+ *       aus den OK-Antworten der Relais (Modul 05b, 2026-10-14). "nein" ⇒ ok:false.
  *       Setzt eine vorhandene Identität voraus.
  *   connectAndAnnounce(opts?) -> Promise<{ ok, created, nodeId?, reason? }>
  *       Wie announce, erzeugt aber die Identität, falls noch keine da ist —
@@ -139,6 +141,233 @@
     freshSec: RDV_FRESH_SEC_DEFAULT,
     listenMs: RDV_LISTEN_MS_DEFAULT,
   };
+
+  // ---- Eigenes Netz (Schritt 1, 2026-10-13, INTERFACES §Modul 23 „EIGENES NETZ") ----
+  // Ohne Einstellung bleibt ALLES wie vorher: Raum RDV_TAG, Fragen RDV_QUERY_TAG,
+  // Klartext-JSON. Mit Netz-Code: Marken und Schlüssel aus dem Code (Vorbild
+  // Kim-sync raumOeffnen), Karten/Fragen/Antworten AES-GCM-verschlüsselt.
+  // RIEGEL: ein ungültiger Code fällt NIE still ins öffentliche Netz zurück.
+  var NETZ_RAUM_SALZ = "sbkim-netz-raum-v1:";
+  var NETZ_SCHLUESSEL_SALZ = "sbkim-netz-schluessel-v1";
+  var NETZ_RUNDEN = 150000;
+  var NETZ_CODE_MIN = 12;
+  var NETZ_CODE_ZEICHEN = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  var NETZ_SPEICHER_PRAEFIX = "sbkim_netz_";
+  var net = { lage: "oeffentlich", rdvTag: null, qryTag: null, key: null, reason: null, pending: null };
+
+  function netRaum() { return net.rdvTag || RDV_TAG; }
+  function netFragen() { return net.qryTag || RDV_QUERY_TAG; }
+
+  function netCodeNorm(code) {
+    return String(code == null ? "" : code).replace(/[\s-]+/g, "").toUpperCase();
+  }
+  function netSubtle() {
+    var c = global.crypto || (typeof crypto !== "undefined" ? crypto : null);
+    return (c && c.subtle) ? c : null;
+  }
+  function netHex(buf) {
+    var u = new Uint8Array(buf), s = "";
+    for (var i = 0; i < u.length; i++) s += u[i].toString(16).padStart(2, "0");
+    return s;
+  }
+  function netZuB64(u) { var s = ""; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }
+  function netAusB64(b) { var s = atob(b), u = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
+
+  function newNetCode() {
+    var c = netSubtle();
+    var roh = new Uint8Array(20);
+    if (c && c.getRandomValues) c.getRandomValues(roh); else throw new Error("Kein Zufall verfügbar (WebCrypto fehlt).");
+    var out = "";
+    for (var i = 0; i < 20; i++) {
+      if (i && i % 4 === 0) out += "-";
+      out += NETZ_CODE_ZEICHEN[roh[i] % NETZ_CODE_ZEICHEN.length];
+    }
+    return out;
+  }
+
+  async function netAbleiten(code) {
+    var n = netCodeNorm(code);
+    if (n.length < NETZ_CODE_MIN || !/^[A-Z0-9]+$/.test(n)) {
+      return { ok: false, reason: "Netz-Code ungültig (mindestens " + NETZ_CODE_MIN + " Zeichen, nur Buchstaben und Ziffern)." };
+    }
+    var c = netSubtle();
+    if (!c) return { ok: false, reason: "Kein WebCrypto — Netz-Code kann nicht gelesen werden." };
+    var enc = new TextEncoder();
+    var h = netHex(await c.subtle.digest("SHA-256", enc.encode(NETZ_RAUM_SALZ + n)));
+    var roh = await c.subtle.importKey("raw", enc.encode(n), "PBKDF2", false, ["deriveKey"]);
+    var key = await c.subtle.deriveKey(
+      { name: "PBKDF2", salt: enc.encode(NETZ_SCHLUESSEL_SALZ), iterations: NETZ_RUNDEN, hash: "SHA-256" },
+      roh, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+    return { ok: true, rdvTag: "sbkim-netz-" + h.slice(0, 32), qryTag: "sbkim-netzq-" + h.slice(32, 64), key: key };
+  }
+
+  // Setzt das Netz. null/{} → öffentlich. {code} → eigen. {roomTag} → nur Raum.
+  // Ein laufender Antwort-Lauscher hört auf der ALTEN Marke — er wird beendet;
+  // die App schaltet das Antwortrecht im neuen Netz wieder ein.
+  function setNetwork(opts) {
+    opts = (opts && typeof opts === "object") ? opts : {};
+    if (answerUnsub) { try { answerUnsub(); } catch (_e) {} answerUnsub = null; }
+    var code = (typeof opts.code === "string") ? opts.code : null;
+    var raum = (typeof opts.roomTag === "string") ? opts.roomTag : null;
+    if (code !== null && code.trim() !== "") {
+      net = { lage: "wird-abgeleitet", rdvTag: null, qryTag: null, key: null, reason: null, pending: null };
+      var mein = net;
+      mein.pending = netAbleiten(code).then(function (r) {
+        if (net !== mein) return { ok: false, network: net.lage, reason: "Netz wurde inzwischen gewechselt." };
+        if (!r.ok) { mein.lage = "ungueltig"; mein.reason = r.reason; return { ok: false, network: "ungueltig", reason: r.reason }; }
+        mein.lage = "eigen"; mein.rdvTag = r.rdvTag; mein.qryTag = r.qryTag; mein.key = r.key;
+        return { ok: true, network: "eigen" };
+      }, function (e) {
+        mein.lage = "ungueltig"; mein.reason = "Netz-Code konnte nicht abgeleitet werden: " + (e && e.message ? e.message : e);
+        return { ok: false, network: "ungueltig", reason: mein.reason };
+      });
+      return mein.pending;
+    }
+    if (raum !== null && raum !== "") {
+      if (!/^[a-z0-9][a-z0-9-]{2,63}$/.test(raum)) {
+        net = { lage: "ungueltig", rdvTag: null, qryTag: null, key: null, pending: null,
+          reason: "Raum-Marke ungültig (3–64 Zeichen, a–z, 0–9, Bindestrich)." };
+        return Promise.resolve({ ok: false, network: "ungueltig", reason: net.reason });
+      }
+      net = { lage: "raum", rdvTag: raum, qryTag: raum + "-qry", key: null, reason: null, pending: null };
+      return Promise.resolve({ ok: true, network: "raum" });
+    }
+    net = { lage: "oeffentlich", rdvTag: null, qryTag: null, key: null, reason: null, pending: null };
+    return Promise.resolve({ ok: true, network: "oeffentlich" });
+  }
+
+  // Vor jeder Netz-Aktion: Ableitung abwarten; ungültig → nichts senden.
+  async function netBereit() {
+    if (net.pending) { try { await net.pending; } catch (_e) {} }
+    if (net.lage === "ungueltig" || net.lage === "wird-abgeleitet") {
+      return { ok: false, reason: net.reason || "Netz-Einstellung nicht bereit." };
+    }
+    return { ok: true };
+  }
+
+  // Inhalt hinaus: öffentlich Klartext-JSON (unverändert), eigen AES-GCM-Umschlag.
+  async function netPacke(obj, tag) {
+    var klar = JSON.stringify(obj);
+    if (!net.key) return klar;
+    var c = netSubtle();
+    var iv = c.getRandomValues(new Uint8Array(12));
+    var ct = new Uint8Array(await c.subtle.encrypt(
+      { name: "AES-GCM", iv: iv, additionalData: new TextEncoder().encode(tag) },
+      net.key, new TextEncoder().encode(klar)));
+    return JSON.stringify({ v: 1, iv: netZuB64(iv), ct: netZuB64(ct) });
+  }
+  // Inhalt herein: ruft handle(obj) — öffentlich synchron wie bisher, eigen nach
+  // dem Entschlüsseln. Was nicht passt, wird still verworfen. `warten` sammelt
+  // die Versprechen, damit ein Sammelfenster sie vor dem Auswerten abwartet.
+  function netEmpfange(ev, tag, handle, warten) {
+    if (!ev || typeof ev.content !== "string") return;
+    if (!net.key) {
+      var o;
+      try { o = JSON.parse(ev.content); } catch (_e) { return; }
+      handle(o);
+      return;
+    }
+    var key = net.key;
+    var p = (async function () {
+      var u;
+      try { u = JSON.parse(ev.content); } catch (_e) { return; }
+      if (!u || u.v !== 1 || typeof u.iv !== "string" || typeof u.ct !== "string") return;
+      try {
+        var klar = await netSubtle().subtle.decrypt(
+          { name: "AES-GCM", iv: netAusB64(u.iv), additionalData: new TextEncoder().encode(tag) },
+          key, netAusB64(u.ct));
+        handle(JSON.parse(new TextDecoder().decode(klar)));
+      } catch (_e) { /* falscher Code / fremder Umschlag → still verwerfen */ }
+    })();
+    if (warten) warten.push(p);
+  }
+
+  // ---- Netz-Einstellung speichern (Entscheidung 2026-10-13, INTERFACES) ----
+  function checkNetSetting(s) {
+    if (!s || typeof s !== "object") return { ok: false, reason: "Keine Netz-Einstellung." };
+    if (typeof s.relay !== "string" || !/^wss:\/\/[A-Za-z0-9.-]+(:[0-9]{1,5})?(\/[^\s]*)?$/.test(s.relay) || s.relay.length > 200) {
+      return { ok: false, reason: "Relais-Adresse ungültig (nur wss://…)." };
+    }
+    var n = netCodeNorm(s.code);
+    if (n.length < NETZ_CODE_MIN || !/^[A-Z0-9]+$/.test(n)) {
+      return { ok: false, reason: "Netz-Code ungültig (mindestens " + NETZ_CODE_MIN + " Zeichen, nur Buchstaben und Ziffern)." };
+    }
+    var name = (typeof s.name === "string") ? s.name.trim().slice(0, 60) : "";
+    return { ok: true, setting: { v: 1, name: name || "Eigenes Netz", relay: s.relay, code: String(s.code).trim(), auto: s.auto !== false } };
+  }
+  function netStore(store) {
+    if (store && typeof store.getItem === "function") return store;
+    try { return global.localStorage || null; } catch (_e) { return null; }
+  }
+  function netSchluessel() {
+    return cfg.dbSuffix ? NETZ_SPEICHER_PRAEFIX + cfg.dbSuffix : null;
+  }
+  function loadNetwork(store) {
+    var st = netStore(store), k = netSchluessel();
+    if (!st || !k) return null;
+    var roh; try { roh = st.getItem(k); } catch (_e) { return null; }
+    if (!roh) return null;
+    var s; try { s = JSON.parse(roh); } catch (_e) { return null; }
+    var r = checkNetSetting(s);
+    return r.ok ? r.setting : null;
+  }
+  // Wie loadNetwork, sagt aber AUCH, dass etwas Ungültiges gespeichert ist.
+  // loadNetwork gibt dann null zurück — und null hieße für einen Aufrufer
+  // „öffentlich". Genau das darf eine kaputte Einstellung nie werden (Riegel).
+  function readNetwork(store) {
+    var st = netStore(store), k = netSchluessel();
+    if (!st || !k) return { present: false };
+    var roh; try { roh = st.getItem(k); } catch (_e) { return { present: false }; }
+    if (!roh) return { present: false };
+    var s; try { s = JSON.parse(roh); } catch (_e) {
+      return { present: true, ok: false, value: {}, reason: "Gespeicherte Netz-Einstellung ist nicht lesbar." };
+    }
+    var r = checkNetSetting(s);
+    return r.ok ? { present: true, ok: true, setting: r.setting }
+                : { present: true, ok: false, value: (s && typeof s === "object") ? s : {}, reason: r.reason };
+  }
+  function saveNetwork(setting, store) {
+    var k = netSchluessel();
+    if (!k) return { ok: false, reason: "Ohne dbSuffix wird nicht gespeichert (geteilte Adresse)." };
+    var r = checkNetSetting(setting);
+    if (!r.ok) return r;
+    var st = netStore(store);
+    if (!st) return { ok: false, reason: "Kein Speicher verfügbar." };
+    try { st.setItem(k, JSON.stringify(r.setting)); } catch (e) { return { ok: false, reason: "Speichern fehlgeschlagen: " + (e && e.message ? e.message : e) }; }
+    return { ok: true, setting: r.setting };
+  }
+  function clearNetwork(store) {
+    var st = netStore(store), k = netSchluessel();
+    if (st && k) { try { st.removeItem(k); } catch (_e) {} }
+    return { ok: true };
+  }
+  // Wendet eine Einstellung an: 05b-Relais UND Code. null → öffentliches Netz.
+  async function applyNetwork(setting) {
+    var relay = resolveRelay();
+    if (setting == null) {
+      var rr = (relay && typeof relay.configure === "function") ? relay.configure({ reset: true }) : null;
+      var r0 = await setNetwork(null);
+      return { ok: r0.ok, network: r0.network, relays: rr && rr.relays };
+    }
+    var chk = checkNetSetting(setting);
+    if (!chk.ok) {
+      // Riegel: nicht still öffentlich weitermachen.
+      net = { lage: "ungueltig", rdvTag: null, qryTag: null, key: null, pending: null, reason: chk.reason };
+      return { ok: false, network: "ungueltig", reason: chk.reason };
+    }
+    if (!relay || typeof relay.configure !== "function") {
+      net = { lage: "ungueltig", rdvTag: null, qryTag: null, key: null, pending: null,
+        reason: "Relais-Client kann die Adresse nicht setzen (Modul 05b fehlt)." };
+      return { ok: false, network: "ungueltig", reason: net.reason };
+    }
+    var rc = relay.configure({ relays: [chk.setting.relay] });
+    if (rc && rc.ok === false) {
+      net = { lage: "ungueltig", rdvTag: null, qryTag: null, key: null, pending: null, reason: rc.reason };
+      return { ok: false, network: "ungueltig", reason: rc.reason };
+    }
+    var r1 = await setNetwork({ code: chk.setting.code });
+    return { ok: r1.ok, network: r1.network, relays: rc && rc.relays, reason: r1.reason };
+  }
 
   // ---- Resolver (Default aus den Globals, Override aus der Konfig) ----
   function resolveRelay() {
@@ -502,7 +731,7 @@
     return {
       ok: res.ok, cleaned: cleaned, created: res.created,
       protectedIdentity: protectShared, migratedIdentity: migrated, identityNote: identityNote,
-      nodeId: res.nodeId, reason: res.reason, reloadHint: RELOAD_HINT,
+      nodeId: res.nodeId, reason: res.reason, reloadHint: RELOAD_HINT, bestaetigung: res.bestaetigung,
     };
   }
 
@@ -527,10 +756,14 @@
     if (typeof opts.listenMs === "number" && isFinite(opts.listenMs) && opts.listenMs > 0) {
       cfg.listenMs = Math.floor(opts.listenMs);
     }
+    if (opts.netCode !== undefined || opts.roomTag !== undefined) {
+      setNetwork({ code: opts.netCode, roomTag: opts.roomTag });
+    }
   }
 
   async function init(opts) {
     applyOpts(opts);
+    if (net.pending) { try { await net.pending; } catch (_e) {} }
     // init() baut KEINE Verbindung auf (Empfangsmodus). Modus A (sanft, lokal,
     // idempotent) nur wenn ausdrücklich verlangt — das ist KEINE Netz-Aktion.
     if (opts && opts.ensureIdentity) {
@@ -543,11 +776,27 @@
 
   // ---- Kern: lauschen + lebende Visitenkarte ans Brett heften ----
   // Geteilt von announce() und connectAndAnnounce().
-  async function doAnnounce(own) {
+  // Relais-Antwort deuten (INTERFACES §Modul 05b „Relais-Antwort", 2026-10-14).
+  // "ja" = mindestens ein Relais meldete OK true · "nein" = alle antworteten,
+  // alle lehnten ab · "unbekannt" = alles andere (auch ein Client ohne antwort).
+  function bestaetigungAus(a) {
+    if (!a || !Array.isArray(a.relais)) return { stand: "unbekannt", relais: [] };
+    var liste = a.relais.map(function (r) {
+      return { relay: String(r && r.relay || ""), ergebnis: String(r && r.ergebnis || "unbekannt"),
+        grund: String(r && r.grund || "").slice(0, 200) };
+    });
+    var ja = liste.some(function (r) { return r.ergebnis === "angenommen"; });
+    var alleNein = liste.length > 0 && liste.every(function (r) { return r.ergebnis === "abgelehnt"; });
+    return { stand: ja ? "ja" : (alleNein ? "nein" : "unbekannt"), relais: liste };
+  }
+
+  async function doAnnounce(own, ohneWarten) {
     var relay = resolveRelay();
     if (!relay) {
       return { ok: false, reason: "Kein Nostr-Relais-Client (Modul 05b) verfügbar." };
     }
+    var nb = await netBereit();
+    if (!nb.ok) return { ok: false, reason: nb.reason };
     // Erst lauschen, damit der Knoten erreichbar ist, wenn jemand andockt.
     var ana = resolveAnastomose();
     if (ana && typeof ana.listenNostr === "function") {
@@ -560,18 +809,30 @@
       spore: own,
       ts: nowSec(),
     };
+    var pr;
     try {
-      await relay.publish({
+      pr = await relay.publish({
         kind: NOSTR_KIND,
         created_at: nowSec(),
-        tags: [["t", RDV_TAG]],
-        content: JSON.stringify(card),
+        tags: [["t", netRaum()]],
+        content: await netPacke(card, netRaum()),
       });
     } catch (e) {
       return { ok: false, reason: "Anmelden fehlgeschlagen: " + (e && e.message ? e.message : e) };
     }
     signalListening(true);
-    return { ok: true, nodeId: own.id };
+    var antwort = null;
+    if (!ohneWarten && pr && pr.antwort && typeof pr.antwort.then === "function") {
+      try { antwort = await pr.antwort; } catch (_e) { antwort = null; }
+    }
+    var best = bestaetigungAus(antwort);
+    if (best.stand === "nein") {
+      return { ok: false, nodeId: own.id, bestaetigung: best,
+        reason: "Kein Relais hat die Anmeldung angenommen: " + best.relais.map(function (r) {
+          return r.relay + " — " + (r.grund || "ohne Grund");
+        }).join("; ") };
+    }
+    return { ok: true, nodeId: own.id, bestaetigung: best };
   }
 
   // ---- announce(): nur (neu) anmelden — setzt Identität voraus ----
@@ -599,7 +860,7 @@
     var own = await getOwnLiveSpore();
     if (own && own.id) {
       var rA = await doAnnounce(own);
-      return { ok: rA.ok, created: false, nodeId: rA.nodeId, reason: rA.reason };
+      return { ok: rA.ok, created: false, nodeId: rA.nodeId, reason: rA.reason, bestaetigung: rA.bestaetigung };
     }
     // Keine Identität — über den app-eigenen Callback erzeugen (opts oder cfg).
     var makeId = (typeof opts.createIdentity === "function") ? opts.createIdentity : cfg.createIdentity;
@@ -620,7 +881,7 @@
       return { ok: false, created: false, reason: "Identität nach createIdentity nicht lesbar." };
     }
     var rB = await doAnnounce(fresh);
-    return { ok: rB.ok, created: true, nodeId: rB.nodeId, reason: rB.reason };
+    return { ok: rB.ok, created: true, nodeId: rB.nodeId, reason: rB.reason, bestaetigung: rB.bestaetigung };
   }
 
   // ---- discover(): lebende Visitenkarten lesen ----
@@ -630,6 +891,10 @@
     if (!relay) {
       return { ok: false, cards: [], reason: "Kein Nostr-Relais-Client (Modul 05b) verfügbar." };
     }
+    var nbD = await netBereit();
+    if (!nbD.ok) return { ok: false, cards: [], reason: nbD.reason };
+    var raumTag = netRaum();
+    var wartenD = [];
     var listenMs = (typeof opts.listenMs === "number" && isFinite(opts.listenMs) && opts.listenMs > 0)
       ? Math.floor(opts.listenMs) : cfg.listenMs;
     var freshSec = (typeof opts.freshSec === "number" && isFinite(opts.freshSec) && opts.freshSec > 0)
@@ -646,11 +911,12 @@
     var unsub = null;
     try {
       unsub = relay.subscribe(
-        { kinds: [NOSTR_KIND], "#t": [RDV_TAG], since: sinceSec },
+        { kinds: [NOSTR_KIND], "#t": [raumTag], since: sinceSec },
         function onEvent(ev) {
-          if (!ev || typeof ev.content !== "string") return;
-          var card;
-          try { card = JSON.parse(ev.content); } catch (e) { return; }
+          netEmpfange(ev, raumTag, function (card) { karteNehmen(ev, card); }, wartenD);
+        },
+      );
+      function karteNehmen(ev, card) {
           if (!card || card.kind !== RDV_PRESENCE_KIND || !card.nodeId || !card.spore) return;
           // Mengenschutz (Stufe 2b): der Raum darf nicht beliebig groß werden,
           // und ein einzelner Nostr-Absender nicht beliebig viele Identitäten
@@ -667,8 +933,7 @@
           if (card.spore.id !== card.nodeId) { rejected++; return; }
           var ts = (typeof card.ts === "number" ? card.ts : (typeof ev.created_at === "number" ? ev.created_at : 0));
           if (!byId[card.nodeId] || ts > byId[card.nodeId].ts) byId[card.nodeId] = { card: card, ts: ts };
-        },
-      );
+      }
     } catch (e) {
       return { ok: false, cards: [], reason: "Raum-Lesen fehlgeschlagen: " + (e && e.message ? e.message : e) };
     }
@@ -676,6 +941,7 @@
     return await new Promise(function (resolve) {
       setTimeout(async function () {
         if (unsub) { try { unsub(); } catch (e) {} }
+        if (wartenD.length) { try { await Promise.all(wartenD); } catch (_e) {} }
         var now = nowSec();
         var cards = Object.keys(byId)
           .filter(function (id) { return id !== ownId; })
@@ -691,6 +957,32 @@
             };
           })
           .sort(function (a, b) { return b.ts - a.ts; });
+        // ECHTHEIT (Stufe 2b): Ed25519-Prüfung je Karte über Modul 02. Erst hier,
+        // weil verifyForeignSpore async ist und der Empfangs-Callback es nicht
+        // abwarten kann. Ungültige Karten fallen raus — niemand kann sich mehr
+        // unter fremder Identität ins Brett hängen.
+        // ⚠ Modul 02 liefert {valid, reason}, NIE `false` (INTERFACES §2 Modul 02).
+        //   Bis 2026-10-14 stand hier `!== false` — damit galt JEDE Spore als echt,
+        //   auch eine mit kaputter Signatur (Befund 2026-10-14, N2). Gelesen wird
+        //   jetzt `.valid === true`; ein Prüfer mit nacktem Boolean (alte Proben,
+        //   Forker) wird weiter verstanden.
+        // ⚠ Die Prüfung steht VOR dem Zusammenfassen nach Namen: sonst verdrängt
+        //   eine unechte Karte mit neuerer Zeit die echte gleichen Namens und fällt
+        //   danach selbst heraus — beide wären weg.
+        var verifier = resolveVerifier();
+        var cardsVerified = !!verifier;
+        if (verifier) {
+          var geprueft = [];
+          for (var vi = 0; vi < cards.length; vi++) {
+            var okSpore = false;
+            try {
+              var vr = await verifier.verifyForeignSpore(cards[vi].spore);
+              okSpore = (vr === true) || !!(vr && typeof vr === "object" && vr.valid === true);
+            } catch (e) { okSpore = false; }   // wirft bei ungültiger Spore → unecht
+            if (okSpore) geprueft.push(cards[vi]); else rejected++;
+          }
+          cards = geprueft;
+        }
         // Adress-Wand-Härtung (Klaus 2026-07-10): ein Knoten kann durch
         // wiederholtes „Aufräumen & neu anmelden" mehrere Alt-Identitäten
         // hinterlassen — deren Präsenz-Kärtchen leben ~30 min weiter und
@@ -698,30 +990,18 @@
         // NEUESTE Karte zeigen (Liste ist bereits ts-absteigend sortiert). So
         // trifft „❓ Fragen" immer die frischeste, lauschende ID; die toten
         // Alt-Kärtchen verschwinden aus Raum + Karte. Opt-out: collapseByName:false.
+        // ⚠ Der Name ist NICHT geprüft (er steht außerhalb der Spore). Eine echt
+        //   signierte fremde Identität kann denselben Namen tragen. Die gezeigte
+        //   Karte zählt deshalb mit, wie viele andere Kennungen gleichen Namens
+        //   ausgeblendet wurden (`gleicherName`) — die Anzeige nennt es.
         if (opts.collapseByName !== false) {
           var seenName = Object.create(null);
           cards = cards.filter(function (c) {
             var key = (c.nodeName || "").toLowerCase();
             if (!key) return true;
-            if (seenName[key]) return false;
-            seenName[key] = true; return true;
+            if (seenName[key]) { seenName[key].gleicherName = (seenName[key].gleicherName || 0) + 1; return false; }
+            seenName[key] = c; return true;
           });
-        }
-        // ECHTHEIT (Stufe 2b): Ed25519-Prüfung je Karte über Modul 02. Erst hier,
-        // weil verifyForeignSpore async ist und der Empfangs-Callback es nicht
-        // abwarten kann. Ungültige Karten fallen raus — niemand kann sich mehr
-        // unter fremder Identität ins Brett hängen.
-        var verifier = resolveVerifier();
-        var cardsVerified = !!verifier;
-        if (verifier) {
-          var geprueft = [];
-          for (var vi = 0; vi < cards.length; vi++) {
-            var okSpore = false;
-            try { okSpore = await verifier.verifyForeignSpore(cards[vi].spore) !== false; }
-            catch (e) { okSpore = false; }   // wirft bei ungültiger Spore → unecht
-            if (okSpore) geprueft.push(cards[vi]); else rejected++;
-          }
-          cards = geprueft;
         }
         // Reine Anzeige-Anreicherung: zentrierter Verwandtschafts-Score je Karte
         // (gatet nichts; Handshake bleibt 0.80-Riegel). Fail-soft ohne Modul 04.
@@ -789,6 +1069,61 @@
   // Fenster nach (fetchAnswers). Empfangsmodus-treu: nutzer-ausgelöst beim
   // Öffnen, KEIN Dauer-Ticker. Reale Grenze = Aufbewahrungsdauer des Relais.
   var RDV_ANSWER_LOOKBACK_SEC = 1800; // 30 min zurück (Frage/Antwort nachholen)
+  // ---- Antworten an den Antworter binden (Bau 23.R, 2026-10-14) ----
+  // Befund docs/sessions/archiv/2026-10-14_angriffsflaeche_mycel.md (N1): die
+  // Antwort-Zettel waren unsigniert, `fromNodeId` nur eine Behauptung. Wer den
+  // öffentlichen Frage-Tag mithörte, antwortete im Namen des gefragten Knotens,
+  // schneller als dieser, und überschrieb in fetchAnswers mit selbst gesetzter Zeit.
+  // Jetzt: der Antworter legt seine Spore bei und unterschreibt den Zettel
+  // (Modul 02 signDetached). Der Frager prüft Spore, Bindung an fromNodeId,
+  // Unterschrift und dass fromNodeId der GEFRAGTE Knoten ist.
+  //   bestaetigt   → genommen, schlägt jede unbestätigte Antwort
+  //   unbestaetigt → ohne Unterschrift (alte Fassung, oder Modul 02 ohne Sign-Pfad);
+  //                  wird nur genommen, wenn keine bestätigte kommt, und trägt
+  //                  bestaetigt:false — die Oberfläche sagt es, der KI-Richter bekommt sie nicht
+  //   falsch       → Unterschrift/Spore/Bindung passt nicht, oder ein anderer als der
+  //                  gefragte Knoten antwortet → verworfen
+  var RDV_LABEL_MAX = 200;              // Treffer-Titel hart gekappt (untrusted input)
+  var RDV_UNBESTAETIGT_WARTE_MS = 3000; // so lange wartet askNode nach einer unbestätigten
+                                        // Antwort noch auf eine bestätigte
+  function antwortOhneSig(a) {
+    var o = {};
+    for (var key in a) { if (Object.prototype.hasOwnProperty.call(a, key) && key !== "sig") o[key] = a[key]; }
+    return o;
+  }
+  async function antwortSignieren(zettel) {
+    var s = resolveSpore();
+    if (!s || typeof s.signDetached !== "function") return zettel;     // fail-soft: unsigniert
+    try {
+      var own = await s.getOwnSpore();
+      if (!own || own.id !== zettel.fromNodeId) return zettel;
+      zettel.spore = own;
+      zettel.sig = await s.signDetached(antwortOhneSig(zettel));
+    } catch (_e) { delete zettel.spore; delete zettel.sig; }
+    return zettel;
+  }
+  async function antwortPruefen(a, erwartetVon) {
+    if (erwartetVon && a.fromNodeId !== erwartetVon) return "falsch";
+    if (typeof a.sig !== "string" || !a.spore || typeof a.spore !== "object") {
+      return (a.sig === undefined && a.spore === undefined) ? "unbestaetigt" : "falsch";
+    }
+    var v = resolveVerifier();
+    if (!v || typeof v.verifyDetached !== "function") return "unbestaetigt";   // nicht prüfbar
+    if (a.spore.id !== a.fromNodeId) return "falsch";
+    try {
+      var vr = await v.verifyForeignSpore(a.spore);
+      if (!(vr === true || (vr && vr.valid === true))) return "falsch";
+      return (await v.verifyDetached(antwortOhneSig(a), a.sig, a.spore.publicKey)) ? "bestaetigt" : "falsch";
+    } catch (_e) { return "falsch"; }
+  }
+  function ergebnisseLesen(a) {
+    return (Array.isArray(a.results) ? a.results : []).slice(0, RDV_QUERY_K_MAX).map(function (r) {
+      var o = { label: String((r && r.label) || "").slice(0, RDV_LABEL_MAX), score: (r && typeof r.score === "number") ? r.score : null };
+      if (r && typeof r.anchorId === "string" && r.anchorId) o.anchorId = r.anchorId.slice(0, 120);
+      return o;
+    });
+  }
+  var antwortVerworfen = 0;            // _meta: wie viele Antworten die Prüfung nicht bestanden
 
   var answerUnsub = null;            // aktiver Antwort-Lauscher (null = AUS)
   var answeredCount = 0;
@@ -848,6 +1183,9 @@
     if (answerUnsub) return { ok: true, reason: "Antworten läuft schon (idempotent)." };
     var relay = resolveRelay();
     if (!relay) return { ok: false, reason: "Kein Nostr-Relais-Client (Modul 05b) verfügbar." };
+    var nbA = await netBereit();
+    if (!nbA.ok) return { ok: false, reason: nbA.reason };
+    var fragTagA = netFragen();
     var own = await getOwnLiveSpore();
     if (!own || !own.id) return { ok: false, reason: "Noch keine Identität — zuerst anmelden (announce)." };
     var ownId = own.id;
@@ -855,7 +1193,7 @@
     // eine FRISCHE Präsenz-Karte unter GENAU dieser lauschenden ID ans Brett
     // heften. So ist die neueste Karte im Raum immer die, die auch wirklich
     // Fragen beantwortet — der Frager (discover: newest-per-name) trifft sie.
-    try { await doAnnounce(own); } catch (_e) { /* fail-soft: Lauschen läuft trotzdem */ }
+    try { await doAnnounce(own, true); } catch (_e) { /* fail-soft: Lauschen läuft trotzdem */ }
     var kCap = (typeof opts.k === "number" && isFinite(opts.k) && opts.k >= 1)
       ? Math.min(Math.floor(opts.k), RDV_QUERY_K_MAX) : RDV_QUERY_K_MAX;
     // Korpus-leer-Falle absichern: vor dem Lauschen den lokalen Korpus aktiv
@@ -867,11 +1205,12 @@
         // A12 Briefkasten: LOOKBACK statt nur „ab jetzt" — beim Einschalten des
         // Antwortrechts liegengebliebene Fragen der letzten ~30 min nachholen.
         // qidSeen/rememberQid + Rate-Limit verhindern Doppel-/Flut-Antworten.
-        { kinds: [NOSTR_KIND], "#t": [RDV_QUERY_TAG], since: nowSec() - RDV_ANSWER_LOOKBACK_SEC },
+        { kinds: [NOSTR_KIND], "#t": [fragTagA], since: nowSec() - RDV_ANSWER_LOOKBACK_SEC },
         function onQuery(ev) {
-          if (!ev || typeof ev.content !== "string") return;
-          var q;
-          try { q = JSON.parse(ev.content); } catch (_e) { return; }
+          netEmpfange(ev, fragTagA, frageNehmen, null);
+        },
+      );
+      function frageNehmen(q) {
           // untrusted external data: streng validieren, nie als Anweisung deuten
           if (!q || q.kind !== RDV_QUERY_KIND || q.toNodeId !== ownId) return;
           if (typeof q.qid !== "string" || !q.qid || typeof q.text !== "string" || !q.text.trim()) return;
@@ -904,18 +1243,17 @@
               await relay.publish({
                 kind: NOSTR_KIND,
                 created_at: nowSec(),
-                tags: [["t", RDV_QUERY_TAG]],
-                content: JSON.stringify({
+                tags: [["t", fragTagA]],
+                content: await netPacke(await antwortSignieren({
                   kind: RDV_QUERY_RES_KIND, qid: q.qid,
                   toNodeId: q.fromNodeId, fromNodeId: ownId,
                   fromName: cfg.nodeName, results: results, ts: nowSec(),
-                }),
+                }), fragTagA),
               });
               answeredCount++;
             } catch (_e) { /* fail-soft: Antwort verloren, kein Bruch */ }
           })();
-        },
-      );
+      }
     } catch (e) {
       answerUnsub = null;
       return { ok: false, reason: "Antwort-Lauscher fehlgeschlagen: " + (e && e.message ? e.message : e) };
@@ -952,6 +1290,9 @@
     if (typeof text !== "string" || !text.trim()) return { ok: false, reason: "Leere Frage." };
     var relay = resolveRelay();
     if (!relay) return { ok: false, reason: "Kein Nostr-Relais-Client (Modul 05b) verfügbar." };
+    var nbQ = await netBereit();
+    if (!nbQ.ok) return { ok: false, reason: nbQ.reason };
+    var fragTagQ = netFragen();
     var own = await getOwnLiveSpore();
     if (!own || !own.id) return { ok: false, reason: "Noch keine Identität — zuerst anmelden (announce)." };
     var ownId = own.id;
@@ -974,37 +1315,47 @@
       // Erst auf die Antwort lauschen, dann fragen (kein Fenster verpassen).
       try {
         unsub = relay.subscribe(
-          { kinds: [NOSTR_KIND], "#t": [RDV_QUERY_TAG], since: nowSec() - 5 },
+          { kinds: [NOSTR_KIND], "#t": [fragTagQ], since: nowSec() - 5 },
           function onRes(ev) {
-            if (!ev || typeof ev.content !== "string") return;
-            var a;
-            try { a = JSON.parse(ev.content); } catch (_e) { return; }
-            if (!a || a.kind !== RDV_QUERY_RES_KIND || a.qid !== qid || a.toNodeId !== ownId) return;
-            var results = (Array.isArray(a.results) ? a.results : []).slice(0, RDV_QUERY_K_MAX)
-              .map(function (r) {
-                var o = { label: String((r && r.label) || ""), score: (r && typeof r.score === "number") ? r.score : null };
-                if (r && typeof r.anchorId === "string" && r.anchorId) o.anchorId = r.anchorId;
-                return o;
-              });
-            finish({ ok: true, qid: qid, results: results, fromNodeId: a.fromNodeId || null, tookMs: Date.now() - started });
+            netEmpfange(ev, fragTagQ, antwortNehmen, null);
           },
         );
+        // Bau 23.R: nur der GEFRAGTE Knoten, und eine unterschriebene Antwort
+        // schlägt jede unbestätigte (siehe antwortPruefen).
+        var vorlaeufig = null, graceTimer = null;
+        function antwortNehmen(a) {
+            if (!a || a.kind !== RDV_QUERY_RES_KIND || a.qid !== qid || a.toNodeId !== ownId) return;
+            antwortPruefen(a, toNodeId).then(function (stand) {
+              if (done) return;
+              if (stand === "falsch") { antwortVerworfen++; return; }
+              var res = { ok: true, qid: qid, results: ergebnisseLesen(a), fromNodeId: a.fromNodeId || null,
+                          bestaetigt: stand === "bestaetigt", tookMs: Date.now() - started };
+              if (stand === "bestaetigt") { if (graceTimer) clearTimeout(graceTimer); finish(res); return; }
+              if (!vorlaeufig) {
+                vorlaeufig = res;
+                graceTimer = setTimeout(function () { finish(vorlaeufig); }, RDV_UNBESTAETIGT_WARTE_MS);
+              }
+            });
+        }
       } catch (e) {
         finish({ ok: false, reason: "Antwort-Lauscher fehlgeschlagen: " + (e && e.message ? e.message : e) });
         return;
       }
-      Promise.resolve(relay.publish({
-        kind: NOSTR_KIND,
-        created_at: nowSec(),
-        tags: [["t", RDV_QUERY_TAG]],
-        content: JSON.stringify({
-          kind: RDV_QUERY_KIND, qid: qid, toNodeId: toNodeId, fromNodeId: ownId,
-          fromName: cfg.nodeName, text: text.trim().slice(0, RDV_QUERY_TEXT_MAX), k: k, ts: nowSec(),
-        }),
-      })).catch(function (e) {
+      netPacke({
+        kind: RDV_QUERY_KIND, qid: qid, toNodeId: toNodeId, fromNodeId: ownId,
+        fromName: cfg.nodeName, text: text.trim().slice(0, RDV_QUERY_TEXT_MAX), k: k, ts: nowSec(),
+      }, fragTagQ).then(function (inhalt) {
+        return relay.publish({
+          kind: NOSTR_KIND,
+          created_at: nowSec(),
+          tags: [["t", fragTagQ]],
+          content: inhalt,
+        });
+      }).catch(function (e) {
         finish({ ok: false, reason: "Frage-Zettel konnte nicht publiziert werden: " + (e && e.message ? e.message : e) });
       });
       timer = setTimeout(function () {
+        if (vorlaeufig) { if (graceTimer) clearTimeout(graceTimer); finish(vorlaeufig); return; }
         // A12: qid mitgeben — der Frager merkt die Frage als „offen" und liest
         // die Antwort später über fetchAnswers([qid]) nach (Briefkasten).
         finish({ ok: false, pending: true, qid: qid, reason: "Noch keine Antwort in " + Math.round(timeoutMs / 1000) + " s — Gegenknoten evtl. offline. Die Frage bleibt offen; beim nächsten Öffnen „Antworten abholen“." });
@@ -1020,11 +1371,22 @@
   // Reale Grenze: Aufbewahrungsdauer des Relais. Fail-soft, DOM-frei.
   async function fetchAnswers(qids, opts) {
     opts = (opts && typeof opts === "object") ? opts : {};
+    // Bau 23.R: qids = Strings ODER {qid, toNodeId}. Mit toNodeId wird nur die
+    // Antwort genau dieses Knotens genommen.
     var want = {};
-    (Array.isArray(qids) ? qids : []).forEach(function (id) { if (typeof id === "string" && id) want[id] = true; });
+    (Array.isArray(qids) ? qids : []).forEach(function (id) {
+      if (typeof id === "string" && id) want[id] = { von: null };
+      else if (id && typeof id === "object" && typeof id.qid === "string" && id.qid) {
+        want[id.qid] = { von: (typeof id.toNodeId === "string" && id.toNodeId) ? id.toNodeId : null };
+      }
+    });
     if (!Object.keys(want).length) return { ok: true, answers: [] };
     var relay = resolveRelay();
     if (!relay) return { ok: false, reason: "Kein Nostr-Relais-Client (Modul 05b) verfügbar.", answers: [] };
+    var nbF = await netBereit();
+    if (!nbF.ok) return { ok: false, reason: nbF.reason, answers: [] };
+    var fragTagF = netFragen();
+    var wartenF = [];
     var own = await getOwnLiveSpore();
     if (!own || !own.id) return { ok: false, reason: "Noch keine Identität — zuerst anmelden.", answers: [] };
     var ownId = own.id;
@@ -1034,33 +1396,43 @@
       ? Math.floor(opts.waitMs) : cfg.listenMs;
     return await new Promise(function (resolve) {
       var byQid = {}, unsub = null, timer = null, done = false;
-      function finish() {
+      async function finish() {
         if (done) return; done = true;
         if (timer) clearTimeout(timer);
         if (unsub) { try { unsub(); } catch (_e) {} }
+        // Bau 23.R: die Prüfung einer Antwort hängt sich erst NACH dem Entschlüsseln an —
+        // so lange warten, bis keine neue mehr dazukommt.
+        for (var wn = -1; wn !== wartenF.length;) { wn = wartenF.length; try { await Promise.all(wartenF.slice()); } catch (_e) {} }
         var out = Object.keys(byQid).map(function (q) { return byQid[q]; });
         resolve({ ok: true, answers: out });
       }
       try {
         unsub = relay.subscribe(
-          { kinds: [NOSTR_KIND], "#t": [RDV_QUERY_TAG], since: nowSec() - lookbackSec },
+          { kinds: [NOSTR_KIND], "#t": [fragTagF], since: nowSec() - lookbackSec },
           function onRes(ev) {
-            if (!ev || typeof ev.content !== "string") return;
-            var a; try { a = JSON.parse(ev.content); } catch (_e) { return; }
+            netEmpfange(ev, fragTagF, antwortSammeln, wartenF);
+          },
+        );
+        function antwortSammeln(a) {
             if (!a || a.kind !== RDV_QUERY_RES_KIND) return;      // nur Antwort-Zettel
             if (a.toNodeId !== ownId) return;                     // nur an mich
             if (typeof a.qid !== "string" || !want[a.qid]) return; // nur meine offenen Fragen
-            var ts = (typeof a.ts === "number") ? a.ts : 0;
-            var prev = byQid[a.qid];
-            if (prev && typeof prev.ts === "number" && prev.ts >= ts) return; // newest-per-qid
-            var results = (Array.isArray(a.results) ? a.results : []).slice(0, RDV_QUERY_K_MAX).map(function (r) {
-              var o = { label: String((r && r.label) || ""), score: (r && typeof r.score === "number") ? r.score : null };
-              if (r && typeof r.anchorId === "string" && r.anchorId) o.anchorId = r.anchorId;
-              return o;
+            var p = antwortPruefen(a, want[a.qid].von).then(function (stand) {
+              if (stand === "falsch") { antwortVerworfen++; return; }
+              var best = stand === "bestaetigt";
+              var ts = (typeof a.ts === "number") ? a.ts : 0;
+              var prev = byQid[a.qid];
+              // Bau 23.R: bestätigt schlägt unbestätigt, egal welche Zeit; erst
+              // innerhalb derselben Stufe gilt die neueste (newest-per-qid).
+              if (prev) {
+                if (prev.bestaetigt && !best) return;
+                if (prev.bestaetigt === best && typeof prev.ts === "number" && prev.ts >= ts) return;
+              }
+              byQid[a.qid] = { qid: a.qid, fromNodeId: a.fromNodeId || null, fromName: a.fromName || null,
+                               results: ergebnisseLesen(a), ts: ts, bestaetigt: best };
             });
-            byQid[a.qid] = { qid: a.qid, fromNodeId: a.fromNodeId || null, fromName: a.fromName || null, results: results, ts: ts };
-          },
-        );
+            wartenF.push(p);
+        }
       } catch (e) {
         resolve({ ok: false, reason: "Nachlese-Lauscher fehlgeschlagen: " + (e && e.message ? e.message : e), answers: [] });
         return;
@@ -1086,10 +1458,22 @@
     ensureIdentity: ensureIdentity,             // Modus A (sanft, automatisch, idempotent)
     cleanupSharedOrigin: cleanupSharedOrigin,   // Modus-B-Reinigung (nur eigene Origin)
     repairAndReconnect: repairAndReconnect,     // Modus B (zerstörend, nutzer-ausgelöst)
+    // Eigenes Netz (Schritt 1, 2026-10-13) — INTERFACES §Modul 23 „EIGENES NETZ"
+    setNetwork: setNetwork,
+    newNetCode: newNetCode,
+    checkNetSetting: checkNetSetting,
+    loadNetwork: loadNetwork,
+    readNetwork: readNetwork,
+    saveNetwork: saveNetwork,
+    clearNetwork: clearNetwork,
+    applyNetwork: applyNetwork,
     get _meta() {
       return {
         version: VERSION,
-        tag: RDV_TAG,
+        tag: netRaum(),
+        network: net.lage,
+        encrypted: !!net.key,
+        networkReason: net.reason || null,
         presenceKind: RDV_PRESENCE_KIND,
         sharedDbName: SHARED_DB_NAME,
         dbSuffix: cfg.dbSuffix,
@@ -1116,10 +1500,13 @@
         answeredCount: answeredCount,             // Bau 23.B
         hasPrepareCorpus: typeof cfg.prepareCorpus === "function", // Bau 23.B-Härtung
         answerCorpusEnsured: answerCorpusEnsured,  // Bau 23.B-Härtung (Korpus gekoppelt?)
-        queryTag: RDV_QUERY_TAG,                  // Bau 23.B
+        queryTag: netFragen(),                    // Bau 23.B (im eigenen Netz abgeleitet)
         queryKind: RDV_QUERY_KIND,                // Bau 23.B
         queryResKind: RDV_QUERY_RES_KIND,         // Bau 23.B
         queryMaxPerMin: RDV_QUERY_MAX_PER_MIN,    // Bau 23.B
+        antwortVerworfen: antwortVerworfen,       // Bau 23.R: Antworten, die die Prüfung nicht bestanden
+        antwortSigniert: (function () { var s = resolveSpore(); return !!(s && typeof s.signDetached === "function"); })(), // Bau 23.R
+        labelMax: RDV_LABEL_MAX,                  // Bau 23.R
         rankByQueryNote: "rankCardsByQuery(cards, queryVec, {raw?}) rankt Raum-Karten nach Frage-Passung (Modul 04 relatedness, zentriert; raw→match). REINE Anzeige/Auswahl, gatet nichts, 0.80-Riegel unberührt; fail-soft ohne Vektor → Eingabe-Reihenfolge.", // A11
       };
     },
