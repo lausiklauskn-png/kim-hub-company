@@ -70,6 +70,11 @@ const VERGEBEN = [
   "workfloh",
   "workflohpage",
   "auslieferungspruefer",
+  /* nachgetragen 2026-10-15 aus dem Register (Sammel-Brief Schritt 3 und 4b) */
+  "inoutbook",
+  "kimsync",
+  "kuechenzettel",
+  "sbkimdemo",
 ];
 
 const KLEBSTOFF = ["storage-init", "rendezvous-init", "schutz-init",
