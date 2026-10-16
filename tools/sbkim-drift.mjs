@@ -54,10 +54,10 @@ export const KANON = [
   { datei: "sbkim/05b_nostr_relay.js",    sha: "37eee5b196b3efad57131edd1cc3c0ee23acb97b5ca40740d6a0771db4b4a421" },
   { datei: "sbkim/07_apoptose.js",        sha: "0acdd6ab2d95e131fa6953061cc0e95a2396e05fff091a7dc690b2668a4c035a" },
   { datei: "sbkim/15_membran.js",         sha: "829a5bc01976b59c5ce428125314b87b314b6212cd5a473634c2d22c02579397" },
-  { datei: "sbkim/16_siegel.js",          sha: "b4ea4446b18eaeee7e3230520dcf719e225b0c0ad478f40b7dee19ee68b77427" },
+  { datei: "sbkim/16_siegel.js",          sha: "0783763331b17df2288e5eec885a38464ff630e76639194a52592c4dde1c3f9c" },
   { datei: "sbkim/17_floating_widget.js", sha: "e4ee076c1295910d0e83470ebda327e7419f29bc06f6718148369c8369e1a5ce" },
-  { datei: "sbkim/23_rendezvous.js",      sha: "6a5fc0e524df863432095dfdb73b73959a078ad4f4666ffa5f28612dd0a18fc1" },
-  { datei: "sbkim/23_rendezvous_ui.js",   sha: "fb0bf74f5ee1cd1a38e6ea949431c2fc15ebde2c0339cf2df5ade48ed7691d6c" },
+  { datei: "sbkim/23_rendezvous.js",      sha: "87278a0c6e0f371bf6cf812f82079c399c3e332c8ce187158edb4afddac8d7ef" },
+  { datei: "sbkim/23_rendezvous_ui.js",   sha: "5ff4befaa644ed2f1d7fe8db4f97a18c53ff0606ca737ec615fb99472537a620" },
   { datei: "sbkim/noble-secp256k1.js",    sha: "8f3879ca422c4fdfe7ca0361688636fa7cc550a59bd94d512ed6ec79aa3d55d1" },
 ];
 
