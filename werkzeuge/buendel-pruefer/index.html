@@ -99,9 +99,12 @@ details .inhalt{padding:0 14px 12px}
 ul{margin:8px 0; padding-left:22px}
 li{margin:5px 0}
 footer{margin-top:34px; padding-top:14px; border-top:2px solid var(--rahmen); font-size:.9rem; color:var(--leise)}
+#installieren{width:auto;margin:0;padding:.35rem .8rem;font-size:.85rem;min-height:0;line-height:1.3}
+@media (max-width:360px){#installieren .t{display:none}}
 </style>
 </head>
 <body>
+<span id="install-anker" hidden></span>
 <main>
 
 <h1>Bündel-Prüfer</h1>
@@ -727,5 +730,8 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
+<!-- Installieren (Klaus 2026-10-18: „oben … verschwinden, wenn die App installiert ist“): keine Kopfleiste,
+     deshalb fest oben rechts (data-fest). Datei byte-1:1 aus Sage-Protokol. -->
+<script src="./installieren.js" data-name="Bündel-Prüfer" data-vor="install-anker" data-fest defer></script>
 </body>
 </html>

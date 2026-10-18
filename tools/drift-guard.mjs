@@ -94,6 +94,8 @@ export const ERWARTET = [
   { datei: "schicht/festgefahren.mjs", herkunft: "schicht/festgefahren.mjs", sha: "3928691ac868a0e8b8fc55545625996ef8e5e383687ad8dcc7963521aa8a1557" },
   { datei: "schicht/zeitschaetzung.mjs", herkunft: "schicht/zeitschaetzung.mjs", sha: "74790f30909cad44c39a8a8ddc0f98ca322202bc76453b59dc82d57141a422ce" },
   { datei: "assets/installieren.js", herkunft: "assets/installieren.js", sha: "e0644084e2e72773608633190a3e5ed287f93d88f438e7473f03c765c7f873c3" },
+  /* NEU 2026-10-18: der Bündel-Prüfer ist eine eigene kleine PWA und trägt denselben Knopf als eigene Kopie. */
+  { datei: "werkzeuge/buendel-pruefer/installieren.js", herkunft: "assets/installieren.js", sha: "e0644084e2e72773608633190a3e5ed287f93d88f438e7473f03c765c7f873c3" },
 ];
 
 export function abdruck(datei) {
