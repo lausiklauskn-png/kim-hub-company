@@ -79,6 +79,60 @@
     return { sekunden: ms / 1000, ueberlappungSek: ueberMs / 1000 };
   }
 
+  /**
+   * Zeitpunkte in ABSCHNITTE zerlegen, getrennt an den Pausen.
+   *
+   * WARUM DAS HIER STEHT UND NICHT IM WERKZEUG. `tools/zeiten-sammeln.mjs`
+   * braucht git und laeuft nur in Node. Diese Rechnung braucht nichts davon —
+   * sie bekommt Zahlen und gibt Zahlen zurueck. Steht sie hier, prueft sie
+   * `tests/smoke_zeit.mjs` OHNE git und OHNE Browser, und ein Gegenprobe-Fall
+   * kann daran ansetzen. Stuende sie im Werkzeug, waere sie nur mit einem
+   * gestellten Depot zu messen — und dann messe man das Depot mit.
+   *
+   * ⚠ DIE PAUSEN WERDEN BEZIFFERT, NICHT WEGGELASSEN. Wer sie stumm abzieht,
+   * liefert eine kleinere Zahl ohne Beleg — und eine Korrektur, die man nicht
+   * sieht, ist von einem Fehler nicht zu unterscheiden. Deshalb kommen beide
+   * heraus: was gezaehlt wurde UND was abgezogen wurde.
+   *
+   * ⚠ EIN EINZELNER ZEITPUNKT IST EIN ABSCHNITT VON NULL. Das ist keine
+   * Nachlaessigkeit, sondern die Untergrenze: ein Commit ist ein Zeitpunkt,
+   * und was davor geschehen ist, steht nirgends. Eine erfundene Mindestdauer
+   * saehe wie eine gemessene aus.
+   *
+   * Die Grenze trennt bei „LAENGER als" — genau `lueckeMin` gehoert noch
+   * dazu. Sonst haette die Zahl zwei Bedeutungen, je nachdem wer sie liest.
+   */
+  function zerlegeNachLuecke(zeitpunkte, lueckeMin) {
+    var grenzeMs = Math.max(0, Number(lueckeMin) || 0) * 60000;
+    /* ⚠ `Number(null)` IST 0, NICHT NaN — und 0 ist der 1.1.1970, gemessen
+       am 2026-09-16 von der eigenen Probe gefangen. Dieselbe Familie wie
+       `a ?? b` bei `null` und `${X:-vorgabe}` bei leerem X: ein Ausdruck, der
+       „nichts" bedeutet, wird von der Schnittstelle anders gedeutet als vom
+       Schreibenden. Ein leerer Wert wurde dadurch zu einem Zeitpunkt, und aus
+       vier Commits wurden fuenf — mit einem Abschnitt im Jahr 1970.
+       Deshalb wird „nichts" AUSDRUECKLICH abgewiesen, bevor `Number` deutet.
+       Auch `""` und `false`: beides ergibt 0. */
+    var p = (zeitpunkte || [])
+      .filter(function (z) { return z !== null && z !== undefined && z !== "" && z !== false; })
+      .map(function (z) { return Number(z); })
+      .filter(function (z) { return isFinite(z); })
+      .sort(function (a, b) { return a - b; });
+    var abschnitte = [], pausen = [], pausenMs = 0, i = 0;
+    while (i < p.length) {
+      var von = p[i], bis = p[i], zahl = 1;
+      while (i + 1 < p.length && p[i + 1] - p[i] <= grenzeMs) {
+        i += 1; bis = p[i]; zahl += 1;
+      }
+      abschnitte.push({ von: von, sekunden: (bis - von) / 1000, zeitpunkte: zahl });
+      if (i + 1 < p.length) {
+        pausen.push({ von: p[i], sekunden: (p[i + 1] - p[i]) / 1000 });
+        pausenMs += p[i + 1] - p[i];
+      }
+      i += 1;
+    }
+    return { abschnitte: abschnitte, pausen: pausen, pausenSek: pausenMs / 1000 };
+  }
+
   /*
    * ══ DER WEG NACH DRAUSSEN IST DAS GLOBAL — UND NUR DAS ════════════════════
    *
@@ -680,6 +734,7 @@
 
   if (welt) welt.WERKSTATT_ZEIT = {
     fahrtAbschnitte: fahrtAbschnitte, vereinigt: vereinigt, dauerText: dauerText,
+    zerlegeNachLuecke: zerlegeNachLuecke,
     tagOrt: tagOrt, aufteilung: aufteilung,
     zweckNachtragen: zweckNachtragen, ZEITFELDER: ZEITFELDER,
     dauerLang: dauerLang, standAusgecheckt: standAusgecheckt,

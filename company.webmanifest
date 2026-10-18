@@ -2,6 +2,7 @@
   "name": "Kim Hub Company",
   "short_name": "Kim Hub Co",
   "description": "Fünf Rollen bauen an einem Auftrag — im Browser, auf deinem eigenen KI-Zugang.",
+  "id": "/kim-hub-company/",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

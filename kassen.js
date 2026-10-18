@@ -48,6 +48,82 @@
    *   laufzeitMinuten    Ein DECKEL, keine Dauer. Beide Kassen tragen denselben;
    *                      addiert stünde dort eine Erlaubnis, die nie galt.
    */
+  /**
+   * EINE Rechnung, die Token einer Rolle zusammenzählt — für `zusammen`
+   * (zwei Kassen einer Fahrt) und `tokenSummen` (alle Fahrten des Buchs).
+   * Zwei Fassungen liefen auseinander, und dann stünde auf der Kachel eine
+   * andere Zahl als im Fahrtenbuch.
+   *
+   * ⚡ DER CACHE GETRENNT, JE ZUGANG (Bauschritt 3, 2026-09-17). `ein` ist
+   * die Summe aus frisch + cacheNeu + cacheAlt; der Kontext bleibt ein
+   * MAXIMUM, keine Summe.
+   *
+   * ⚠ ALTE EINTRÄGE KENNEN DIE TRENNUNG NICHT. Ein `tokenJeRolle` von vor
+   * dem 2026-09-17 trägt nur `ein` — dort ist nicht mehr zu sagen, wie viel
+   * davon aus dem Cache kam. Es wird NICHT geraten (als „frisch" gebucht
+   * sähe es aus wie eine Messung): die Zahl landet in `ungetrennt`, und die
+   * Anzeige sagt dazu, dass sie älter ist als die Trennung.
+   */
+  function leerToken() {
+    return { ein: 0, aus: 0, kontext: 0, aufrufe: 0,
+             frisch: 0, cacheNeu: 0, cacheAlt: 0, ungetrennt: 0, jeZugang: {} };
+  }
+  function tokenAddieren(ziel, rolle, v) {
+    if (!v || typeof v !== "object") return;
+    const e = ziel[rolle] || (ziel[rolle] = leerToken());
+    e.ein += Number(v.ein || 0);
+    e.aus += Number(v.aus || 0);
+    e.kontext = Math.max(e.kontext, Number(v.kontext || 0));
+    e.aufrufe += Number(v.aufrufe || 0);
+    if (v.frisch === undefined && v.cacheNeu === undefined && v.cacheAlt === undefined) {
+      e.ungetrennt += Number(v.ein || 0);
+    } else {
+      e.frisch += Number(v.frisch || 0);
+      e.cacheNeu += Number(v.cacheNeu || 0);
+      e.cacheAlt += Number(v.cacheAlt || 0);
+      e.ungetrennt += Number(v.ungetrennt || 0);
+    }
+    for (const [zg, z] of Object.entries(v.jeZugang || {})) {
+      const t = e.jeZugang[zg] || (e.jeZugang[zg] = { ein: 0, aus: 0, frisch: 0, cacheNeu: 0,
+                                                       cacheAlt: 0, aufrufe: 0 });
+      for (const f of ["ein", "aus", "frisch", "cacheNeu", "cacheAlt", "aufrufe"])
+        t[f] += Number((z || {})[f] || 0);
+    }
+  }
+
+  /**
+   * TOKEN JE AGENT ÜBER ALLE FAHRTEN (Bauschritt 3, 2026-09-17).
+   *
+   * `kasse.bericht()` kennt die Zahlen je FAHRT, das Fahrtenbuch hebt sie je
+   * Fahrt auf — und die Ansicht zeigte sie nirgends. Hier werden sie über das
+   * ganze Buch zusammengezählt, je Rolle, Cache getrennt, je Zugang.
+   *
+   * ⚠ NUR ECHTE FAHRTEN. Ein Trockenlauf trägt Token aus einem hinterlegten
+   * Vorrat — dieselbe Zahl bei jedem Aufruf, keine Messung. Sie in die Summe
+   * zu nehmen hiesse, erfundene Token neben gemessene zu stellen, und beide
+   * sähen gleich aus. Wie viele Fahrten deshalb NICHT mitzählen, steht in
+   * `ausgelassen` — eine Lücke wird benannt, nicht verschwiegen.
+   */
+  function tokenSummen(fahrten) {
+    var f = Array.isArray(fahrten) ? fahrten : [];
+    var jeRolle = {};
+    var echte = 0, ausgelassen = 0, ohneToken = 0;
+    f.forEach(function (x) {
+      if (!x || !x.echt) { if (x) ausgelassen += 1; return; }
+      echte += 1;
+      var t = x.tokenJeRolle;
+      if (!t || typeof t !== "object" || !Object.keys(t).length) { ohneToken += 1; return; }
+      Object.keys(t).forEach(function (r) { tokenAddieren(jeRolle, r, t[r]); });
+    });
+    var gesamt = leerToken();
+    Object.keys(jeRolle).forEach(function (r) { tokenAddieren({ g: gesamt }, "g", jeRolle[r]); });
+    /* Ein Maximum über Rollen hinweg ist keine Auskunft — jede Rolle hat
+       ihren eigenen Kontext. Die Gesamtzeile trägt deshalb keinen. */
+    gesamt.kontext = null;
+    return { jeRolle: jeRolle, gesamt: gesamt, fahrten: echte,
+             ausgelassen: ausgelassen, ohneToken: ohneToken };
+  }
+
   function zusammen(...berichte) {
     const teile = berichte.filter(Boolean);
     if (teile.length === 0) return null;
@@ -72,13 +148,8 @@
         jeRolle[r] = Number(((jeRolle[r] || 0) + (Number(v) || 0)).toFixed(4));
       for (const [r, v] of Object.entries(b.msJeRolle || {}))
         msJeRolle[r] = (msJeRolle[r] || 0) + (Number(v) || 0);
-      for (const [r, v] of Object.entries(b.tokenJeRolle || {})) {
-        const e = tokenJeRolle[r] || (tokenJeRolle[r] = { ein: 0, aus: 0, kontext: 0, aufrufe: 0 });
-        e.ein += Number(v.ein || 0);
-        e.aus += Number(v.aus || 0);
-        e.kontext = Math.max(e.kontext, Number(v.kontext || 0));
-        e.aufrufe += Number(v.aufrufe || 0);
-      }
+      for (const [r, v] of Object.entries(b.tokenJeRolle || {}))
+        tokenAddieren(tokenJeRolle, r, v);
     }
 
     return {
@@ -129,12 +200,58 @@
     var f = Array.isArray(fahrten) ? fahrten : [];
     var echte = f.filter(function (x) { return x && x.echt; });
     var bezahlte = echte.filter(function (x) { return (Number(x.eur) || 0) > 0; });
+    /*
+     * ⚡ DER ZUGANG, seit Bauschritt 2 (2026-09-17).
+     *
+     * Eine Abo-Fahrt bucht `eur: 0` — sie lief über `claude -p` und hat keine
+     * Rechnung erzeugt. Damit sah sie in der Anzeige genauso aus wie eine
+     * Fahrt, die vor dem ersten Aufruf starb, und die Unterzeile behauptete
+     * wörtlich „der Rest starb vor dem ersten Aufruf". **Das war eine
+     * Unwahrheit über eine Fahrt, die vollständig gelaufen ist.**
+     *
+     * ⚠ UND DAS IST DER GRUND, AUS DEM HIER EINE VIERTE ZAHL STEHT:
+     * „echt gemeint minus bezahlt" ist NICHT „starb vor dem ersten Aufruf".
+     * Es war eine Rechnung, die im Normalfall dasselbe Ergebnis hatte — und
+     * genau deshalb fiel sie nicht auf. Gezählt wird jetzt, was gemeint ist:
+     * **null Aufrufe**.
+     *
+     * ⚠ `eurGerechnet` FÄLLT AUF `eur` ZURÜCK. Fahrten von VOR dem 2026-09-17
+     * tragen das Feld nicht; ohne diesen Rückfall wäre die gesparte Summe für
+     * jede alte Fahrt 0 und für die neuen richtig — eine Zahl, die je nach
+     * Alter der Zeile etwas anderes bedeutet.
+     */
+    var abo = echte.filter(function (x) { return x.zugang === "abo"; });
+    var gemischt = echte.filter(function (x) { return x.zugang === "gemischt"; });
+    var gestorben = echte.filter(function (x) { return (Number(x.aufrufe) || 0) === 0; });
+    var gerechnetVon = function (x) {
+      var g = Number(x.eurGerechnet);
+      return isFinite(g) && g > 0 ? g : (Number(x.eur) || 0);
+    };
     var tage = {};
     f.forEach(function (x) { if (x && x.tag) tage[x.tag] = true; });
     return {
       fahrten: f.length,
       echte: echte.length,
       bezahlte: bezahlte.length,
+      /* WIE VIELE über welche Kasse liefen. */
+      aboFahrten: abo.length,
+      gemischteFahrten: gemischt.length,
+      /* Fahrten, die vor dem ersten Aufruf starben — GEMESSEN, nicht aus
+         „echt minus bezahlt" geschlossen. */
+      vorAufrufGestorben: gestorben.length,
+      /*
+       * WAS DAS ABO GESPART HAT. Das ist der Forschungs-Gewinn von
+       * Bauschritt 2, und bis hierher entstand die Zahl in `api.mjs` und
+       * wurde weggeworfen — genau der Fehler, den Kimhubs Verfassung dreimal
+       * beschreibt.
+       *
+       * ⚠ `null` HEISST „KEINE ABO-FAHRT DA", nicht „null Euro gespart".
+       * Wer beides als 0 liest, meldet „das Abo hat nichts gebracht", wo
+       * schlicht nichts gemessen wurde.
+       */
+      gespartEur: abo.length
+        ? Number(abo.reduce(function (a, x) { return a + gerechnetVon(x); }, 0).toFixed(4))
+        : null,
       /* Gerundet auf Cent, wie ueberall in dieser Datei — Gleitkomma-Summen
          ueber viele Fahrten laufen sonst in der vierten Stelle auseinander. */
       eur: Number(echte.reduce(function (a, x) { return a + (Number(x.eur) || 0); }, 0).toFixed(4)),
@@ -148,6 +265,7 @@
     };
   }
 
-  if (welt) welt.WERKSTATT_KASSEN = { zusammen: zusammen, fahrtSummen: fahrtSummen };
+  if (welt) welt.WERKSTATT_KASSEN = { zusammen: zusammen, fahrtSummen: fahrtSummen,
+                                     tokenSummen: tokenSummen };
 })(typeof window !== "undefined" ? window
    : (typeof globalThis !== "undefined" ? globalThis : null));

@@ -30,7 +30,7 @@
    stehen neu im Vorrat, und `index.html` trägt die Kette samt
    `SBKIM_DB_SUFFIX`. Ohne den Bump lieferte der Worker die alte Seite
    weiter — die App sähe aus, als wäre nichts geschehen. */
-var CACHE_VERSION = "kim-hub-company-v86";
+var CACHE_VERSION = "kim-hub-company-v87";
 
 /* ⚠ NUR EIGENE VORRAETE AUFRAEUMEN — `caches` gehoert dem URSPRUNG, nicht dem
  * Pfad. Auf lausiklauskn-png.github.io liegen rund zwanzig Apps; ein Filter,
@@ -52,6 +52,8 @@ var SCHALE = [
   "./schicht/konferenz.mjs",
   "./schicht/plan-form.mjs",
   "./schicht/umfang.mjs",
+  "./schicht/festgefahren.mjs", "./schicht/zeitschaetzung.mjs",
+  "./assets/installieren.js",
   "./schicht/grundsaetze.md", "./schicht/mitarbeiter.json",
   /* ⚠ NUR DIE KLEINEN (2026-09-08). Die 512er stehen im Manifest, aber NICHT
      hier: sie werden ausschliesslich beim Installieren gebraucht, und dabei

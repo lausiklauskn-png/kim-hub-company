@@ -18,6 +18,32 @@ const liste = (beschreibung, gegenstand = { type: "string" }) =>
   ({ type: "array", description: beschreibung, items: gegenstand });
 
 /**
+ * Das Werkstück, wie ein Prüfer es zu sehen bekommt — ALLE Dateien, nicht nur
+ * die erste.
+ *
+ * ⚠ EINE STELLE, NICHT VIER. Arzt, Negativbauer, Gestalterin und Nutzer bauten
+ * diesen Block bis zum 2026-09-17 jeder für sich, jeder mit demselben
+ * `Gebaut (${artefakt.dateiname})`. Solange es eine Datei gab, war das eine
+ * harmlose Wiederholung. Mit mehreren wären es vier Fassungen davon, was ein
+ * Prüfer sieht — und die laufen auseinander. Dann urteilt der Arzt über etwas
+ * anderes als der Nutzer, und keine Probe kann sagen, welcher recht hat.
+ *
+ * ⚠ UND EIN PRÜFER, DER NUR DIE HAUPTDATEI SIEHT, URTEILT ÜBER EIN DRITTEL.
+ * Das Prüfmerkmal spricht vom ganzen Werkstück. Wer dem Arzt die Anleitung
+ * vorenthält und ihn dann fragen lässt, ob die Anleitung stimmt, bekommt eine
+ * Antwort, die niemandem nützt.
+ */
+export function werkstueck(artefakt) {
+  const weitere = Array.isArray(artefakt?.weitere) ? artefakt.weitere : [];
+  const kopf = weitere.length
+    ? `Gebaut wurden ${weitere.length + 1} Dateien. Das Prüfmerkmal gilt für ` +
+      `das GANZE Werkstück, nicht nur für die erste.\n\n`
+    : "";
+  const teil = (d) => `Datei: ${d.dateiname}\n---\n${d.inhalt}\n---\n`;
+  return kopf + teil(artefakt) + weitere.map((d) => `\n${teil(d)}`).join("");
+}
+
+/**
  * Gemeinsame Leitplanken — jede Rolle bekommt sie, ohne Ausnahme.
  *
  * ── WARUM DIE SECHSTE REGEL KEINE FÄHIGKEIT MEHR BEHAUPTET (2026-09-03) ────
@@ -141,10 +167,38 @@ export const ROLLEN = {
   bauer: {
     schema: {
       type: "object", additionalProperties: false,
-      required: ["dateiname", "inhalt", "offen", "weitergabe"],
+      required: ["dateiname", "inhalt", "weitere", "offen", "weitergabe"],
       properties: {
-        dateiname: s("Dateiname mit Endung, ohne Pfad."),
-        inhalt: s("Der VOLLSTÄNDIGE Inhalt der Datei. Nicht gekürzt, keine Auslassungszeichen."),
+        dateiname: s("Dateiname der HAUPTdatei, mit Endung, ohne Pfad."),
+        inhalt: s("Der VOLLSTÄNDIGE Inhalt der Hauptdatei. Nicht gekürzt, keine Auslassungszeichen."),
+        /* ⚠ SEIT 2026-09-17, UND ES WAR EIN GEMESSENER SCHADEN.
+           Bis dahin trug dieses Schema GENAU EINE Datei. Ein Prüfmerkmal, das
+           vier verlangt — und ein Werkzeug besteht fast nie aus einer —, war
+           damit bauartbedingt unerreichbar: der Arzt musste in jeder Runde
+           „nachbessern" sagen, und keine weitere Runde hätte es gelöst. Gemessen
+           am Sende-Prüfer: drei Runden, 4,80 €, dreimal dieselbe Weitergabe
+           („liegen als Zeichenketten, nicht als Dateien").
+
+           `weitere` steht NEBEN `dateiname`/`inhalt`, nicht an ihrer Stelle:
+           jede Stelle, die `artefakt.dateiname` liest — Anzeige, Fahrtenbuch,
+           Fortsetzung, eine `lauf.json` von vor diesem Tag — liest weiter
+           dasselbe. Eine Liste an ihrer Stelle hätte alles davon still gebrochen.
+
+           Es bleibt in `required`, mit „leer, wenn nur eine" — wie `offen`. Ein
+           wirklich weggelassenes Feld und eine Absicht sehen sonst gleich aus. */
+        weitere: {
+          type: "array",
+          description: "Weitere Dateien, die zum Werkstück gehören (Köder, Anleitung, " +
+            "Beispiel). LEER, wenn es nur eine gibt. Die Hauptdatei steht NICHT hier.",
+          items: {
+            type: "object", additionalProperties: false,
+            required: ["dateiname", "inhalt"],
+            properties: {
+              dateiname: s("Dateiname mit Endung, ohne Pfad und ohne führenden Punkt."),
+              inhalt: s("Der VOLLSTÄNDIGE Inhalt. Nicht gekürzt, keine Auslassungszeichen."),
+            },
+          },
+        },
         offen: liste("Was du nicht geschafft oder bewusst weggelassen hast. Leer, wenn nichts."),
         weitergabe: s("Was der Nächste mit diesem Stück tun muss und was daran ihm " +
           "Arbeit macht. KONKRET am vorliegenden Fall — „passt schon“ ist keine Antwort."),
@@ -153,13 +207,38 @@ export const ROLLEN = {
     frage: ({ spec, befunde = [], urteil = null }) => {
       let t = `Baue: ${spec.titel} (${spec.art})\n\n${spec.beschreibung}\n\n` +
               `Prüfmerkmal: ${spec.pruefmerkmal}\n`;
+      /*
+       * ⚠ DIE SCHÄRFUNG STAND SEIT DEM 2026-09-05 IN `spec` UND WURDE NIE
+       * GELESEN — gemessen am 2026-09-21: `spec.schaerfung` kam in dieser Datei
+       * **null Mal** vor. Die Verfassung behauptet seitdem das Gegenteil
+       * („Sein Ergebnis geht in `spec.schaerfung` und damit in die Anweisung an
+       * den Bauer; sonst wäre er ein Aufruf, dessen Antwort niemand liest").
+       * Ben WAR genau das: ein bezahlter Aufruf je Schicht, dessen Antwort im
+       * Protokoll stand und sonst nirgends. Dieselbe Familie wie
+       * `werkzeugRufe` und `total_cost_usd` — eine Auskunft entsteht und wird
+       * weggeworfen, zum fünften Mal in dieser Werkstatt.
+       *
+       * Sie steht VOR den Beanstandungen: sie gilt für den ganzen Bau, die
+       * Beanstandungen für diese eine Runde.
+       *
+       * ⚠ UND DER NOTAUSGANG HÄNGT DARAN. Er legt seinen Rat in dasselbe Feld;
+       * ohne diese Zeile wäre sein Ausgang „weiter" eine Behauptung — beraten,
+       * bezahlt, und die Schicht liefe unverändert weiter.
+       */
+      if (spec.schaerfung)
+        t += `\nGeschärft wurde daran schon:\n${spec.schaerfung}\n`;
       if (urteil && urteil.urteil !== "taugt")
         t += `\nDer Arzt hat beanstandet (${urteil.urteil}): ${urteil.begruendung}\n` +
              (urteil.fehlende?.length ? `Fehlt noch: ${urteil.fehlende.join(" · ")}\n` : "");
       if (befunde.length)
         t += `\nDer Negativbauer hat gefunden:\n` +
              befunde.map((b) => `- [${b.schwere}] ${b.was} — Fall: ${b.fall}`).join("\n") + "\n";
-      return t + `\nLiefere den vollständigen Inhalt. Wer eine Auslassung schreibt, ` +
+      return t + `\nGehören mehrere Dateien dazu (Beispiel, Anleitung, Testdaten), ` +
+             `liefere sie in „weitere" — jede vollständig. Sie werden ` +
+             `wirklich abgelegt, also erfinde keine Datei, die du nicht füllst, ` +
+             `und pack nichts in die Hauptdatei, was eine eigene sein sollte.\n` +
+             `Ein Dateiname trägt eine Endung, keinen Pfad und keinen führenden Punkt.\n` +
+             `\nLiefere den vollständigen Inhalt. Wer eine Auslassung schreibt, ` +
              `liefert eine Ruine, die wie ein Haus aussieht.`;
     },
   },
@@ -179,8 +258,7 @@ export const ROLLEN = {
       },
     },
     frage: ({ spec, artefakt }) =>
-      `Prüfmerkmal:\n${spec.pruefmerkmal}\n\nGebaut wurde (${artefakt.dateiname}):\n` +
-      `---\n${artefakt.inhalt}\n---\n\n` +
+      `Prüfmerkmal:\n${spec.pruefmerkmal}\n\nGebaut wurde:\n` + werkstueck(artefakt) + `\n` +
       (artefakt.offen?.length ? `Der Bauer nennt selbst offen: ${artefakt.offen.join(" · ")}\n\n` : "") +
       `Urteile NUR gegen das Prüfmerkmal. „Gefällt mir" ist kein Urteil, ` +
       `„erfüllt Punkt 3 nicht, weil …" ist eines.`,
@@ -205,7 +283,7 @@ export const ROLLEN = {
     },
     frage: ({ spec, artefakt }) =>
       `Das hier soll erfüllen: ${spec.pruefmerkmal}\n\n` +
-      `Gebaut (${artefakt.dateiname}):\n---\n${artefakt.inhalt}\n---\n\n` +
+      `Gebaut:\n` + werkstueck(artefakt) + `\n` +
       `Such, was daran kaputtgeht oder in die Irre führt. Zu JEDEM Befund gehört ` +
       `ein konkreter Fall. Findest du nichts, gib eine leere Liste zurück — ` +
       `ein erfundener Befund kostet die nächste Runde und findet nichts.`,
@@ -295,7 +373,7 @@ export const ROLLEN = {
       },
     },
     frage: ({ spec, artefakt, netzDa }) =>
-      `Gebaut (${artefakt.dateiname}):\n---\n${artefakt.inhalt}\n---\n\n` +
+      `Gebaut:\n` + werkstueck(artefakt) + `\n` +
       `Es sollte erfüllen: ${spec.pruefmerkmal}\n\n` +
       `Sieh es dir als Gestalterin an: Knöpfe, Wege, Beschriftungen, Reihenfolge — ` +
       `was fällt ins Auge, was wird übersehen, wo muss jemand raten?\n\n` +
@@ -341,7 +419,7 @@ export const ROLLEN = {
     frage: ({ spec, artefakt }) =>
       `Du benutzt das hier zum ersten Mal — nicht um es zu prüfen, sondern weil du ` +
       `damit etwas erledigen willst.\n\n` +
-      `Vor dir (${artefakt.dateiname}):\n---\n${artefakt.inhalt}\n---\n\n` +
+      `Vor dir:\n` + werkstueck(artefakt) + `\n` +
       `Wozu es da sein soll: ${spec.beschreibung}\n\n` +
       `Versetz dich in jemanden, der das TÄGLICH benutzt und wenig Geduld hat. Geh ` +
       `einen Ablauf wirklich durch. Nenn jede Stelle, an der du hängen bleibst, mit ` +

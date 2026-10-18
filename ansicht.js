@@ -24,6 +24,17 @@
   /* WIE DER FEIERABEND HEISST. Die Kennworte kommen aus `schicht.mjs`; hier
      bekommen sie ihr Wort, an EINER Stelle. Ein unbekanntes Kennwort wird
      nicht verschwiegen — dann steht es selbst da, statt „Grund: " ohne Grund. */
+  /* EINE ANGEFANGENE RUNDE WIRD BENANNT (Klaus' Fahrt 7, 2026-09-17): Runde 3
+     hatte begonnen, Emil hatte gebaut, dann war das Geld alle — und hier stand
+     „2 Runden". `runden` zählt die DURCHGELAUFENEN, `angefangen` die
+     begonnenen; alte Läufe tragen das Feld nicht, dann bleibt der Satz leer.
+     ⚠ Diese Zeile hat keinen Browser-Wächter — sie ist im Trockenlauf von
+     `lauf.mjs` gemessen (smoke_fortsetzung), nicht auf dem Schirm. */
+  function angefangenSatz(e) {
+    if (!e || !(Number(e.angefangen) > Number(e.runden))) return "";
+    return " Runde " + e.angefangen + " angefangen, nicht beendet — was darin bezahlt ist, " +
+      "liegt in lauf.json; --fortsetzen nimmt es wieder auf.";
+  }
   var GRUND_WORT = {
     geld:      "Das Geld war alle: ",
     zeit:      "Die Zeit war um: ",
@@ -383,6 +394,32 @@
        die Freigabe vor dem Bau; ohne diese Zeilen fiele sie in den Auffang
        unten und zeigte rohes JSON. Dass sie fehlte, konnte keine Probe sehen:
        der mitgelieferte Beispiel-Lauf hat nie ein Tor gefahren. */
+    /* ⚠ DER NOTAUSGANG — dieselbe Falle wie „merkliste" und „tor": eine Phase,
+       die hier fehlt, fällt in den Auffang unten und zeigt ROHES JSON. Der
+       mitgelieferte Beispiel-Lauf trägt sie nicht, also kann keine Probe sie
+       vermissen; geschrieben wird sie deshalb zugleich mit dem Code, der sie
+       erzeugt. Zum dritten Mal dieselbe Sorte — deshalb steht sie hier oben
+       bei ihren Geschwistern und nicht am Ende. */
+    if (e.phase === "notausgang") {
+      var hg = (e.haenger || []).map(function (h) {
+        return "· " + (h.text || h.schluessel) + " — Runde " +
+               (h.runden || []).join(" und ") + ", also über " + h.male + " Runden";
+      }).join("\n");
+      if (!e.gefeuert)
+        return { marke: "Festgefahren", knopf: "was hängt",
+                 text: "Die Schicht dreht sich im Kreis" +
+                       (e.text ? " — " + e.text : ".") ,
+                 mehr: hg || "(nichts gezählt)" };
+      if (e.ausgang === "abbruch")
+        return { marke: "Notausgang ohne Einigung", knopf: "was hängt",
+                 text: "Die zweite Konferenz kam zu keinem Auftrag (" +
+                       (e.text || "ohne Grund") + "). Das geht an den Betreiber.",
+                 mehr: hg };
+      return { marke: "Notausgang · neuer Weg", knopf: "was beschlossen wurde",
+               text: e.ziel || "(kein Ziel genannt)",
+               mehr: (e.sieger ? "Gewonnen hat: " + e.sieger + "\n\n" : "") +
+                     (e.begruendung || "") + "\n\nWas hing:\n" + hg };
+    }
     if (e.phase === "tor")
       return { marke: e.freigegeben ? "Freigegeben" : "Angehalten",
                knopf: e.freigegeben ? "gibt den Bau frei" : "hält den Bau an",
@@ -1564,13 +1601,24 @@
       z.push(strich);
       z.push((l.ergebnis.fertig ? "Ziel erreicht - nach der Form." : "Nicht fertig.") +
         " Urteil: " + l.ergebnis.urteil + " | " + l.ergebnis.runden + " Runden | " +
-        "offene Befunde: " + l.ergebnis.offeneBefunde + ".");
+        "offene Befunde: " + l.ergebnis.offeneBefunde + "." + angefangenSatz(l.ergebnis));
       if (l.artefakt && l.artefakt.inhalt) {
+        /* Seit dem 2026-09-17 kann eine Schicht mehrere Dateien ablegen. Die
+           Uebergabe traegt sie ALLE: wer nur die erste ausgibt, haendigt ein
+           Werkstueck aus, dem die Anleitung fehlt, und das faellt erst dem auf,
+           der damit weiterbaut. */
+        var alleD = [{ dateiname: l.artefakt.dateiname || "entwurf.txt",
+                       inhalt: l.artefakt.inhalt }];
+        if (l.artefakt.weitere && l.artefakt.weitere.length)
+          alleD = alleD.concat(l.artefakt.weitere);
         z.push("");
-        z.push("HERAUSGEKOMMEN IST: " + (l.artefakt.dateiname || "entwurf.txt") +
-          " (" + l.artefakt.inhalt.length + " Zeichen)");
-        z.push(strich);
-        z.push(l.artefakt.inhalt);
+        z.push("HERAUSGEKOMMEN IST: " + alleD.length + (alleD.length === 1 ? " Datei" : " Dateien"));
+        for (var di = 0; di < alleD.length; di++) {
+          z.push("");
+          z.push(alleD[di].dateiname + " (" + (alleD[di].inhalt || "").length + " Zeichen)");
+          z.push(strich);
+          z.push(alleD[di].inhalt || "");
+        }
       }
     }
     var offen = [];
@@ -1613,7 +1661,8 @@
     var p = el("p");
     p.appendChild(el("b", null, e.fertig ? "Ziel erreicht — nach der Form. " : "Nicht fertig. "));
     p.appendChild(document.createTextNode(
-      "Urteil: " + e.urteil + " · " + e.runden + " Runden · offene Befunde: " + e.offeneBefunde + "."));
+      "Urteil: " + e.urteil + " · " + e.runden + " Runden · offene Befunde: " + e.offeneBefunde + "."
+      + angefangenSatz(e)));
     ziel.appendChild(p);
     /*
      * ⚠ UND WORAN ES LAG (Klaus 2026-09-07). Hier stand „Nicht fertig ·
@@ -2065,6 +2114,84 @@
    * geladenen Lauf, und lag keiner vor, sprang die Seite aufs Beispiel. Eine
    * Werkstatt, die gestern gelaufen ist, war danach nirgends mehr zu sehen.
    */
+  /*
+   * ⚡ TOKEN JE AGENT ÜBER ALLE FAHRTEN (Bauschritt 3, 2026-09-17).
+   *
+   * `kasse.bericht()` liefert `tokenJeRolle` je FAHRT, das Fahrtenbuch hebt
+   * es je Fahrt auf — und diese Seite zeigte es nirgends. Die Zahl entstand
+   * und wurde weggeworfen, zum wiederholten Mal. Gerechnet wird in
+   * `kassen.js` (`tokenSummen`), damit die Rechnung ohne Browser prüfbar ist;
+   * hier wird nur gezeichnet.
+   *
+   * ⚠ DREI DINGE, DIE MAN SIEHT UND NICHT RÄT: der Cache steht getrennt
+   * (frisch · neu · gelesen), der Zugang steht dabei (api · abo), und was
+   * älter ist als die Trennung, heisst „ungetrennt" statt „frisch".
+   */
+  function zeichneTokenAgenten(fahrten) {
+    var t = $("#token-agenten"), hin = $("#token-agenten-hinweis");
+    // Fail-soft, kein Ausstieg: eine alte Seite im Vorrat hat die Tabelle
+    // nicht — dann fehlt eine Karte, nicht die ganze Buchhaltung.
+    if (!t || !hin) return;
+    var k = el("tbody"); leer(t);
+    var s = window.WERKSTATT_KASSEN.tokenSummen(fahrten);
+    var rollen = Object.keys(s.jeRolle);
+    if (!rollen.length) {
+      var z0 = el("tr");
+      z0.appendChild(el("td", "fehlt leise", s.fahrten
+        ? "Die echten Fahrten in diesem Buch tragen keine Token-Zahlen."
+        : "Noch keine echte Fahrt mit Token-Zahlen — Trockenläufe zählen hier nicht."));
+      k.appendChild(z0); t.appendChild(k);
+      hin.textContent = "";
+      hin.setAttribute("data-token-lage", "leer");
+      return;
+    }
+    var n = function (x) { return (Number(x) || 0).toLocaleString("de-DE"); };
+    var kopf = el("tr");
+    ["Rolle", "Aufrufe", "aus", "frisch", "Cache neu", "Cache gelesen", "Kontext"]
+      .forEach(function (h, i) { kopf.appendChild(el("th", i >= 1 ? "zahl" : null, h)); });
+    k.appendChild(kopf);
+    var zeile = function (name, e, klasse) {
+      var r = el("tr", klasse);
+      var wer = el("td", null, name);
+      /* Der Zugang steht AN DER ROLLE, nicht als eigene Tabelle: die Frage
+         „lief Emil über das Abo?" ist eine Frage an die Zeile. */
+      var zg = Object.keys(e.jeZugang || {});
+      if (zg.length) {
+        var teile = zg.map(function (z) {
+          return z + " " + n(e.jeZugang[z].aufrufe) + "×";
+        });
+        var sm = el("small", "leise", "  " + teile.join(" · "));
+        sm.setAttribute("data-zugaenge", zg.sort().join(","));
+        wer.appendChild(sm);
+      }
+      r.appendChild(wer);
+      r.setAttribute("data-rolle", name);
+      r.appendChild(el("td", "zahl", n(e.aufrufe)));
+      r.appendChild(el("td", "zahl", n(e.aus)));
+      var frisch = el("td", "zahl", n(e.frisch));
+      if (e.ungetrennt) {
+        frisch.appendChild(el("small", "leise", " +" + n(e.ungetrennt) + " ungetrennt"));
+        frisch.setAttribute("data-ungetrennt", String(e.ungetrennt));
+      }
+      r.appendChild(frisch);
+      r.appendChild(el("td", "zahl", n(e.cacheNeu)));
+      r.appendChild(el("td", "zahl", n(e.cacheAlt)));
+      r.appendChild(el("td", "zahl", e.kontext === null ? "–" : n(e.kontext)));
+      return r;
+    };
+    rollen.forEach(function (r) { k.appendChild(zeile(r, s.jeRolle[r], null)); });
+    k.appendChild(zeile("alle", s.gesamt, "summe"));
+    t.appendChild(k);
+    var satz = "Aus " + s.fahrten + " echten Fahrt(en)";
+    if (s.ausgelassen) satz += ", " + s.ausgelassen + " Trockenlauf/-läufe nicht mitgezählt";
+    if (s.ohneToken) satz += ", " + s.ohneToken + " echte ohne Token-Zahlen";
+    if (s.gesamt.ungetrennt)
+      satz += ". " + n(s.gesamt.ungetrennt) + " Eingabe-Token stammen aus Fahrten von vor " +
+        "dem 2026-09-17 und lassen sich nicht mehr in frisch und Cache trennen";
+    hin.textContent = satz + ".";
+    hin.setAttribute("data-token-lage", s.gesamt.ungetrennt ? "teils-ungetrennt" : "getrennt");
+  }
+
   function zeichneFahrtenbuch() {
     var t = $("#fahrten");
     // Ein Browser kann die alte Seite im Vorrat haben und das neue Skript
@@ -2106,8 +2233,10 @@
         $("#k-alle").textContent = "–";
         $("#k-alle-sub").textContent = "noch keine Fahrt eingetragen";
       }
+      zeichneTokenAgenten([]);
       return;
     }
+    zeichneTokenAgenten(f);
     var kopf = el("tr");
     ["Tag", "Was", "Dauer", "Aufrufe", "Kosten"].forEach(function (h, i) {
       kopf.appendChild(el("th", i >= 2 ? "zahl" : null, h));
@@ -2125,7 +2254,36 @@
       r.appendChild(was);
       r.appendChild(el("td", "zahl", x.minuten + " min"));
       r.appendChild(el("td", "zahl", String(x.aufrufe)));
-      r.appendChild(el("td", "zahl", x.echt ? eur(x.eur) : "–"));
+      /*
+       * ⚡ DIE KASSE STEHT AN DER ZAHL (2026-09-17, Bauschritt 2).
+       *
+       * Eine Abo-Fahrt bucht `eur: 0`. Ohne diese Zeile stand dort „0,00 €"
+       * und sah damit genauso aus wie eine Fahrt, die vor dem ersten Aufruf
+       * starb — **zwei ganz verschiedene Dinge mit demselben Anblick.**
+       *
+       * ⚠ UND DIE GERECHNETE ZAHL GEHÖRT DANEBEN, nicht an ihre Stelle. Sie
+       * ist das, was es gekostet HÄTTE; sie als Kosten zu zeigen wäre eine
+       * Rechnung, die niemand hatte. Sie als Einzige zu zeigen wäre die
+       * Auskunft, die Klaus sucht („was spart das Abo?") — aber an der
+       * falschen Stelle, denn die Spalte heißt Kosten.
+       */
+      var geld = el("td", "zahl");
+      if (!x.echt) {
+        geld.textContent = "–";
+      } else if (x.zugang === "abo") {
+        geld.appendChild(el("div", null, eur(0)));
+        geld.setAttribute("data-zugang", "abo");
+        var g = Number(x.eurGerechnet);
+        geld.appendChild(el("small", "leise",
+          "Abo" + (isFinite(g) && g > 0 ? " · " + eur(g) + " gespart" : "")));
+      } else {
+        geld.textContent = eur(x.eur);
+        if (x.zugang === "gemischt") {
+          geld.setAttribute("data-zugang", "gemischt");
+          geld.appendChild(el("small", "leise", "gemischt"));
+        }
+      }
+      r.appendChild(geld);
       k.appendChild(r);
     });
     t.appendChild(k);
@@ -2156,12 +2314,45 @@
      */
     if ($("#k-alle")) {
       $("#k-alle").textContent = eur(summe);
-      $("#k-alle-sub").textContent = sum.fahrten + " Fahrt(en), davon " +
-        sum.bezahlte + " mit Kosten" +
-        (sum.echte > sum.bezahlte
-          ? " (" + sum.echte + " echt gemeint, der Rest starb vor dem ersten Aufruf)"
-          : "") +
-        " · " + min + " min zusammen";
+      /*
+       * ⚠ HIER STAND EINE UNWAHRHEIT, und sie war im Normalfall richtig
+       * (2026-09-17). Der Satz lautete: „(N echt gemeint, der Rest **starb vor
+       * dem ersten Aufruf**)" — gerechnet als `echte − bezahlte`.
+       *
+       * Seit es Abo-Fahrten gibt, ist das falsch: eine Abo-Fahrt läuft
+       * vollständig durch und bucht trotzdem 0 €. Sie wurde damit als
+       * gestorben gemeldet. *Eine Rechnung, deren Ergebnis im Normalfall mit
+       * der gemeinten Zahl übereinstimmt, ist genau dort nicht messbar* —
+       * dieselbe Lehre wie bei `n − 3` in `umfang.mjs`.
+       *
+       * `kassen.js` zählt die Gestorbenen jetzt DIREKT (null Aufrufe), und
+       * die Abo-Fahrten stehen als eigene Zahl daneben.
+       */
+      var teile = [sum.fahrten + " Fahrt(en), davon " + sum.bezahlte + " mit Kosten"];
+      /*
+       * ⚠ „ECHT GEMEINT" BLEIBT STEHEN — und das ist ein Befund an diesem
+       * Umbau selbst (2026-09-17). Meine erste Fassung hat die Zahl
+       * weggelassen, und der vorhandene Wächter „… und sie wird trotzdem
+       * benannt, statt zu verschwinden" ist prompt gefallen. Er hatte recht:
+       * ohne sie verliert man, WIE VIELE Fahrten überhaupt echt gemeint
+       * waren — die zweite Hälfte derselben Auskunft, und sie steht seit dem
+       * 2026-09-07 aus gutem Grund da.
+       *
+       * Genannt wird sie, sobald sie eine eigene Aussage trägt: wenn nicht
+       * alle Fahrten echt gemeint waren (Trockenläufe dabei) ODER wenn nicht
+       * jede echt gemeinte Kosten hatte. Sonst wiederholte sie nur, was
+       * links daneben schon steht.
+       */
+      if (sum.echte !== sum.fahrten || sum.echte !== sum.bezahlte)
+        teile.push(sum.echte + " echt gemeint");
+      if (sum.aboFahrten)
+        teile.push(sum.aboFahrten + " über das Abo" +
+          (sum.gespartEur ? " (" + eur(sum.gespartEur) + " gespart)" : ""));
+      if (sum.gemischteFahrten) teile.push(sum.gemischteFahrten + " gemischt");
+      if (sum.vorAufrufGestorben)
+        teile.push(sum.vorAufrufGestorben + " starb vor dem ersten Aufruf");
+      teile.push(min + " min zusammen");
+      $("#k-alle-sub").textContent = teile.join(" · ");
     }
     $("#fahrten-hinweis").textContent = "An " + sum.tage + " Tag(en) gearbeitet. " +
       "Die Trockenläufe stehen mit drin: sie kosten nichts, sind aber Arbeit.";
@@ -2391,14 +2582,43 @@
         r.appendChild(el("td", "zahl", tg.minuten + " min"));
         k3.appendChild(r);
       });
+      /* ── Was die Zahl NICHT enthaelt, steht UNTER der Tabelle ──────────
+         Seit dem 2026-09-16 sammelt das Werkzeug ueber alle Depots und zieht
+         Pausen ab. Beides muss dastehen, sonst ist die Zahl eine stille
+         Untergrenze der Untergrenze — und ein flacher Klon schneidet sie ab,
+         ohne dass man es sieht. In die KACHEL gehoert das nicht: Klaus hat
+         „ich werde mit Text ueberschuettet" beanstandet, und die Kachel
+         beantwortet „wie viel", der Aufklapper „woraus". */
+      if (z3.gesamt && z3.gesamt.pausenMin) {
+        var zp = el("tr");
+        zp.appendChild(el("td", "fehlt leise",
+          "Pausen über " + (z3.lueckeMin || "?") + " min: " + z3.gesamt.pausenMin
+          + " min abgezogen und beziffert"));
+        k3.appendChild(zp);
+      }
+      if (z3.flachHinweis) {
+        var zf = el("tr");
+        zf.appendChild(el("td", "fehlt leise", String(z3.flachHinweis)));
+        zf.firstChild.setAttribute("data-bauzeit-flach", "ja");
+        k3.appendChild(zf);
+      }
       zt.appendChild(k3);
       var gesM = z3.tage.reduce(function (a, x) { return a + x.minuten; }, 0);
       $("#k-bau").textContent = Math.floor(gesM / 60) + " h " + (gesM % 60) + " min";
       /* Und wenn eine Zahl DA ist, sagt die Zeile, worauf sie beruht — samt
          ihrem Stand. Eine Untergrenze aus einer alten Sammlung sieht genauso
          aus wie eine frische. */
+      /* ⚠ FAIL-SOFT, KEIN UMBAU. Eine zeiten.json von VOR dem 2026-09-16
+         traegt kein `gesamt` und kein `repos` — dann bleibt genau die alte
+         Zeile stehen. Ein Ausbau haette die Kachel auf einer alten Sammlung
+         stumm gemacht, und das saehe aus wie ein Fehler in der App. */
+      var mehr = "";
+      if (z3.gesamt && z3.gesamt.sitzungen && z3.repos && z3.repos.length) {
+        mehr = " · " + z3.gesamt.sitzungen + " Sitzungen · "
+             + z3.repos.length + (z3.repos.length === 1 ? " Depot" : " Depots");
+      }
       bauSagen("gesammelt", "Untergrenze aus der Git-Historie · " + z3.tage.length
-        + " Tage" + (z3.erzeugt ? " · gesammelt " + String(z3.erzeugt).slice(0, 10) : ""));
+        + " Tage" + mehr + (z3.erzeugt ? " · gesammelt " + String(z3.erzeugt).slice(0, 10) : ""));
     }
   }
 
@@ -2933,13 +3153,21 @@
         ? minuten(gesamt).toFixed(1).replace(".", ",") + " min × " +
           eur(c / 100) + "/h = " + eur(k / 100)
         : "kein Stundensatz hinterlegt — die Stunden sind gemessen, der Betrag nicht");
-      /* Die Marken bleiben ZUSAETZLICH hier stehen: sie sind der Anker
-         mehrerer Waechter, und ein Umzug, der sie mitnimmt, macht die stumm,
-         statt sie umzuhaengen. Angezeigt wird die Aufteilung eine Zeile
-         hoeher. */
-      $("#k-klaus-sub").setAttribute("data-gestempelt", String(Math.round(gestempeltSek)));
-      $("#k-klaus-sub").setAttribute("data-gefahren", String(Math.round(gefahrenSek)));
-      $("#k-klaus-sub").setAttribute("data-doppelt", String(Math.round(doppeltSek)));
+      /* ⚠ HIER STANDEN DREI MARKEN, DIE NIEMAND GELESEN HAT — gemessen am
+         2026-09-21. Der Kommentar daneben lautete: „Die Marken bleiben
+         ZUSAETZLICH hier stehen: sie sind der Anker mehrerer Waechter, und ein
+         Umzug, der sie mitnimmt, macht die stumm, statt sie umzuhaengen."
+
+         Nachgezaehlt ueber alle Proben: `#k-klaus-sub` wird gelesen, aber nur
+         auf `data-satz`, `data-kosten-cent` und `textContent`. `data-gestempelt`,
+         `data-gefahren` und `data-doppelt` liest dort KEINE einzige Probe — die
+         Aufteilung wird seit dem Umzug vom 2026-09-10 an `#k-klaus-teile`
+         gemessen. *Ein Riegel, den keine Probe von seinem Fehlen unterscheiden
+         kann, ist eine Behauptung.*
+
+         Und er hat gekostet: der Gegenprobe-Fall „die Aufteilung ist nicht mehr
+         messbar" sabotierte genau diese tote Kopie und rutschte im vollen Lauf
+         durch — ein blinder Fall vor einem Waechter, der tadellos war. */
       $("#k-klaus-sub").setAttribute("data-satz", c ? String(c) : "keiner");
       /* Das ERGEBNIS als eigene Angabe. Der Satz daneben nennt beide Zahlen —
          den Stundensatz UND den Betrag —, und eine Prüfung, die im Text nach
@@ -3150,6 +3378,25 @@
   function uhrTick() {
     if (!uhrLaeuft) { if (tickHandle) { clearInterval(tickHandle); tickHandle = null; } return; }
     uhrAnzeigen();
+    /*
+     * ⚠ EIN OFFENES ZWECK-FELD WIRD NICHT WEGGEZEICHNET (2026-09-25).
+     *
+     * `uhrZeichnen()` baut die ganze Tabelle neu — samt der Zelle, in der
+     * gerade getippt wird. Laeuft die Uhr, geschah das jede Sekunde: wer bei
+     * laufender Uhr einen Zweck nachtrug, dem verschwand das Feld unter den
+     * Fingern, und was er getippt hatte, war weg.
+     *
+     * Gefunden hat es kein Nachdenken, sondern die Ausgangslage auf Klaus'
+     * Hetzner-Server: `smoke_stechuhr` wurde dort rot (`page.fill: Timeout`),
+     * hier im Behaelter blieb sie gruen — sie war schnell genug, um zwischen
+     * zwei Takten fertig zu werden. Eine Probe, die gegen den Takt einer Uhr
+     * gewinnt, misst die Maschine, nicht die Seite.
+     *
+     * Die grosse Anzeige tickt weiter; die Tabelle wartet, bis das Feld
+     * gesichert (das zeichnet selbst neu) oder abgebrochen ist (dann holt
+     * der naechste Takt die Tabelle nach).
+     */
+    if (document.querySelector('#uhr-liste [data-bearbeitet="ja"]')) return;
     uhrZeichnen();
   }
 
@@ -3766,6 +4013,84 @@
     t.textContent = lage ? lage.text : "";
     t.hidden = !lage;
     z.appendChild(t);
+
+    z.appendChild(stoppTeil());
+  }
+
+  /*
+   * ══ DER WEG ZURÜCK — anhalten, aus DIESEM oder aus einem ANDEREN Fenster ══
+   *
+   * Klaus 2026-09-22: „Der Link zu Termux funktioniert zurzeit nicht, wenn ich
+   * eine Schicht angefangen habe zu fahren. … Oder ein Befehl zum Kopieren für
+   * den Termux-Stopp. Aber das kennen Programmierer, die wissen, wie sie Termux
+   * stoppen müssen."
+   *
+   * ⚠ WARUM DER SPRUNG BEI LAUFENDER SCHICHT NICHT TUT, IST NICHT GEMESSEN.
+   * Klaus hat den Befund gemeldet, und er steht hier als seiner. `intent:` ist
+   * in diesem Chromium ohnehin wirkungslos (seit 2026-08-22 gemessen), also
+   * kann keine Probe die Ursache zeigen. Eine geratene Ursache klingt genau
+   * wie eine gelesene — deshalb steht hier keine, sondern der Weg, der ohne
+   * den Sprung auskommt.
+   *
+   * ⚠ ZWEI WEGE, UND DER ERSTE IST DER KÜRZERE. Wer das Fenster vor sich hat,
+   * drückt Strg+C; das ist seit dem 2026-09-22 derselbe Ablauf wie der Befehl
+   * (beide schicken SIGINT, beide buchen). Der Block ist für den Fall, dass
+   * das Fenster nicht zu erreichen ist — und genau den hat Klaus gemeldet.
+   *
+   * ⚠ ER TRÄGT KEIN `data-termux` UND KEIN `.mitnehmen`. Beide Namen werden in
+   * `tests/smoke_buehne.mjs` mit `querySelector` gesucht, also mit dem ERSTEN
+   * Treffer; ein zweiter darunter hätte die vorhandenen Wächter auf ein
+   * anderes Element gezogen — rot, ohne dass eine Zusicherung gefallen wäre.
+   * Aus demselben Grund steht dieser Block ganz am ENDE: `#schicht-befehl pre`
+   * muss weiter der Haupt-Block sein.
+   */
+  function stoppBefehl() {
+    return "cd ~/Kimhub \\\n  && node tools/stopp.mjs";
+  }
+
+  function stoppTeil() {
+    var d = el("div", "stopp-teil");
+    d.setAttribute("data-stopp", "da");
+    d.appendChild(el("h4", null, "⛔ Anhalten"));
+
+    var wege = el("ol");
+    wege.appendChild(el("li", null,
+      "Im SELBEN Termux-Fenster: Strg+C. Die Schicht bucht dann, was bis dahin " +
+      "verbraucht wurde, und schreibt ihre Fahrt."));
+    wege.appendChild(el("li", null,
+      "Kommst du an das Fenster nicht heran — ein zweites Termux-Fenster, ein " +
+      "anderes Terminal, eine Sitzung auf dem Server — dann dieser Block. Er " +
+      "sucht die Schicht über ihren Lauf-Zettel und schickt ihr dasselbe Signal."));
+    d.appendChild(wege);
+
+    var block = el("pre", "stopp-block", stoppBefehl());
+    block.title = "antippen markiert den ganzen Block";
+    d.appendChild(block);
+
+    var reihe = el("div", "stopp-reihe");
+    var knopf = el("button", null, "⧉ Stopp-Befehl kopieren");
+    knopf.type = "button";
+    var stoppLage = el("span", "leise stopp-lage");
+    stoppLage.setAttribute("data-stopp-kopiert", "");
+    knopf.addEventListener("click", function () {
+      /* Eigenes Lage-Element: `setzeKopierLage` meint den HAUPT-Block, und
+         `.mitnehm-lage` wird von den vorhandenen Wächtern gesucht. Zwei
+         Meldungen an einer Marke wären zwei Wahrheiten. */
+      kopiere(stoppBefehl(), stoppLage).then(function (ok) {
+        stoppLage.setAttribute("data-stopp-kopiert", ok ? "ja" : "nein");
+      });
+    });
+    reihe.appendChild(knopf);
+    reihe.appendChild(stoppLage);
+    d.appendChild(reihe);
+
+    /* ⚠ WAS DER BEFEHL NICHT KANN, STEHT DABEI. Er hält die Schicht an, die
+       ihren Zettel hinterlassen hat — läuft keine, sagt er das und tut nichts.
+       Ein Knopf, der mehr verspricht, als er hält, ist schlimmer als keiner. */
+    d.appendChild(el("p", "leise", "Läuft gerade keine Schicht, sagt der Befehl " +
+      "das und schickt nichts. Mit „--nachsehen“ dahinter sieht er nur nach, " +
+      "ohne etwas zu schicken."));
+    return d;
   }
 
   /* Die Termux-Lage nachtragen, ohne den Kasten neu zu bauen — sonst ginge die
@@ -4286,19 +4611,10 @@
        Textraum ausgesucht hat, bekommt ihn wieder. Seine Wahl ist heilig. */
     zeigeRaum(lies("raum", "raum0"));
 
-    // Installieren-Knopf: Chrome meldet sich, wenn die App installierbar ist.
-    // Vorher bleibt er verborgen — ein Knopf, der nichts tut, wäre schlimmer
-    // als keiner.
-    var einladung = null;
-    window.addEventListener("beforeinstallprompt", function (ev) {
-      ev.preventDefault(); einladung = ev;
-      $("#installieren").hidden = false;
-    });
-    $("#installieren").addEventListener("click", function () {
-      if (!einladung) return;
-      einladung.prompt();
-      einladung.userChoice.then(function () { einladung = null; $("#installieren").hidden = true; });
-    });
+    // Installieren-Knopf: seit 2026-10-18 `assets/installieren.js` (byte-1:1 aus Sage).
+    // Er steht immer da und sagt beim Tipp, warum der Browser nicht anbietet —
+    // vorher blieb er verborgen, bis Chrome sich meldete, und am Tablet meldet
+    // Chrome sich bei einer alten Verknüpfung nie.
 
     Array.prototype.forEach.call(document.querySelectorAll("#ab, #ab-buehne"), function (b) {
       b.addEventListener("click", function () { laeuft ? anhalten() : starten(); });

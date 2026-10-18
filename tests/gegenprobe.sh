@@ -46,7 +46,7 @@ gruen=0; rot=0; uebersprungen=0
 frisch() {
   rm -rf "$KOPIE"; mkdir -p "$KOPIE"
   cp -r "$WURZEL/sbkim" "$WURZEL/schicht" "$WURZEL/tests" "$WURZEL/tools" \
-        "$WURZEL/icons" "$WURZEL/forschung" "$WURZEL/werkzeuge" \
+        "$WURZEL/icons" "$WURZEL/forschung" "$WURZEL/werkzeuge" "$WURZEL/assets" \
         "$WURZEL/index.html" "$WURZEL/sw.js" "$WURZEL/company.webmanifest" \
         "$WURZEL/company.js" "$WURZEL/ansicht.js" "$WURZEL/buehne.js" \
         "$WURZEL/zeit.js" "$WURZEL/kassen.js" "$WURZEL/idb.js" \
