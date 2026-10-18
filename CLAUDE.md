@@ -384,3 +384,27 @@ git diff --stat origin/main origin/<branch>     # leer = der PR wäre leer
 Gemessen im Browser: `prueflisteGeladen` ist true. In einer Kopie ohne den Aufruf fehlt `PrueferMail`. `npm test` 72 grün. Gegenprobe `NUR_FALL="PRUEFLISTE"` 3 gefangen, `NUR_ANKER` 38 · 0 tot.
 
 ⚠ **Nicht angefasst:** die eigenen KI-Wege der App (die fünf Rollen, `api.anthropic.com` in `index.html` und `schicht/transport-netz.mjs`). Sie sind Kopien aus Kimhub. Am Tablet nicht gemessen.
+
+## ⬇ Nachgezogen auf Kimhub 1332336 — Installieren-Knopf (Klaus 2026-10-18)
+
+Klaus: *„Kim Hub Company soll ebenfalls in den neuen Knopf kommen … nur nicht mit den privaten Daten drin. Die
+Forschungsaufträge bleiben noch in Kimhub."* Mit `node tools/aus-kimhub-holen.mjs --quelle ../kimhub --schreiben` sind
+die 16 zurückhängenden Kopien geholt (Stand vorher: Kimhub `1113715`, 2026-09-10). Neu gepinnt in `tools/drift-guard.mjs`:
+`schicht/festgefahren.mjs`, `schicht/zeitschaetzung.mjs` (company.js importiert sie) und `assets/installieren.js`
+(byte-1:1 aus Sage über Kimhub, SHA-256 `e0644084…c3`). Der Knopf steht vor „Thema", ist immer da und als App weg; der
+alte Knopf aus `ansicht.js` ist mit der Kopie entfallen. `company.webmanifest` trägt `"id": "/kim-hub-company/"` — dieselbe
+Kennung, die Chrome bisher aus `start_url` rechnete (keine neue App). Cache v87, `version.json` neu geschrieben.
+`tests/gegenprobe.sh` kopiert `assets/` jetzt mit in die Wegwerf-Kopie (sonst war die Ausgangslage dort 2× rot).
+
+**Nicht mitgenommen:** nur die gepinnten Schalen-Dateien sind gekommen — keine Forschungsaufträge (`auftraege/`),
+keine Forschungsdaten (`forschung/` aus Kimhub), keine Buchhaltung (`werkstatt/`), keine Historie, keine Spinde.
+Die Kopien *verweisen* weiter auf solche Pfade (`forschung/sitzungen.json`, `werkstatt/buchhaltung/fahrtenbuch.json`,
+ein Kommentar in `schicht/api.mjs`); hier liegen sie nicht, die Seite ist dort fail-soft wie vorher.
+
+Gemessen: `npm test` 72 grün · 0 ROT · Drift 30 · SBKIM-Drift 13 · Gegenprobe 41 gefangen · 2 durchgerutscht ·
+38 Anker, 0 tot — die zwei („gespeicherte Spore überschreibt den Vorschlag", „die Zeile sagt nicht, welcher Text")
+rutschen auf `origin/main` genauso durch, sind also älter und hier nicht behoben. Im Browser (Seite unter
+`/kim-hub-company/`): Knopf sichtbar vor „Thema", als App (gestelltes standalone) weg, Tipp ohne Angebot zeigt die
+Meldung lesbar (`data-lesbar=fest`, hell und dunkel), `getInstallabilityErrors` leer, AppId `/kim-hub-company/`,
+360 px ohne Querlaufen. ⚠ `data-name="Kimhub"` kommt aus Kimhubs Ableiter mit; die Datei liest den Namen, zeigt ihn aber
+nirgends. ⚠ Am Tablet nicht gemessen.
