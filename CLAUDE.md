@@ -408,3 +408,13 @@ rutschen auf `origin/main` genauso durch, sind also älter und hier nicht behobe
 Meldung lesbar (`data-lesbar=fest`, hell und dunkel), `getInstallabilityErrors` leer, AppId `/kim-hub-company/`,
 360 px ohne Querlaufen. ⚠ `data-name="Kimhub"` kommt aus Kimhubs Ableiter mit; die Datei liest den Namen, zeigt ihn aber
 nirgends. ⚠ Am Tablet nicht gemessen.
+
+## ⬇ Bündel-Prüfer: Installieren-Knopf (Klaus 2026-10-18)
+
+Klaus: *„setze den Installationsbutton oben in die Navi-Leiste … verschwinden, wenn die App installiert ist … Macht das
+bitte überall so.“* Die Hauptseite trug den Knopf schon oben (gemessen 320–1280 px). `werkzeuge/buendel-pruefer/` ist eine
+eigene kleine PWA (eigenes Manifest, eigener Worker) und hatte keinen. Sie hat keine Kopfleiste — der Knopf steht deshalb
+fest oben rechts (`data-fest`), bis 360 px nur ⬇; als App weg. Eigene byte-gleiche Kopie
+`werkzeuge/buendel-pruefer/installieren.js` (Sage-Fassung, im Drift-Guard gepinnt), im Vorrat, `VORRAT` v2. Gemessen:
+sichtbar bei 300–1280 px, berührt die Überschrift nicht, Meldung lesbar, Installierbarkeit ohne Fehler. `npm test` 72 grün,
+Drift-Guard 31. Am Tablet nicht gemessen.

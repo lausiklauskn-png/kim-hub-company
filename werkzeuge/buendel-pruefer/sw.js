@@ -1,7 +1,7 @@
 /* Offline-Vorrat des Bündel-Prüfers.
-   Die Liste unten nennt genau die vier Dateien, die es gibt.
+   Die Liste unten nennt genau die Dateien, die es gibt.
    Wer eine Datei ergänzt, trägt sie hier nach UND erhöht VORRAT. */
-const VORRAT = 'buendel-pruefer-v1';
+const VORRAT = 'buendel-pruefer-v2';
 /* ⚠ NUR EIGENE VORRAETE AUFRAEUMEN — `caches` gehoert dem URSPRUNG, nicht dem
  * Pfad. Auf lausiklauskn-png.github.io liegen rund zwanzig Apps; ein Filter,
  * der nur "ist nicht meiner" fragt, laesst ALLE fremden durch und loescht sie.
@@ -15,7 +15,8 @@ const DATEIEN = [
   './index.html',
   './manifest.webmanifest',
   './sw.js',
-  './icon.svg'
+  './icon.svg',
+  './installieren.js'
 ];
 
 self.addEventListener('install', e => {
