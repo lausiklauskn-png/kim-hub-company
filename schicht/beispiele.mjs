@@ -202,6 +202,7 @@ export const BEISPIELE = {
   bauer: [
     { // Runde 1 — zu wenig, absichtlich
       dateiname: "merkkarte-ki.md",
+      weitere: [],
       inhalt: "# KI im Arbeitsalltag\n\n" +
         "1. Nur freigegebene Dienste benutzen.\n" +
         "2. Keine Passwörter eingeben.\n" +
@@ -213,6 +214,7 @@ export const BEISPIELE = {
     },
     { // Runde 2 — nachgebessert
       dateiname: "merkkarte-ki.md",
+      weitere: [],
       inhalt: "# KI im Arbeitsalltag\n\n" +
         "**1. Nur freigegebene Dienste benutzen.**\n" +
         "Was der Betrieb geprüft hat, ist bekannt — bei allem anderen weiß niemand, wohin die Eingaben gehen.\n\n" +

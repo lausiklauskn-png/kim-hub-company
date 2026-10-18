@@ -41,6 +41,7 @@ import { BEISPIELE } from "./schicht/beispiele.mjs";
 import { deuteGrundsaetze, KEINE } from "./schicht/grundsaetze.mjs";
 import { idbAblage } from "./schicht/ablage-idb.mjs";
 import { eintrag as fahrtEintrag } from "./schicht/fahrtenbuch-form.mjs";
+import { vorschlag as zeitVorschlag } from "./schicht/zeitschaetzung.mjs";
 import { speicherBaum } from "./schicht/baum-speicher.mjs";
 import { macheWerkbank } from "./schicht/werkzeuge.mjs";
 
@@ -132,6 +133,13 @@ async function buchLesen() {
   }
 }
 
+/* Was der Zeit-Regler beim Start dieser Fahrt sagte — die Rückkopplung des
+   nächsten Laufs liest es aus dem Fahrtenbuch. `zeitVonHand` ist der Riegel
+   davor, aus einem Eingriff zu lernen statt aus einer Dauer; er wird beim
+   Tippen gesetzt, nicht erraten. */
+let zeitSchaetzungMin = 0;
+let zeitVonHandGesetzt = false;
+
 /** Trägt eine Fahrt ein. Wirft nie: die Fahrt IST gelaufen und bezahlt, daran
  *  ändert ein voller Speicher nichts — aber es wird gesagt, still wäre dasselbe
  *  Verschweigen noch einmal. */
@@ -141,7 +149,8 @@ async function fahrtEintragen({ art, echt, bericht, titel = "", ergebnis = "",
   let e;
   try {
     e = fahrtEintrag({
-      art, echt, bericht,
+      art, echt,
+      bericht: { zeitSchaetzungMin, zeitVonHand: zeitVonHandGesetzt, ...bericht },
       datum: new Date().toISOString().slice(0, 10),
       titel, ergebnis,
       /* WANN die Fahrt begann — ausdruecklich, wo die Kasse es nicht weiss.
@@ -779,9 +788,19 @@ async function fahre({ echt }) {
     const mitKonferenz = !!($("mit-konferenz") && $("mit-konferenz").checked);
     const deckelKonferenz = mitKonferenz ? deckelEur * KONFERENZ_ANTEIL : 0;
     const deckelSchicht = deckelEur - deckelKonferenz;
+    /* ⚠ DIE ZEIT KOMMT AUS DEM REGLER, NICHT AUS EINER FESTEN 2. Hier stand
+       `2 * 3600_000` — eine Zahl, die niemand sehen und niemand ändern konnte.
+       Der Regler wird beim Laden aus dem Fahrtenbuch VORBELEGT; wer ihn zieht,
+       gewinnt, und die Fahrt merkt sich das (`zeitVonHand`), damit die
+       Rückkopplung nicht aus einem Eingriff lernt statt aus einer Dauer. */
+    const zeitEl = $("zeit");
+    const zeitMin = Math.max(1, Math.round(Number(zeitEl && zeitEl.value) || 120));
+    const zeitVonHand = !!(zeitEl && zeitEl.dataset.vonHand === "ja");
+    zeitSchaetzungMin = Number(zeitEl && zeitEl.dataset.geschaetzt) || 0;
+    zeitVonHandGesetzt = zeitVonHand;
     const macheKasse = (d) => new Kasse({
       deckelEur: d,
-      laufzeitMs: 2 * 3600_000,
+      laufzeitMs: zeitMin * 60_000,
       // Zurückgelegt für den Feierabend-Bericht — ein Zehntel, mindestens 20
       // Cent. Dieselbe Zahl wie in `lauf.mjs`; eine Probe hält beide zusammen.
       reserveEur: Math.max(0.20, d * 0.1),
@@ -1276,10 +1295,55 @@ async function holeGrundsaetze() {
   } catch { return KEINE; }
 }
 
+/*
+ * ══ DER ZEIT-REGLER WIRD AUS DEM EIGENEN FAHRTENBUCH VORBELEGT ═════════════
+ *
+ * Klaus 2026-09-22: „Die KI über Kimhub soll voreinstellen, was sie schätzt."
+ *
+ * ⚠ DIE RECHNUNG STEHT NICHT HIER. Sie liegt in `schicht/zeitschaetzung.mjs`
+ * und wird von `lauf.mjs` genauso gerufen — ein zweiter Rechenweg im Browser
+ * wäre eine Drift-Quelle mit Ansage: dann stünde am Regler eine andere Zahl
+ * als im Bericht.
+ *
+ * ⚠ UND „NICHT GEMESSEN" IST NICHT „120". Ohne eine echte Fahrt gibt es keine
+ * Grundlage; dann steht die Vorgabe da UND daneben, dass sie eine ist. Eine
+ * Zahl ohne Herkunft sieht aus wie eine Schätzung.
+ */
+async function zeitReglerFuellen() {
+  const el = $("zeit");
+  const satz = document.querySelector("[data-zeit-herkunft]");
+  if (!el) return null;                        // Platzhalter, kein Ausstieg
+  let v = { minuten: null, satz: "" };
+  try {
+    const buch = await buchLesen();
+    v = zeitVorschlag({
+      aufrufe: erwarteteAufrufe({ rollen: 8, mitKonferenz: true }).gesamt,
+      fahrten: buch.fahrten,
+    });
+  } catch { /* fail-soft: ein unlesbares Buch nimmt dem Regler nicht die Vorgabe */ }
+  el.value = v.minuten === null ? 120 : v.minuten;
+  el.dataset.vonHand = "nein";
+  el.dataset.herkunft = v.minuten === null ? "vorgabe" : "geschaetzt";
+  el.dataset.geschaetzt = v.minuten === null ? "" : String(v.minuten);
+  if (satz) satz.textContent = v.minuten === null
+    ? "Vorgabe 120 min — " + v.satz
+    : "Geschätzt: " + v.satz;
+  /* ⚠ WER ZIEHT, GEWINNT — und die Fahrt merkt sich das. Ohne diese Marke
+     lernte die Rückkopplung aus einem Eingriff statt aus einer Dauer. */
+  el.addEventListener("input", () => {
+    el.dataset.vonHand = "ja";
+    if (satz) satz.textContent = el.dataset.geschaetzt
+      ? `Von Hand gesetzt. Geschätzt hätte die Werkstatt ${el.dataset.geschaetzt} min.`
+      : "Von Hand gesetzt.";
+  });
+  return v;
+}
+
 /* ══ HOCHFAHREN ════════════════════════════════════════════════════════════ */
 (async function start() {
   await schluesselLageZeichnen();
   startLageZeichnen();
+  await zeitReglerFuellen();
   /* Der Haken für die Proben. Er gibt NIE ein Geheimnis heraus — nur ja/nein.
      Ein Test-Haken, der ein Geheimnis herausreicht, ist ein Loch mit Prüfsiegel;
      genau das hat die Gegenprobe in Kimhub am 2026-08-22 bewiesen. */

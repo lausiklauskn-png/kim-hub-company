@@ -409,10 +409,20 @@ export function macheWerkbank({
           `${Object.keys(tisch).join(", ")}.` +
           (name === "netz_holen" ? ` Das Netz ist für diese Schicht nicht eingeschaltet.` : "");
       }
-      let ergebnis;
+      let ergebnis, fehlschlag = false;
       try { ergebnis = String(await fn(eingabe)); }
-      catch (e) { ergebnis = `Ging nicht: ${e.message}`; }
-      gerufen.push({ name, eingabe, ok: true, zeichen: ergebnis.length });
+      catch (e) { ergebnis = `Ging nicht: ${e.message}`; fehlschlag = true; }
+      /*
+       * ⚠ `ok` HEISST „DAS WERKZEUG GIBT ES", NICHT „ES HAT GEKLAPPT".
+       *
+       * Ein Lesezugriff auf eine Datei, die es nicht gibt, landet im `catch`
+       * und wurde bis zum 2026-09-21 trotzdem als `ok: true` gebucht — mit
+       * einer kurzen Zeichenzahl, die von einer kleinen Datei nicht zu
+       * unterscheiden ist. Wer die Fehlschläge zählen wollte, zählte nach
+       * `ok === false` und bekam nur die unbekannten WERKZEUGNAMEN.
+       * Das Feld daneben sagt es jetzt ausdrücklich.
+       */
+      gerufen.push({ name, eingabe, ok: true, fehlschlag, zeichen: ergebnis.length });
       return ergebnis;
     },
   };

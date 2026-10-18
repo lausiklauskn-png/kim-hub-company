@@ -23,15 +23,29 @@
  * früh als zu spät. Wer es genauer will, setzt `usdJeEuro` ausdrücklich.
  */
 
-/** Preise in Dollar je 1 Mio. Token (Anthropic-eigene API, Stand 2026-08-20). */
+/*
+ * ⚠ DAS DATUM IST EIN WERT, KEIN KOMMENTAR (2026-09-22).
+ *
+ * Es stand hier als Prosa in der Zeile darueber. Ein Rechner, der die Tabelle
+ * benutzt, konnte es damit nicht NENNEN — und eine Zahl aus einer stillschweigend
+ * veralteten Tabelle sieht genau wie eine frische aus. Wer `PREISE` liest,
+ * liest den Stand mit und schreibt ihn neben sein Ergebnis.
+ */
+export const PREISE_STAND = "2026-08-20";
+export const PREISE_QUELLE = "Anthropic-eigene API";
+
+/** Preise in Dollar je 1 Mio. Token (Anthropic-eigene API, Stand `PREISE_STAND`). */
 export const PREISE = {
   "claude-opus-5":    { ein: 5.00, aus: 25.00 },
   "claude-sonnet-5":  { ein: 3.00, aus: 15.00 },
   "claude-haiku-4-5": { ein: 1.00, aus: 5.00 },
 };
 
-const CACHE_SCHREIBEN = 1.25;   // 5-Minuten-Frist; bei "1h" wären es 2,0
-const CACHE_LESEN = 0.10;
+/* ⚠ EXPORTIERT SEIT DEM 2026-09-22, damit `tokenkosten.mjs` die Aufschluesselung
+   nicht NACHBAUT. Ein Nachbau ist eine zweite Fassung, die auseinanderlaeuft —
+   genau daran ist `tools/cache-messen.mjs` am 2026-09-17 gescheitert. */
+export const CACHE_SCHREIBEN = 1.25;   // 5-Minuten-Frist; bei "1h" wären es 2,0
+export const CACHE_LESEN = 0.10;
 
 /* Die Meldung steht an EINER Stelle. Zwei Fassungen desselben Satzes laufen
    auseinander, und die zweite ist dann die, die niemand liest. */
@@ -68,10 +82,19 @@ export const STANDARD_MAX_TOKENS = 16000;
  *
  * Gerechnet wird aus dem Token-Deckel der Rolle und dem AUSGANGS-Preis ihres
  * Modells. Das ist keine geratene Zahl, sondern eine nachrechenbare Obergrenze
- * für den grossen Posten. Die Eingabe fehlt darin bewusst: sie ist bei allen
- * Rollen um zwei Grössenordnungen kleiner (Emil ≈ 0,03 $), und sobald EIN
- * Aufruf gelaufen ist, tritt der gemessene Wert an die Stelle dieser Grenze,
- * wenn er höher liegt.
+ * für den grossen Posten. Die Eingabe fehlt darin, und sobald EIN Aufruf
+ * gelaufen ist, tritt der gemessene Wert an die Stelle dieser Grenze, wenn er
+ * höher liegt.
+ *
+ * ⚠ HIER STAND: „sie ist bei allen Rollen um zwei Grössenordnungen kleiner
+ * (Emil ≈ 0,03 $)". Das galt OHNE Werkzeuge. Mit Werkzeugen schickt jede
+ * Werkzeug-Runde den ganzen Verlauf noch einmal — gemessen an Klaus' Fahrt 7
+ * (2026-09-17): die Eingabe ist 45 % der Schicht, bei Emil 1,64 $ von 4,10 $
+ * je drei Aufrufe. Die Schätzung bleibt trotzdem eine Untergrenze für den
+ * ERSTEN Aufruf; ab dem zweiten gilt ohnehin der gemessene Preis je Rolle.
+ * Und genau deshalb kann eine Runde beginnen und mittendrin am Geld enden
+ * (Fahrt 7, Runde 3) — die Fortsetzung (`--fortsetzen`) ist die Abhilfe,
+ * nicht ein Aufschlag auf die Schätzung.
  */
 export function grundpreisUsd({ modell, maxTokens } = {}) {
   const p = PREISE[modell];
@@ -124,16 +147,50 @@ export class Kasse {
        — ein Riegel, der zu früh schliesst, ist genauso falsch wie einer, der zu
        spät schliesst. */
     this.teuersterJeRolleUsd = {};
+    /* Was die Gegenseite selbst als Preis gemeldet hat, und wie oft sie schwieg.
+       Beides fängt bei null an — und `gemeldetLuecken > 0` ist der Grund, aus
+       dem eine Fahrt sich NICHT „gemeldet" nennen darf. */
+    this.gemeldetUsd = 0;
+    this.gemeldetLuecken = 0;
+    /* ÜBER WELCHE KASSE(N) diese Fahrt lief. Eine Menge, nicht ein Wort: eine
+       Schicht KANN gemischt laufen (der teure Bauer über das Abo, die Prüfer
+       über die API), und dann ist „abo" als einziges Wort eine Unwahrheit. */
+    this.zugaenge = new Set();
   }
 
-  /** Nach jedem Aufruf: eintragen, was er gekostet hat. */
-  buchen(rolle, modell, usage, { begonnen = null, dauerMs = null, kontextEin = null } = {}) {
+  /**
+   * Nach jedem Aufruf: eintragen, was er gekostet hat.
+   *
+   * ⚠ GERECHNET WIRD IMMER — AUCH BEIM ABO (2026-09-17). Das ist die
+   * Entscheidung, auf die es hier ankommt, und sie hat einen Grund, der
+   * benannt gehört: das Abo-Fenster (fünf Stunden, eine Woche) ist KEIN
+   * Deckel, den dieser Code kennt. Würde ein Abo-Lauf nichts buchen, liefe er
+   * ohne jede Bremse — und eine Schicht ohne Bremse ist genau das, wogegen
+   * die ganze Kasse gebaut ist. Der gerechnete Betrag bleibt also die
+   * UMFANGSBREMSE; ob er als AUSGABE gilt, entscheidet nicht die Kasse,
+   * sondern das Fahrtenbuch am Feld `zugang`.
+   *
+   * `gemeldetUsd` ist der Preis, den die Gegenseite selbst nennt (`claude -p`
+   * tut das, die API nicht). Er wird NEBEN der eigenen Rechnung geführt, nie
+   * an ihrer Stelle: zwei Zahlen, die dasselbe behaupten, laufen auseinander,
+   * und dann wüsste niemand, welche die Bremse gezogen hat.
+   */
+  buchen(rolle, modell, usage, { begonnen = null, dauerMs = null, kontextEin = null,
+                                 gemeldetUsd = null, gemeldetLuecken = 0,
+                                 zugang = "api" } = {}) {
     const usd = kostenUsd(modell, usage);
     this.ausgegebenUsd += usd;
     this.teuersterAufrufUsd = Math.max(this.teuersterAufrufUsd, usd);
     this.teuersterJeRolleUsd[rolle] =
       Math.max(this.teuersterJeRolleUsd[rolle] || 0, usd);
-    this.aufrufe.push({ rolle, modell, usd, usage, begonnen, dauerMs, kontextEin });
+    if (typeof gemeldetUsd === "number") this.gemeldetUsd += gemeldetUsd;
+    /* Gezählt wird das SCHWEIGEN, nicht nur die Meldung. Ohne diese Zahl wäre
+       eine Summe aus drei von fünf Runden von einer vollständigen nicht zu
+       unterscheiden. */
+    this.gemeldetLuecken += Number(gemeldetLuecken || 0);
+    if (zugang) this.zugaenge.add(String(zugang));
+    this.aufrufe.push({ rolle, modell, usd, usage, begonnen, dauerMs, kontextEin,
+                        gemeldetUsd, zugang });
     return usd;
   }
 
@@ -247,6 +304,21 @@ export class Kasse {
       beginnIso: this.beginnIso,
       endeIso: new Date().toISOString(),
       verbrauchtEur: Number(this.verbrauchtEur().toFixed(4)),
+      /*
+       * WAS DIE GEGENSEITE SELBST ALS PREIS GENANNT HAT — in Euro, damit das
+       * Fahrtenbuch nicht zweimal umrechnet.
+       *
+       * ⚠ `null` HEISST NICHT GEMELDET. Nicht 0: ein Lauf über die API meldet
+       * nie einen Preis, und „0,00 € gemeldet" wäre dort eine Behauptung.
+       */
+      gemeldetEur: this.gemeldetUsd > 0
+        ? Number((this.gemeldetUsd / this.usdJeEuro).toFixed(4)) : null,
+      gemeldetLuecken: this.gemeldetLuecken,
+      /* Ein Wort, wenn alle Aufrufe über dieselbe Kasse liefen — sonst
+         „gemischt". Eine gemischte Fahrt als „abo" zu buchen wäre die zu
+         niedrige Zahl, die niemandem auffällt. */
+      zugang: this.zugaenge.size === 1 ? [...this.zugaenge][0]
+            : (this.zugaenge.size === 0 ? "api" : "gemischt"),
       deckelEur: this.deckelEur,
       restEur: Number(this.restEur().toFixed(4)),
       reserveEur: Number((this.reserveUsd / this.usdJeEuro).toFixed(4)),
@@ -277,14 +349,49 @@ export class Kasse {
        * bezahlt sind sie alle — nur zu verschiedenen Preisen, und das rechnet
        * `kostenUsd`, nicht diese Zahl.
        */
+      /*
+       * ⚡ DER CACHE STEHT GETRENNT, UND JEDE KASSE FÜR SICH (Bauschritt 3,
+       * 2026-09-17).
+       *
+       * `ein` blieb bis hierher EINE Zahl aus drei Sorten — und die drei
+       * kosten das Zehnfache voneinander (frisch 1×, in den Cache geschrieben
+       * 1,25×, aus dem Cache gelesen 0,1×). Wer wissen will, ob das
+       * Prompt-Caching greift, das die Verfassung seit dem 2026-08-23 als
+       * Hebel nennt, konnte es an dieser Zahl nicht sehen: 8000 frische und
+       * 8000 gecachte Token sahen gleich aus.
+       *
+       *   frisch    ohne Cache bezahlt
+       *   cacheNeu  in den Cache geschrieben (cache_creation_input_tokens)
+       *   cacheAlt  aus dem Cache gelesen (cache_read_input_tokens)
+       *
+       * `ein` bleibt die Summe der drei — jede Stelle, die es liest, findet
+       * dieselbe Zahl wie vorher. Die drei stehen DANEBEN, nicht an seiner
+       * Stelle.
+       *
+       * ⚠ UND JE ZUGANG. Eine gemischte Fahrt (Bauer über das Abo, Prüfer
+       * über die API) trüge sonst eine Token-Zahl je Rolle, aus der niemand
+       * mehr liest, welche Kasse sie getragen hat. `jeZugang` teilt dieselben
+       * Zahlen nach `api` und `abo` auf; die Summe darüber ist wieder die
+       * Zahl der Rolle. Zwei Rechenwege wären zwei Zahlen — es ist einer.
+       */
       tokenJeRolle: this.aufrufe.reduce((k, a) => {
         const u = a.usage || {};
-        const e = k[a.rolle] || (k[a.rolle] = { ein: 0, aus: 0, kontext: 0, aufrufe: 0 });
-        e.ein += Number(u.input_tokens || 0) + Number(u.cache_creation_input_tokens || 0)
-               + Number(u.cache_read_input_tokens || 0);
-        e.aus += Number(u.output_tokens || 0);
+        const e = k[a.rolle] || (k[a.rolle] = { ein: 0, aus: 0, kontext: 0, aufrufe: 0,
+                                               frisch: 0, cacheNeu: 0, cacheAlt: 0, jeZugang: {} });
+        const frisch = Number(u.input_tokens || 0);
+        const cacheNeu = Number(u.cache_creation_input_tokens || 0);
+        const cacheAlt = Number(u.cache_read_input_tokens || 0);
+        const aus = Number(u.output_tokens || 0);
+        e.ein += frisch + cacheNeu + cacheAlt;
+        e.frisch += frisch; e.cacheNeu += cacheNeu; e.cacheAlt += cacheAlt;
+        e.aus += aus;
         e.kontext = Math.max(e.kontext, Number(a.kontextEin || 0));
         e.aufrufe += 1;
+        const zg = String(a.zugang || "api");
+        const z = e.jeZugang[zg] || (e.jeZugang[zg] = { ein: 0, aus: 0, frisch: 0, cacheNeu: 0,
+                                                        cacheAlt: 0, aufrufe: 0 });
+        z.ein += frisch + cacheNeu + cacheAlt; z.aus += aus;
+        z.frisch += frisch; z.cacheNeu += cacheNeu; z.cacheAlt += cacheAlt; z.aufrufe += 1;
         return k;
       }, {}),
       // Wo die ZEIT hingeht — das ist eine andere Frage als, wo das Geld

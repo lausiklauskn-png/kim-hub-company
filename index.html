@@ -756,6 +756,18 @@ footer{padding:18px 16px 40px;color:var(--leise);font-size:.87rem}
   background: var(--grund); border: 1px solid var(--kante);
   font: 12.5px/1.6 var(--mono); white-space: pre-wrap; word-break: break-word;
   user-select: all; cursor: pointer; }
+/* Der Weg zurueck. Er steht im selben Kasten, aber abgesetzt: anhalten ist
+   eine andere Handlung als starten, und wer ihn sucht, sucht ihn in Eile.
+   ⚠ EIGENE KLASSEN, KEINE ZWEITE `.mitnehmen` — die vorhandenen Waechter in
+   `tests/smoke_buehne.mjs` suchen mit `querySelector`, also den ERSTEN
+   Treffer; ein zweiter darunter zoege sie auf ein anderes Element. */
+.stopp-teil { margin: 14px 0 0; padding: 12px 0 0; border-top: 1px solid var(--kante); }
+.stopp-teil h4 { margin: 0 0 6px; font-size: 1rem }
+.stopp-teil ol { margin: 0 0 10px; padding-left: 20px }
+.stopp-teil li { margin: 0 0 4px; line-height: 1.5 }
+.stopp-teil p { margin: 8px 0 0 }
+.stopp-reihe { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.stopp-lage { font: 12px var(--mono); }
 /* Die Abschnitte, aus denen der aktuelle Stoppuhr-Stand besteht. Ohne diese
    Markierung sähe ⟲ aus, als hätte es etwas gelöscht — es setzt aber nur die
    Marke, und keine Zeile geht verloren. */
@@ -851,7 +863,6 @@ details.langtext>div{margin-top:4px}
     <span class="lamp" id="lamp-fremd"   title="fremd — rot nur bei echtem Fremdzugriff"><span class="lamp-label">fremd</span></span>
   </div>
   <div class="weg">
-    <button id="installieren" type="button" hidden>⬇ Installieren</button>
     <button id="thema" type="button">Thema</button>
     <button id="frisch" type="button" title="Vorrat wegwerfen und neu laden">⟳ Aktualisieren</button>
   </div>
@@ -1127,15 +1138,18 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
 
     <div class="pult">
       <label class="leise zeile" for="deckel">Deckel
-        <input id="deckel" type="number" min="0.20" max="20" step="0.10" value="2.00"
+        <input id="deckel" type="number" min="0.20" max="20" step="0.10" value="2.50"
                style="width:92px"> €</label>
       <p class="leise" style="margin:2px 0 8px">
-        Unter <b>2,00 €</b> beginnt keine Runde — eine Runde sind fünf Aufrufe,
+        Unter <b>2,50 €</b> beginnt keine Runde — eine Runde sind fünf Aufrufe,
         darunter der eine auf dem grossen Modell, und die Werkstatt beginnt
         keine, die sie nicht zu Ende bringen kann.
         <span data-deckel-gemessen>Diese drei Zahlen stammen aus einem
-        <b>Trockenlauf</b> (2026-09-07, acht Rollen): 1,00 € → 0 Runden ·
-        1,50 € → 0 Runden · 2,00 € → fertig in 2 Runden.</span>
+        <b>Trockenlauf</b> (2026-09-18, acht Rollen): 1,50 € → 0 Runden ·
+        2,00 € → 0 Runden · 2,50 € → fertig in 2 Runden. Bis zum 2026-09-17
+        reichten 2,00 € — seitdem darf der Bauer 64 000 statt 48 000 Token
+        schreiben, damit mehrere Dateien in eine Antwort passen, und eine
+        Runde kostet in der Anlaufprüfung entsprechend mehr.</span>
       </p>
       <!-- ⚠ DASS ES TROCKENLAUF-ZAHLEN SIND, GEHÖRT DAZU (Klaus 2026-09-07).
            Ein Trockenlauf rechnet mit einem festen Stub von 2 000 Eingabe- und
@@ -1166,6 +1180,22 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
         ist auf diesem Gerät noch nicht gemessen — <b>die Uhr über der Bühne
         rechnet es ab dem zweiten Aufruf mit</b> und sagt, wie viel noch
         aussteht. Anhalten geht jederzeit.
+      </p>
+      <!-- ⚠ DER ZEIT-REGLER (Klaus 2026-09-22): „eine Einstellung, wo man die
+           Arbeitszeit der Schicht einstellen kann … Die KI über Kimhub soll
+           voreinstellen, was sie schätzt … Wenn sie sich nach oben verschätzt,
+           soll beim nächsten Mal die Zeit anders eingestellt werden."
+
+           NACH OBEN OFFEN, und das ist kein Versehen: „für Nutzer, die über
+           Stunden rechnen lassen wollen." Deshalb steht hier KEIN `max`. Was
+           eine Fahrt wirklich begrenzt, ist das GELD — der Deckel darüber —
+           und beim Abo sein eigenes Fenster. Ein Zeit-Deckel, der über dem
+           liegt, was das Geld erlaubt, verlängert keine Schicht; er hört nur
+           auf, sie vorzeitig abzuschneiden. -->
+      <label class="leise zeile" for="zeit" style="margin-top:10px">Zeit
+        <input id="zeit" type="number" min="1" step="5" style="width:92px"> min</label>
+      <p class="leise" style="margin:2px 0 8px" data-zeit-herkunft>
+        <!-- wird beim Laden gefüllt: geschätzt · Vorgabe · von Hand -->
       </p>
       <button id="trocken" type="button">▷ Trockenlauf — ohne Kosten</button>
       <button id="echt" type="button" disabled>● Echter Lauf — bis zum Deckel</button>
@@ -1249,6 +1279,7 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
       der private Teil der Kennung verlässt deinen Browser nie, und im Depot
       liegt keine Spore.</p>
   </section>
+
 
   </section>
 
@@ -1721,6 +1752,27 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
       </details>
       <div class="rollt"><table id="fahrten"><tbody><tr><td class="leise">Noch nicht geladen.</td></tr></tbody></table></div>
       <p id="fahrten-hinweis" class="leise" style="margin-top:10px"></p>
+      <!-- ⚡ TOKEN JE AGENT ÜBER ALLE FAHRTEN (Bauschritt 3, 2026-09-17).
+           Die Kasse kannte die Zahlen je Fahrt, das Buch hob sie auf, die
+           Seite zeigte sie nirgends. Gerechnet wird in kassen.js
+           (tokenSummen), hier wird nur gezeichnet. -->
+      <h4 style="margin:18px 0 4px">Token je Agent — über alle echten Fahrten</h4>
+      <details class="erklaer" data-erklaer="bh-token-agenten">
+        <summary>Was die Spalten heißen — und warum der Cache getrennt steht</summary>
+        <p class="leise"><b>aus</b> ist die Ausgabe der Rolle, das saubere Maß.
+          <b>frisch</b> ist Eingabe ohne Cache, <b>Cache&nbsp;neu</b> in den Cache
+          geschrieben, <b>Cache&nbsp;gelesen</b> daraus bezogen — die drei kosten
+          das Zehnfache voneinander, und in einer Summe sah 8000&nbsp;frisch aus
+          wie 8000&nbsp;gecacht. <b>Kontext</b> ist der größte Verlauf in einem
+          Aufruf, ein Maximum, keine Summe.</p>
+        <p class="leise">Zählen nur <b>echte</b> Fahrten: ein Trockenlauf trägt Token aus
+          einem hinterlegten Vorrat, dieselbe Zahl bei jedem Aufruf. Fahrten von
+          vor dem 2026-09-17 kennen die Trennung nicht — ihre Eingabe steht als
+          <b>ungetrennt</b> daneben, nicht geraten. Steht ein Zugang dabei
+          (<b>api</b> · <b>abo</b>), liefen die Aufrufe der Rolle über diese Kasse.</p>
+      </details>
+      <div class="rollt"><table id="token-agenten"><tbody><tr><td class="leise">Noch nicht geladen.</td></tr></tbody></table></div>
+      <p id="token-agenten-hinweis" class="leise" style="margin-top:10px" data-token-lage="leer"></p>
       </details>
     </div>
 
@@ -2072,9 +2124,10 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
   Postfach abgeschrieben; <code>werkstatt/buchhaltung/zeiten.json</code> kommt aus
   <code>tools/zeiten-sammeln.mjs</code>;
   <code>werkstatt/buchhaltung/fahrtenbuch.json</code> und
-  <code>schicht/kontingent.json</code> schreiben die Schichten selbst und liegen
-  nur auf dieser Maschine — sie sind nicht im Depot. Die Stechuhr-Zeiten liegen
-  nur in diesem Browser.</p>
+  <code>schicht/kontingent.json</code> schreiben die Schichten selbst.
+  <b>Keine dieser sechs Dateien liegt im Depot</b> — alle sechs stehen in
+  <code>.gitignore</code> und sind der Stand dieser Maschine. Die Stechuhr-Zeiten
+  liegen nur in diesem Browser.</p>
   <p>Diese Seite lädt <b>nichts von fremden Adressen</b> und funktioniert offline,
   sobald die Dateien daneben liegen.</p>
   <p><b>Jede Sitzung ist eine Messung.</b> Die Forschungsaufzeichnung — woher
@@ -2241,5 +2294,8 @@ WAS IHR ABLIEFERT. Ein Übergabe-Blatt, aus dem ein grosses Modell die Datei bau
      Siegel und der Raum ist tot — genau das hat am 2026-08-16 Alis Moderaum
      gekostet. `defer` hält es trotzdem vom kritischen Pfad fern. -->
 <script type="module" src="./sbkim/05b_nostr_relay.js" defer></script>
+<!-- Knopf „Installieren“ (Klaus 2026-10-18): byte-1:1 aus Sage, steht vor „Thema“, immer da
+     (nicht erst, wenn Chrome sich meldet), verschwindet als App. -->
+<script src="assets/installieren.js" data-name="Kimhub" data-vor="thema" defer></script>
 </body>
 </html>

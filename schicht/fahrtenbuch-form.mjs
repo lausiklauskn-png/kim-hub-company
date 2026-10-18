@@ -57,6 +57,30 @@ export const ARTEN = {
 };
 
 /**
+ * ⚡ WIE DIE EURO-ZAHL ZUSTANDE KAM (2026-09-17, Bauschritt 2).
+ *
+ * Bis hierher war `eur` **immer** gerechnet, und das stand nirgends. Solange
+ * es nur den API-Weg gab, war das folgenlos; mit dem Abo-Weg wird es zur
+ * Falle: derselbe Lauf hat dann eine gebuchte Zahl (0) und eine gerechnete
+ * (was er gekostet hätte), und wer sie nicht auseinanderhält, meldet entweder
+ * Kosten, die niemand hatte, oder Gratisläufe, die es nicht gab.
+ *
+ *   gerechnet   aus `schicht/kosten.mjs` § PREISE. Die eigene Rechnung.
+ *   gemeldet    die Gegenseite hat den Preis selbst genannt (`claude -p` tut
+ *               das, die API nicht) — und zwar für JEDEN Aufruf der Fahrt.
+ *   unbepreist  niemand kennt einen Preis.
+ *
+ * ⚠ `unbepreist` ENTSTEHT HEUTE NOCH NICHT, und das gehört dazugeschrieben
+ * statt verschwiegen: `kostenUsd` WIRFT bei einem Modell ohne Preis, die Fahrt
+ * bricht also vorher ab. Der Wert steht hier trotzdem, weil er mit Schritt 4
+ * (OpenRouter, Mistral, Ollama) gebraucht wird — und weil die FORM des Buches
+ * dann nicht ein zweites Mal wechseln soll: alte Fahrten trügen sonst eine
+ * andere Form als neue. Ein Wert ohne Erzeuger ist sonst eine Behauptung;
+ * dieser ist ein Formwert, und er ist als solcher benannt.
+ */
+export const EUR_STATUS = ["gerechnet", "gemeldet", "unbepreist"];
+
+/**
  * Ein Eintrag aus dem, was die Kasse ohnehin weiss. NICHTS wird hier geschaetzt:
  * jede Zahl kommt aus `Kasse.bericht()`, jeder Name aus der Besetzung.
  *
@@ -68,7 +92,7 @@ export const ARTEN = {
  */
 export function eintrag({ art, echt, datum, bericht, besetzung = [],
                           titel = "", ergebnis = "", wer = "", arm = "voll",
-                          beginn = "",
+                          beginn = "", zugang = "", fortsetzungVon = "",
                           beendet = new Date().toISOString() }) {
   if (!ARTEN[art]) throw new Error(
     `Unbekannte Fahrt-Art "${art}". Bekannt: ${Object.keys(ARTEN).join(", ")}. ` +
@@ -112,12 +136,50 @@ export function eintrag({ art, echt, datum, bericht, besetzung = [],
        „unbekannt": alte Einträge nachträglich mit einem Namen zu füllen wäre
        eine erfundene Angabe. */
     wer: String(wer || ""),
-    eur: Number(bericht.verbrauchtEur || 0),
+    /*
+     * ⚡ DREI SPALTEN STATT EINER (2026-09-17). `eur` ist ab hier das, was
+     * WIRKLICH abgerechnet wird; `eurGerechnet` das, was es gekostet HÄTTE.
+     *
+     * Beim API-Weg fallen die zwei zusammen, und das ist kein Grund, eine
+     * davon weglassen: erst weil beide dastehen, lässt sich ausrechnen, was
+     * das Abo spart — und das ist für die Forschung der ganze Gewinn dieses
+     * Bauschritts. Derselbe Lauf, zwei Zahlen.
+     *
+     * ⚠ EINE GEMISCHTE FAHRT BUCHT VOLL. Läuft nur ein Teil der Aufrufe über
+     * das Abo (`zugang: "gemischt"`), ist der API-Teil bezahlt — und welcher
+     * Anteil das war, weiss diese Zeile nicht. Sie bucht deshalb den ganzen
+     * gerechneten Betrag: eine zu hohe Zahl fällt auf, eine zu niedrige nicht.
+     */
+    zugang: String(zugang || bericht.zugang || "api"),
+    eurStatus: (() => {
+      const g = bericht.gemeldetEur;
+      if (typeof g === "number" && !bericht.gemeldetLuecken) return "gemeldet";
+      return "gerechnet";
+    })(),
+    eur: (String(zugang || bericht.zugang || "api") === "abo")
+      ? 0 : Number(bericht.verbrauchtEur || 0),
+    /* Was es gekostet HÄTTE. Die gemeldete Zahl gewinnt, wenn sie vollständig
+       ist — sie kommt von der Gegenseite, die selbst abrechnet, und ist damit
+       näher an der Wahrheit als unsere Preistabelle. Ist sie lückenhaft,
+       gewinnt die eigene Rechnung: eine Summe aus drei von fünf Runden wäre
+       die zu niedrige Zahl, die niemandem auffällt. */
+    eurGerechnet: (typeof bericht.gemeldetEur === "number" && !bericht.gemeldetLuecken)
+      ? Number(bericht.gemeldetEur)
+      : Number(bericht.verbrauchtEur || 0),
     deckelEur: Number(bericht.deckelEur || 0),
     aufrufe: Number(bericht.aufrufe || 0),
     // Die gelaufene Zeit und die erlaubte Zeit sind zwei Zahlen, nicht eine.
     minuten: Number(bericht.minuten || 0),
     deckelMinuten: Number(bericht.laufzeitMinuten || 0),
+    /* ⚠ WAS DIE WERKSTATT VORHER GESCHAETZT HAT — und ob jemand sie
+       ueberstimmt hat. Ohne diese zwei Felder kann die Rueckkopplung nicht
+       lernen: `taugtAlsPunkt` in `zeitschaetzung.mjs` braucht beides, und
+       eine Fahrt mit von Hand gezogenem Regler widerlegt keine Schaetzung.
+       0 heisst „nicht geschaetzt" (Fahrten von vor dem 2026-09-22) — und die
+       Schaetzung faellt dort von selbst heraus, statt aus einer Null zu
+       lernen. */
+    zeitSchaetzungMin: Number(bericht.zeitSchaetzungMin || 0),
+    zeitVonHand: bericht.zeitVonHand === true,
     rechenMs: Number(bericht.msGesamt || 0),
     jeRolle: bericht.jeRolle || {},
     /* Wie viel TEXT je Rolle. Ohne diese Zeile lebt die Zahl nur bis zum
@@ -137,6 +199,13 @@ export function eintrag({ art, echt, datum, bericht, besetzung = [],
        ohne ihre Bedingung ist keine Messung — und alte Fahrten aus der Zeit vor
        dem Versuch tragen „voll", weil sie genau so gelaufen sind. */
     arm: String(arm || "voll"),
+    /* WESSEN FORTSETZUNG diese Fahrt ist (2026-09-17): die Lauf-Kennung des
+       Abschnitts davor, sonst leer. Eine Fortsetzung hat ihre eigene Kasse
+       und steht deshalb als eigene Fahrt — ohne dieses Feld sähen zwei
+       Fahrten desselben Laufs aus wie zwei Läufe, und „Wert gegen Kosten"
+       rechnete nur den zweiten. Leer heisst „kein zweiter Abschnitt", nicht
+       „unbekannt": Fahrten von vor diesem Tag hatten keinen. */
+    fortsetzungVon: String(fortsetzungVon || ""),
     besetzung: besetzung.slice(),
     titel: String(titel || ""),
     ergebnis: String(ergebnis || ""),

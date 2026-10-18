@@ -51,7 +51,7 @@ import "../zeit.js";
 const tagOrt = () => globalThis.WERKSTATT_ZEIT.tagOrt();
 
 import * as spind from "./spind.mjs";
-import { macheRufer } from "./ruf.mjs";
+import { macheRufer, laufKennung } from "./ruf.mjs";
 
 export const KONFERENZ_ANTEIL = 1 / 3;
 
@@ -187,7 +187,21 @@ export function merkeVor({ api, wer, spinde, spindAblage, vorschlaege, tafel, si
 export async function konferenz({
   api, mitarbeiter, kasse, spindAblage, lage = "", anteil = KONFERENZ_ANTEIL, werkbank = null,
   grundsaetze, datum = tagOrt(), unterlagen = null,
-  aufZwischenstand = null,
+  aufZwischenstand = null, laufId = null,
+  /*
+   * ⚠ EINE ABSOLUTE OBERGRENZE FÜRS VERBRAUCHTE, statt eines Anteils am
+   * Gesamt-Deckel (2026-09-21, mit dem Notausgang).
+   *
+   * `anteil` rechnet vom GANZEN Deckel — am Eingang einer Schicht ist das
+   * richtig, denn dort ist noch nichts verbraucht. MITTEN in einer Schicht
+   * ist ein Drittel des Gesamt-Deckels längst überschritten, und `ruf.mjs`
+   * vergleicht `zusatzDeckel` gegen das bisher Verbrauchte: die Konferenz
+   * bräche beim ERSTEN Aufruf ab und sähe aus wie ein Fehler.
+   *
+   * Wer nichts übergibt, bekommt genau die alte Rechnung. Wer etwas übergibt,
+   * hat sie schon angestellt — `bezahlbar()` in `festgefahren.mjs`.
+   */
+  deckelEur = null,
 } = {}) {
   const wer = Object.fromEntries(mitarbeiter.map((m) => [m.rolle, m]));
   /*
@@ -204,6 +218,10 @@ export async function konferenz({
    * Wortlaut wie an den beiden anderen Stellen.
    */
   const art = api?.art === "echt" ? "echt" : "trocken";
+  /* Die Kennung dieses Laufs — einmal gezogen, siehe `laufKennung` in ruf.mjs.
+     Die Konferenz bekommt eine EIGENE: sie ist ein eigener Lauf mit eigener
+     Datei, auch wenn eine Schicht direkt anschliesst. */
+  laufId = laufId || laufKennung(art);
   const spinde = Object.fromEntries(
     mitarbeiter.map((m) => [m.rolle,
       spind.oeffnen(spindAblage, m, { schreiben: api?.art === "echt" })]));
@@ -216,7 +234,7 @@ export async function konferenz({
    * darauf spurlos. Die Konferenz lief dann ohne Haltung und sagte es niemandem.
    */
   const ruf = macheRufer({ api, wer, spinde, kasse, werkbank, grundsaetze, unterlagen });
-  const deckel = kasse.deckelEur * anteil;
+  const deckel = deckelEur === null ? kasse.deckelEur * anteil : deckelEur;
 
   const protokoll = [];
   const vorschlaege = [];
@@ -255,6 +273,15 @@ export async function konferenz({
     catch { /* nie den Lauf umwerfen */ }
   };
   const merke = (e) => { events.push({ t: t++, ms: Date.now() - beginn, ...e }); melde(); };
+  /* Was jedes Ruf-Ereignis seit Bauschritt 3 trägt — dieselben drei Felder
+     wie in der Schicht, aus derselben Antwort des Rufers. */
+  const spur = (x) => ({
+    werkzeugRufe: x.werkzeugRufe || 0, wiederholungen: x.wiederholungen || 0,
+    neuAngefragt: x.neuAngefragt || 0,
+    ...(x.unlesbar && x.unlesbar.length ? { unlesbar: x.unlesbar } : {}),
+    werkzeuge: x.werkzeuge || [],
+    herkunft: { laufId, ...(x.herkunft || {}) },
+  });
 
   // ── Runde 1: jeder bringt einen ein ──────────────────────────────────────
   for (const m of mitarbeiter) {
@@ -265,10 +292,10 @@ export async function konferenz({
     protokoll.push(`${m.name} schlägt vor: ${a.inhalt.titel} — ${a.inhalt.ergebnis}`);
     merke({ phase: "vorschlag", rolle: m.rolle, wer: m.name, nummer: vorschlaege.length,
             titel: a.inhalt.titel, ergebnis: a.inhalt.ergebnis,
-            begruendung: a.inhalt.begruendung || "", dauerMs: a.dauerMs || 0 });
+            begruendung: a.inhalt.begruendung || "", dauerMs: a.dauerMs || 0, ...spur(a) });
   }
   if (vorschlaege.length < 2)
-    return { ok: false, art, datum, grund: "zu wenige Vorschläge", vorschlaege, protokoll, events,
+    return { ok: false, art, laufId, datum, grund: "zu wenige Vorschläge", vorschlaege, protokoll, events,
              auftrag: null, tafel: [], eigenlob: [], vorgemerkt: [], haenger: [] };
 
   // ── Runde 2: jeder bewertet alle ─────────────────────────────────────────
@@ -279,10 +306,10 @@ export async function konferenz({
     if (a.abbruch) break;
     stimmzettel.push({ rolle: m.rolle, name: m.name, stimmen: a.inhalt.stimmen || [] });
     merke({ phase: "bewertung", rolle: m.rolle, wer: m.name,
-            stimmen: a.inhalt.stimmen || [], dauerMs: a.dauerMs || 0 });
+            stimmen: a.inhalt.stimmen || [], dauerMs: a.dauerMs || 0, ...spur(a) });
   }
   if (!stimmzettel.length)
-    return { ok: false, art, datum, grund: "niemand hat abgestimmt", vorschlaege, protokoll, events,
+    return { ok: false, art, laufId, datum, grund: "niemand hat abgestimmt", vorschlaege, protokoll, events,
              auftrag: null, tafel: [], eigenlob: [], vorgemerkt: [], haenger: [] };
 
   const { tafel, sortiert, sieger, eigenlob, gleichstand, doppelte } =
@@ -317,17 +344,18 @@ export async function konferenz({
     tafel: sortiert, einwaende: sieger.einwaende, haenger,
   });
   if (schluss.abbruch)
-    return { ok: false, art, datum, grund: schluss.abbruch.text, vorschlaege, protokoll, events,
+    return { ok: false, art, laufId, datum, grund: schluss.abbruch.text, vorschlaege, protokoll, events,
              auftrag: null, tafel: sortiert, eigenlob, vorgemerkt, haenger };
 
   merke({ phase: "schluss", rolle: "beobachter", wer: wer.beobachter?.name || "",
           ziel: schluss.inhalt.ziel, pruefmerkmal: schluss.inhalt.pruefmerkmal,
           begruendung: schluss.inhalt.begruendung,
           verworfen: schluss.inhalt.verworfen || [],
-          haengerText: schluss.inhalt.haenger || "", dauerMs: schluss.dauerMs || 0 });
+          haengerText: schluss.inhalt.haenger || "", dauerMs: schluss.dauerMs || 0,
+          ...spur(schluss) });
 
   return {
-    ok: true, art,
+    ok: true, art, laufId,
     /* ⚠ DER ENDSTAND TRUG KEIN DATUM (Klaus 2026-09-07). Nur der
        Zwischenstand hatte eines — und deshalb stand an der fertigen
        Konferenz „Konferenz ohne Datum", obwohl der Tag die ganze Zeit

@@ -181,7 +181,8 @@
         phase === "gestaltung" || phase === "nutzung") return PRUEFUNG;
     /* `schaerfung` gehört an den TISCH: Ben spricht mit dem Ingenieur, bevor
        irgendjemand losgeht. */
-    return TISCH;   /* idee · schaerfung · tor · vorschlag · bewertung · schluss · feierabend */
+    return TISCH;   /* idee · schaerfung · tor · vorschlag · bewertung · schluss ·
+                       notausgang · feierabend */
   }
 
   /* Jede Phase MUSS hier stehen. Eine unbekannte fiele sonst still durch und
@@ -194,6 +195,13 @@
      man überall hineingesehen hat — und ein Beispiel ist nicht überall. */
   var PHASEN = ["idee", "schaerfung", "tor", "vorschlag", "bewertung", "merkliste",
                 "schluss", "build", "urteil", "befund", "gestaltung", "nutzung",
+                /* Der Notausgang (2026-09-21): die ganze Runde berät noch einmal,
+                   mitten in der Schicht. Er steht am TISCH — dort wird geredet,
+                   nicht an der Werkbank gebaut. Eingetragen ZUGLEICH mit dem
+                   Code, der ihn erzeugt: „merkliste" hat gezeigt, dass eine
+                   fehlende Phase keiner Probe auffällt, solange der
+                   mitgelieferte Beispiel-Lauf sie nicht trägt. */
+                "notausgang",
                 "feierabend"];
 
   var STAND_WORT = {
@@ -1153,6 +1161,22 @@
          der die Phasen schreibt. */
       kopf = ev.freigegeben ? "gibt den Bau frei" : "hält den Bau an";
       inhalt = ev.grund || (ev.freigegeben ? "" : "Vor dem Bauen verworfen.");
+    } else if (ph === "notausgang") {
+      /* ⚠ ZUM VIERTEN MAL DIESELBE LEHRE (2026-09-21). „tor", „merkliste",
+         „gestaltung"/„nutzung" — jedes Mal kannte ein Raum die Phase und die
+         Bühne nicht, und jedes Mal fiel es keiner Probe auf, weil der
+         mitgelieferte Beispiel-Lauf sie nicht trägt. Diese hier steht deshalb
+         da, BEVOR ein Lauf sie je geschrieben hat. */
+      if (!ev.gefeuert) {
+        kopf = "stellt fest: es dreht sich im Kreis";
+        inhalt = ev.text || "";
+      } else if (ev.ausgang === "abbruch") {
+        kopf = "findet keinen gemeinsamen Weg";
+        inhalt = ev.text || "";
+      } else {
+        kopf = "beschliesst einen neuen Weg";
+        inhalt = ev.ziel || "";
+      }
     } else if (ph === "merkliste") {
       var eintr = ev.eintraege || [];
       kopf = eintr.length ? "merkt sich " + eintr.length + " Idee(n)" : "merkt sich nichts";

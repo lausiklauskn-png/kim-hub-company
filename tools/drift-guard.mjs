@@ -52,43 +52,48 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
  * Fingerabdrücke unten nachzieht und das hier vergisst, wird rot.
  */
 export const HERKUNFT = {
-  commit: "1113715",
-  datum:  "2026-09-10T22:21:12+00:00",
-  betreff: "Die Bauzeit-Kachel sagt, warum sie leer ist — und was sie fuellt",
+  commit: "1332336",
+  datum:  "2026-10-18T20:33:25+02:00",
+  betreff: "Installieren-Knopf immer da (gemeinsame Datei aus Sage) (#402)",
 };
 
 export const ERWARTET = [
-  { datei: "index.html",                herkunft: "start.html",              sha: "1226772c03181877763afa784da7c69c0b8852de40be8712366bcdc2ea0cc9e4" },
-  { datei: "company.js",                herkunft: "company.js",              sha: "8225958ef89441c83cceb7265c4f17423017f24fb8bc61c2f9e218e587629870" },
-  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "0e9ac6c133b27842092d87987c282e12e19ac6d6ae16a507c4ed8a5203058ac5" },
-  { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "2b55844be02df209c8f18d7f8434b4a39bebe2621b7720a3e2b725bfdecaee9c" },
-  { datei: "zeit.js",                   herkunft: "zeit.js",                 sha: "b2d483fa378d67a852feac4c9f7aff0f2d9977ebe149f510f606072f77a385c9" },
+  { datei: "index.html",                herkunft: "start.html",              sha: "7cbd532cf205aa19d69b83553fde90ff6cddb73fdd80abca25b535157dba332c" },
+  { datei: "company.js",                herkunft: "company.js",              sha: "9a6e446cd9ab934d593ebdb9d34dfba1b329b734c7fd5af268fe78eeb98e96c2" },
+  { datei: "ansicht.js",                herkunft: "ansicht.js",              sha: "282b7a131060998f2d93230dceb838510869a5801220929fa8f4963d681385b5" },
+  { datei: "buehne.js",                 herkunft: "buehne.js",               sha: "4f0249c287a572240255f5ab591ac8899fc985a9c01c0b5a22e7ee2ecd760b62" },
+  { datei: "zeit.js",                   herkunft: "zeit.js",                 sha: "278ac1fd6e93bff68fd51fd33e46fbc845580f6f1d956c0404861b5067dcc8e6" },
   /* ⚠ NEU AM 2026-09-07. `zusammen()` ist aus `schicht/kosten.mjs` hierher
      umgezogen, weil die Ansicht ein klassisches Skript ist und es nicht
      importieren kann. Dieselbe Bauart wie `zeit.js` — und derselbe Grund:
      was sich nachrechnen laesst, gehoert dorthin, wo es ueberall laeuft. */
-  { datei: "kassen.js",                 herkunft: "kassen.js",               sha: "c6caa23ea7c11d4c81955ef8f3348537a2b2cbfd606fd2efa203dbf3da205e29" },
+  { datei: "kassen.js",                 herkunft: "kassen.js",               sha: "0f3a2550e44423b87e1f57ce8733fc0b529158b21766ffbdad3fd5471c5de193" },
   { datei: "idb.js",                    herkunft: "idb.js",                  sha: "b244ab3f832bb4d4cd5ec87e51de364df5716ee7ca6fc8a2bceeea6b6c9bbd51" },
   { datei: "schluesseltresor.js",       herkunft: "schluesseltresor.js",     sha: "eaed30e8f3921835a3f58b69f89d9b008831f69f164ad1dfec630fa43161f666" },
-  { datei: "schicht/konferenz.mjs",     herkunft: "schicht/konferenz.mjs",   sha: "41e2e4f38bc68f380da7e590955715a4b93c431572bfec451b3f7813b0dcaf39" },
+  { datei: "schicht/konferenz.mjs",     herkunft: "schicht/konferenz.mjs",   sha: "6af9b83b85d9b72916c42a35c072ce21afc21c68fb3d3e68ca707cc353263b9c" },
   { datei: "schicht/plan-form.mjs",  herkunft: "schicht/plan-form.mjs", sha: "6dcefbc19383235d1f0bf0ea16b12994d1dcb2af6db2acd943664a09c0a0f6a0" },
   { datei: "schicht/umfang.mjs",     herkunft: "schicht/umfang.mjs",    sha: "f0497c620434c0bc9c24268f23616174ca6ed658e4a56da0b47edf3340f35990" },
-  { datei: "schicht/schicht.mjs",       herkunft: "schicht/schicht.mjs",     sha: "d2fde3cb48c2dcbda9312bc1eed8413c4d1dabef6105e89b09d6b46e8ee7dbec" },
-  { datei: "schicht/api.mjs",           herkunft: "schicht/api.mjs",         sha: "7474a117b640f6c1f4a722c44b51025f93e6ba365e0fffe92e2888322009bb94" },
+  { datei: "schicht/schicht.mjs",       herkunft: "schicht/schicht.mjs",     sha: "338f67eadbd7afe174314338c21799c8b3ba3930f380e019d16bed3d113608ca" },
+  { datei: "schicht/api.mjs",           herkunft: "schicht/api.mjs",         sha: "49543deb23eb918ea0e6e59d96798b4966935b534cd131023c650fc9eebbaa57" },
   { datei: "schicht/transport-netz.mjs",herkunft: "schicht/transport-netz.mjs", sha: "6c149df086ff0ea820060385132b7513352a796f2b7c64883732acb1f1078797" },
-  { datei: "schicht/kosten.mjs",        herkunft: "schicht/kosten.mjs",      sha: "eefa1fa5e1e48693df90b68e08f3bf051fb04c3052eb6a38f6584158293df96e" },
-  { datei: "schicht/beispiele.mjs",     herkunft: "schicht/beispiele.mjs",   sha: "8529582d68441b87b14bc70e35cc32e355b173bd2c1b1f4103d5b9ac24fddb5f" },
+  { datei: "schicht/kosten.mjs",        herkunft: "schicht/kosten.mjs",      sha: "c3c385694d2f5fde360ed983195ff8e5117cf70160025f0e3a5deffa4416b731" },
+  { datei: "schicht/beispiele.mjs",     herkunft: "schicht/beispiele.mjs",   sha: "611e77fd8f281df1a79cda98197d94df15fab5917f48c71d35daf56e3d74dd25" },
   { datei: "schicht/grundsaetze.mjs",   herkunft: "schicht/grundsaetze.mjs", sha: "340117e1f311aba0bfce9730fad28b90e3fdddde8aa3d0e103073b0bea883523" },
-  { datei: "schicht/fahrtenbuch-form.mjs",  herkunft: "schicht/fahrtenbuch-form.mjs", sha: "85c99d330b36f95ef601a90903a74af42567a3d68e7ddfb13d055ed0e91f5553" },
+  { datei: "schicht/fahrtenbuch-form.mjs",  herkunft: "schicht/fahrtenbuch-form.mjs", sha: "e31a23e8c490544b49f00ff9adcb01d8cfd695085ab6b027a68a35d16671c955" },
   { datei: "schicht/ablage-idb.mjs",    herkunft: "schicht/ablage-idb.mjs",  sha: "4e240592e9eb65e21bad68a3bb1fe8d859b113bb800009406e1254f29c5a1c9b" },
   { datei: "schicht/ablage-speicher.mjs", herkunft: "schicht/ablage-speicher.mjs", sha: "9c67aca234783a39ce2599bd2763393180d56091160b6c87f1f3c6b6bbb48fd3" },
   { datei: "schicht/baum-speicher.mjs", herkunft: "schicht/baum-speicher.mjs", sha: "f854d3a9552d9cb1eba8aabe4a4c15af711cc09364a34087e4cc3cff6528a2a9" },
-  { datei: "schicht/werkzeuge.mjs",     herkunft: "schicht/werkzeuge.mjs",   sha: "4e81dfbe5588104e776e2cb5e8be5b2a2cf02042563d8bbca7acce8f80761cef" },
+  { datei: "schicht/werkzeuge.mjs",     herkunft: "schicht/werkzeuge.mjs",   sha: "6d50f0dffac439d6f4164002e9f7fecd2539e726a4e3cc1a4adb0b265fa534b1" },
   { datei: "schicht/spind.mjs",         herkunft: "schicht/spind.mjs",       sha: "6b5d0d6601139cf9c5555625e501ab7e1695c917d4f2a24463deb36d08e34c56" },
-  { datei: "schicht/ruf.mjs",           herkunft: "schicht/ruf.mjs",         sha: "a58adfbe1e5b3cf241f63a29f70d7e1ae0c1530013ef775d037c712d5499ab3b" },
-  { datei: "schicht/rollen.mjs",        herkunft: "schicht/rollen.mjs",      sha: "00faa686ccb8f73d83dc8aff4c630942c894c4f58a6a3c6ce61b5ec9eb01fd4f" },
+  { datei: "schicht/ruf.mjs",           herkunft: "schicht/ruf.mjs",         sha: "f1ef93996a4dd97c57b77d22dd4ba536324ed14304af3eb040c25638e7c66ab8" },
+  { datei: "schicht/rollen.mjs",        herkunft: "schicht/rollen.mjs",      sha: "c8a08cf2690cb204acbdea4b84e33d0e977d97c0b45bbfd2ec7d70fc1a04567e" },
   { datei: "schicht/grundsaetze.md",    herkunft: "schicht/grundsaetze.md",  sha: "422a3c7b3cb35fea6dade1409340907621ca6a6615c9a9622cfb999d369c0bfd" },
-  { datei: "schicht/mitarbeiter.json",  herkunft: "schicht/mitarbeiter.json", sha: "c5329371b437e58ad40d67c4d9c3f00d0bf300be2fda17f016bb3db1ce8c110a" },
+  { datei: "schicht/mitarbeiter.json",  herkunft: "schicht/mitarbeiter.json", sha: "1510154ee2f23a65efc5df0873ca9a3166cb93bcf1ed2c55be02e749fe3078f6" },
+  /* NEU 2026-10-18: company.js braucht festgefahren/zeitschaetzung, start.html den Installieren-Knopf
+     (assets/installieren.js, in Kimhub byte-1:1 aus Sage). */
+  { datei: "schicht/festgefahren.mjs", herkunft: "schicht/festgefahren.mjs", sha: "3928691ac868a0e8b8fc55545625996ef8e5e383687ad8dcc7963521aa8a1557" },
+  { datei: "schicht/zeitschaetzung.mjs", herkunft: "schicht/zeitschaetzung.mjs", sha: "74790f30909cad44c39a8a8ddc0f98ca322202bc76453b59dc82d57141a422ce" },
+  { datei: "assets/installieren.js", herkunft: "assets/installieren.js", sha: "e0644084e2e72773608633190a3e5ed287f93d88f438e7473f03c765c7f873c3" },
 ];
 
 export function abdruck(datei) {
