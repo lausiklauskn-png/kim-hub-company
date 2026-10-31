@@ -1,3 +1,5 @@
+**🔬 Regel: Forschung nur in Kimhub (Klaus 2026-10-31: „einheitlich alles in Kimhub … in den einzelnen Repos soll keine Forschungseinträge sein“):** jeder Forschungseintrag kommt nach **Kimhub `forschung/messungen/`** (`<app>-<thema>-<datum>.md`); hier stehen nur Verweise.
+
 # Kim Hub Company — Sitzungs-Anker
 
 **Kurz-Verfassung.** Netzweites steht in **Sage-Protokol**, die Werkstatt-Regeln
