@@ -9,7 +9,7 @@ den Arzt und Negativbauer aus der Seite herausgeschnitten und in Node gefahren
 haben.
 
 Gebaut am 2026-09-04 von acht Rollen in einem Durchgang. Der Verlauf und die
-Auswertung stehen in [`../../forschung/LAUF-01.md`](../../forschung/LAUF-01.md).
+Auswertung stehen in [Kimhub forschung/messungen/kim-hub-company-lauf-01-2026-09-04.md](https://github.com/lausiklauskn-png/Kimhub/blob/main/forschung/messungen/kim-hub-company-lauf-01-2026-09-04.md).
 
 ---
 
